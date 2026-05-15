@@ -13,7 +13,7 @@ export interface Profile {
   role: Role;
   created_at: string;
 }
-
+//cate
 export interface Category {
   id: string;
   name: string;
