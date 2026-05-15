@@ -1,6 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { ensureUserProfile } from "@/actions/auth";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
 
 export default async function DashboardLayout({
@@ -13,8 +12,6 @@ export default async function DashboardLayout({
   if (!userId) {
     redirect("/login");
   }
-
-  await ensureUserProfile(userId);
 
   return (
     <div className="flex min-h-screen">

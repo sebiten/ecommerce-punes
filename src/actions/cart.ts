@@ -20,13 +20,13 @@ export async function addToCart(
     .from("cart_items")
     .upsert(
       {
-        clerk_user_id: userId,
+        profile_id: userId,
         product_id: productId,
         variant_id: variantId,
         quantity,
       },
       {
-        onConflict: "clerk_user_id,product_id,variant_id",
+        onConflict: "profile_id,product_id,variant_id",
       }
     );
 
@@ -64,7 +64,7 @@ export async function getCartItems() {
       ),
       variant:product_variants(*)
     `)
-    .eq("clerk_user_id", userId);
+    .eq("profile_id", userId);
 
   if (error) throw error;
   return data;

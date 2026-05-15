@@ -37,7 +37,7 @@ export async function createOrder({
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .insert({
-      clerk_user_id: userId,
+      profile_id: userId,
       total,
       shipping_cost: shippingCost,
       shipping_method: shippingMethod,
@@ -95,7 +95,7 @@ export async function getOrders() {
         product:products(*)
       )
     `)
-    .eq("clerk_user_id", userId)
+    .eq("profile_id", userId)
     .order("created_at", { ascending: false });
 
   if (error) throw error;

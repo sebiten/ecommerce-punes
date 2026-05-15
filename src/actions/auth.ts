@@ -8,7 +8,7 @@ import type { Profile } from "@/types";
 import type { Role } from "@/types";
 
 type ProfileRow = {
-  clerk_user_id: string;
+  id: string;
   email: string;
   full_name: string | null;
   role: Role;
@@ -16,8 +16,8 @@ type ProfileRow = {
 
 function buildProfileFromRow(data: ProfileRow): Profile {
   return {
-    id: data.clerk_user_id,
-    clerk_user_id: data.clerk_user_id,
+    id: data.id,
+    clerk_user_id: data.id,
     email: data.email,
     full_name: data.full_name,
     phone: null,
@@ -43,12 +43,12 @@ async function getClerkUserBasics(userId: string) {
   return { email, displayName };
 }
 
-async function getProfileFromDb(clerkUserId: string) {
+async function getProfileFromDb(userId: string) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("profiles")
-    .select("clerk_user_id, email, full_name, role")
-    .eq("clerk_user_id", clerkUserId)
+    .select("id, email, full_name, role")
+    .eq("id", userId)
     .maybeSingle();
 
   if (error) {
@@ -72,7 +72,7 @@ export async function ensureUserProfile(userId: string) {
   }
 
   const payload = {
-    clerk_user_id: userId,
+    id: userId,
     email: clerkBasics.email,
     full_name: clerkBasics.displayName,
     role: existingProfile?.role ?? "client",
@@ -80,8 +80,8 @@ export async function ensureUserProfile(userId: string) {
 
   const { data, error } = await supabase
     .from("profiles")
-    .upsert(payload, { onConflict: "clerk_user_id" })
-    .select("clerk_user_id, email, full_name, role")
+    .upsert(payload, { onConflict: "id" })
+    .select("id, email, full_name, role")
     .single();
 
   if (error) {
@@ -119,12 +119,12 @@ export async function requireAdmin(): Promise<void> {
   }
 }
 
-export async function updateRole(profileClerkUserId: string, role: "client" | "admin") {
+export async function updateRole(profileId: string, role: "client" | "admin") {
   const supabase = getSupabaseAdmin();
   const { error } = await supabase
     .from("profiles")
     .update({ role })
-    .eq("clerk_user_id", profileClerkUserId);
+    .eq("id", profileId);
 
   if (error) throw error;
   revalidatePath("/dashboard");
@@ -140,7 +140,7 @@ export async function getAddresses() {
   const { data, error } = await supabase
     .from("addresses")
     .select("*")
-    .eq("clerk_user_id", userId);
+    .eq("profile_id", userId);
 
   if (error) throw error;
   return data || [];
@@ -164,11 +164,11 @@ export async function addAddress(address: {
     await supabase
       .from("addresses")
       .update({ is_default: false })
-      .eq("clerk_user_id", userId);
+      .eq("profile_id", userId);
   }
 
   const { error } = await supabase.from("addresses").insert({
-    clerk_user_id: userId,
+    profile_id: userId,
     ...address,
   });
 
