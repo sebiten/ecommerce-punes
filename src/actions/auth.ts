@@ -1,0 +1,191 @@
+"use server";
+
+import { auth } from "@clerk/nextjs/server";
+import { clerkClient } from "@clerk/nextjs/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { revalidatePath } from "next/cache";
+import type { Profile } from "@/types";
+import type { Role } from "@/types";
+
+type ProfileRow = {
+  clerk_user_id: string;
+  email: string;
+  full_name: string | null;
+  role: Role;
+};
+
+function buildProfileFromRow(data: ProfileRow): Profile {
+  return {
+    id: data.clerk_user_id,
+    clerk_user_id: data.clerk_user_id,
+    email: data.email,
+    full_name: data.full_name,
+    phone: null,
+    role: data.role,
+    created_at: "",
+  };
+}
+
+async function getClerkUserBasics(userId: string) {
+  const client = await clerkClient();
+  const user = await client.users.getUser(userId);
+  const email =
+    user.emailAddresses.find((item) => item.id === user.primaryEmailAddressId)
+      ?.emailAddress ??
+    user.emailAddresses[0]?.emailAddress ??
+    `${userId}@pune.local`;
+  const displayName =
+    [user.firstName, user.lastName].filter(Boolean).join(" ").trim() ||
+    user.username ||
+    email.split("@")[0] ||
+    "Cliente";
+
+  return { email, displayName };
+}
+
+async function getProfileFromDb(clerkUserId: string) {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("clerk_user_id, email, full_name, role")
+    .eq("clerk_user_id", clerkUserId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Error fetching profile:", error);
+    return null;
+  }
+  return data ? buildProfileFromRow(data as ProfileRow) : null;
+}
+
+export async function ensureUserProfile(userId: string) {
+  const supabase = getSupabaseAdmin();
+  const existingProfile = await getProfileFromDb(userId);
+
+  let clerkBasics: Awaited<ReturnType<typeof getClerkUserBasics>>;
+  try {
+    clerkBasics = await getClerkUserBasics(userId);
+  } catch (error) {
+    console.error("Error fetching Clerk user:", error);
+    if (existingProfile) return existingProfile;
+    throw new Error("User not found in Clerk");
+  }
+
+  const payload = {
+    clerk_user_id: userId,
+    email: clerkBasics.email,
+    full_name: clerkBasics.displayName,
+    role: existingProfile?.role ?? "client",
+  };
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .upsert(payload, { onConflict: "clerk_user_id" })
+    .select("clerk_user_id, email, full_name, role")
+    .single();
+
+  if (error) {
+    console.error("Error upserting profile:", error);
+    throw error;
+  }
+
+  return buildProfileFromRow(data as ProfileRow);
+}
+
+export async function getProfile(): Promise<Profile | null> {
+  const { userId } = await auth();
+  if (!userId) return null;
+
+  try {
+    return await ensureUserProfile(userId);
+  } catch (error) {
+    console.error("Error getting profile:", error);
+    return null;
+  }
+}
+
+export async function isAdmin(): Promise<boolean> {
+  const { userId } = await auth();
+  if (!userId) return false;
+
+  const profile = await getProfile();
+  return profile?.role === "admin";
+}
+
+export async function requireAdmin(): Promise<void> {
+  const admin = await isAdmin();
+  if (!admin) {
+    throw new Error("Acceso solo para administradores");
+  }
+}
+
+export async function updateRole(profileClerkUserId: string, role: "client" | "admin") {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ role })
+    .eq("clerk_user_id", profileClerkUserId);
+
+  if (error) throw error;
+  revalidatePath("/dashboard");
+}
+
+export async function getAddresses() {
+  const { userId } = await auth();
+  if (!userId) return [];
+
+  await ensureUserProfile(userId);
+  const supabase = getSupabaseAdmin();
+
+  const { data, error } = await supabase
+    .from("addresses")
+    .select("*")
+    .eq("clerk_user_id", userId);
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function addAddress(address: {
+  name: string;
+  street: string;
+  city: string;
+  state: string;
+  zip?: string;
+  isDefault?: boolean;
+}) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("User not authenticated");
+
+  await ensureUserProfile(userId);
+  const supabase = getSupabaseAdmin();
+
+  if (address.isDefault) {
+    await supabase
+      .from("addresses")
+      .update({ is_default: false })
+      .eq("clerk_user_id", userId);
+  }
+
+  const { error } = await supabase.from("addresses").insert({
+    clerk_user_id: userId,
+    ...address,
+  });
+
+  if (error) throw error;
+  revalidatePath("/account");
+}
+
+export async function deleteAddress(id: string) {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase.from("addresses").delete().eq("id", id);
+  if (error) throw error;
+  revalidatePath("/account");
+}
+
+export async function createProfile(): Promise<void> {
+  const { userId } = await auth();
+  if (!userId) return;
+
+  await ensureUserProfile(userId);
+}
