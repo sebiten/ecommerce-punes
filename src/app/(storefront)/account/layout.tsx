@@ -10,7 +10,7 @@ export default async function AccountLayout({
   const { userId } = await auth();
 
   if (!userId) {
-    redirect("/login");
+    redirect("/login?redirect_url=/account/orders");
   }
 
   return (

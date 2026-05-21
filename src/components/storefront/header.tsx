@@ -22,7 +22,7 @@ export function Header() {
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2">
             <Image
-              src="/punes-logo.webp"
+              src="/logo-punes.jpg"
               alt="Pune"
               width={120}
               height={40}
