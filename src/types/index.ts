@@ -63,7 +63,8 @@ export interface ProductWithDetails extends Product {
 
 export interface Address {
   id: string;
-  profile_id: string;
+  profile_id?: string | null;
+  clerk_user_id?: string | null;
   name: string;
   street: string;
   city: string;
@@ -73,14 +74,25 @@ export interface Address {
   created_at: string;
 }
 
+export interface ShippingAddress {
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  street: string;
+  city: string;
+  state: string;
+  zip?: string | null;
+}
+
 export interface Order {
   id: string;
-  profile_id: string | null;
+  profile_id?: string | null;
+  clerk_user_id?: string | null;
   status: OrderStatus;
   total: number;
   shipping_cost: number;
   shipping_method: string | null;
-  shipping_address: Address | null;
+  shipping_address: ShippingAddress | null;
   mercadopago_id: string | null;
   mercadopago_status: string | null;
   created_at: string;
@@ -132,4 +144,21 @@ export interface CartState {
   updateQuantity: (productId: string, variantId: string | null, quantity: number) => void;
   clearCart: () => void;
   total: number;
+}
+
+export interface StoreSettings {
+  store_name: string;
+  contact_email: string;
+  contact_phone: string;
+  whatsapp_phone: string | null;
+  address_line: string;
+  city: string;
+  state: string;
+  business_hours: string;
+  instagram_url: string | null;
+  facebook_url: string | null;
+  footer_text: string;
+  standard_shipping_cost: number;
+  express_shipping_cost: number;
+  free_shipping_threshold: number;
 }

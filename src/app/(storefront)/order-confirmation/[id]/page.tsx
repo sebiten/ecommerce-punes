@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { getOrderById } from "@/actions/orders";
+import { ClearCartOnMount } from "./clear-cart-on-mount";
 
 interface OrderConfirmationPageProps {
   params: Promise<{ id: string }>;
@@ -22,6 +23,7 @@ export default async function OrderConfirmationPage({
 
   return (
     <div className="container mx-auto px-4 py-16 text-center max-w-xl">
+      <ClearCartOnMount />
       <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
         <CheckCircle className="h-8 w-8 text-green-600" />
       </div>

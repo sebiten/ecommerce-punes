@@ -12,6 +12,7 @@ import { relations } from "drizzle-orm";
 
 export const profiles = pgTable("profiles", {
   id: uuid("id").primaryKey(),
+  clerkUserId: text("clerk_user_id").notNull().unique(),
   email: text("email").notNull(),
   fullName: text("full_name"),
   phone: text("phone"),
@@ -117,8 +118,8 @@ export const coupons = pgTable("coupons", {
 
 export const cartItems = pgTable("cart_items", {
   id: uuid("id").primaryKey().defaultRandom(),
-  profileId: uuid("profile_id")
-    .references(() => profiles.id, { onDelete: "cascade" })
+  clerkUserId: text("clerk_user_id")
+    .references(() => profiles.clerkUserId, { onDelete: "cascade" })
     .notNull(),
   productId: uuid("product_id").references(() => products.id),
   variantId: uuid("variant_id").references(() => productVariants.id),
@@ -197,8 +198,8 @@ export const orderItemsRelations = relations(orderItems, ({ one }) => ({
 
 export const cartItemsRelations = relations(cartItems, ({ one }) => ({
   profile: one(profiles, {
-    fields: [cartItems.profileId],
-    references: [profiles.id],
+    fields: [cartItems.clerkUserId],
+    references: [profiles.clerkUserId],
   }),
   product: one(products, {
     fields: [cartItems.productId],

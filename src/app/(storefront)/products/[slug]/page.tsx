@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { Star, Truck, Shield, RotateCcw } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { getProductBySlug } from "@/actions/products";
@@ -13,14 +12,24 @@ interface ProductPageProps {
   params: Promise<{ slug: string }>;
 }
 
-export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: ProductPageProps): Promise<Metadata> {
   const { slug } = await params;
   const product = await getProductBySlug(slug);
-  if (!product) return { title: "Producto no encontrado" };
+
+  if (!product) {
+    return { title: "Producto no encontrado" };
+  }
 
   return {
-    title: `${product.name} - Pune`,
+    title: product.name,
     description: product.description || `Comprar ${product.name}`,
+    openGraph: {
+      title: product.name,
+      description: product.description || `Comprar ${product.name}`,
+      images: product.images?.[0]?.url ? [product.images[0].url] : [],
+    },
   };
 }
 
@@ -46,21 +55,22 @@ export default async function ProductPage({ params }: ProductPageProps) {
             fill
             className="object-cover"
             priority
+            sizes="(max-width: 1024px) 100vw, 50vw"
           />
-          {product.featured && (
+          {product.featured ? (
             <Badge className="absolute left-4 top-4">Destacado</Badge>
-          )}
+          ) : null}
         </div>
 
         <div className="flex flex-col">
-          {product.category && (
-            <p className="text-sm text-muted-foreground mb-2">
+          {product.category ? (
+            <p className="mb-2 text-sm text-muted-foreground">
               {product.category.name}
             </p>
-          )}
-          <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
+          ) : null}
+          <h1 className="mb-4 text-3xl font-bold">{product.name}</h1>
 
-          <div className="flex items-center gap-2 mb-6">
+          <div className="mb-6 flex items-center gap-2">
             <div className="flex items-center">
               {[...Array(5)].map((_, i) => (
                 <Star
@@ -71,21 +81,21 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 />
               ))}
             </div>
-            <span className="text-sm text-muted-foreground">(128 reseñas)</span>
+            <span className="text-sm text-muted-foreground">(128 resenas)</span>
           </div>
 
-          <p className="text-3xl font-bold mb-6">
+          <p className="mb-6 text-3xl font-bold">
             {formatPrice(Number(product.basePrice))}
           </p>
 
           <div className="prose prose-sm mb-6 text-muted-foreground">
-            <p>{product.description || "Descripción no disponible."}</p>
+            <p>{product.description || "Descripcion no disponible."}</p>
           </div>
 
-          {product.variants && product.variants.length > 0 && (
+          {product.variants?.length ? (
             <Card className="mb-6">
               <CardContent className="p-4">
-                <h3 className="font-semibold mb-3">Tamaños disponibles</h3>
+                <h3 className="mb-3 font-semibold">Tamanos disponibles</h3>
                 <div className="grid grid-cols-2 gap-2">
                   {product.variants.map((variant) => (
                     <div
@@ -95,11 +105,11 @@ export default async function ProductPage({ params }: ProductPageProps) {
                       <p className="text-sm">
                         {variant.width} x {variant.length} cm
                       </p>
-                      {variant.priceOverride && (
+                      {variant.priceOverride ? (
                         <p className="text-sm font-semibold">
                           {formatPrice(Number(variant.priceOverride))}
                         </p>
-                      )}
+                      ) : null}
                       <p className="text-xs text-muted-foreground">
                         Stock: {variant.stock}
                       </p>
@@ -108,22 +118,22 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 </div>
               </CardContent>
             </Card>
-          )}
+          ) : null}
 
           <AddToCartButton product={product} />
 
           <div className="mt-8 space-y-4">
             <div className="flex items-center gap-3 text-sm">
               <Truck className="h-5 w-5 text-muted-foreground" />
-              <span>Envío gratis a todo el país en pedidos mayores a $50.000</span>
+              <span>Envio gratis a todo el pais en pedidos mayores a $50.000</span>
             </div>
             <div className="flex items-center gap-3 text-sm">
               <Shield className="h-5 w-5 text-muted-foreground" />
-              <span>Garantía de 10 años en todos los productos</span>
+              <span>Garantia de 10 anos en todos los productos</span>
             </div>
             <div className="flex items-center gap-3 text-sm">
               <RotateCcw className="h-5 w-5 text-muted-foreground" />
-              <span>30 días de prueba - Si no te gusta, te devolvemos el dinero</span>
+              <span>30 dias de prueba - Si no te gusta, te devolvemos el dinero</span>
             </div>
           </div>
         </div>

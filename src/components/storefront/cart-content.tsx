@@ -2,11 +2,11 @@
 
 import { useCartStore } from "@/hooks/use-cart";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Trash2, Plus, Minus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { formatPrice } from "@/lib/utils";
+import { getCartItemLineTotal } from "@/lib/commerce";
 
 export function CartContent() {
   const { items, removeItem, updateQuantity, getTotal } = useCartStore();
@@ -80,7 +80,7 @@ export function CartContent() {
                   </div>
 
                   <p className="text-sm font-medium">
-                    {formatPrice((item.product?.basePrice || 0) * item.quantity)}
+                    {formatPrice(getCartItemLineTotal(item))}
                   </p>
                 </div>
               </div>

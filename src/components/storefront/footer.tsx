@@ -1,7 +1,12 @@
 import Link from "next/link";
 import Image from "next/image";
+import type { StoreSettings } from "@/types";
 
-export function Footer() {
+interface FooterProps {
+  settings: StoreSettings;
+}
+
+export function Footer({ settings }: FooterProps) {
   return (
     <footer className="bg-[#1a1a1a] text-white">
       <div className="container mx-auto px-4 py-16">
@@ -9,15 +14,14 @@ export function Footer() {
           <div>
             <Image
               src="/punes-logo.webp"
-              alt="Pune"
+              alt={settings.store_name}
               width={120}
               height={40}
               className="mb-6 h-10 w-auto brightness-0 invert"
               style={{ width: "auto", height: "40px" }}
             />
-            <p className="text-sm text-white/60 leading-relaxed">
-              Más de 30 años fabricando colchones y sommiers con los mejores materiales.
-              El descanso que tu familia merece.
+            <p className="text-sm leading-relaxed text-white/60">
+              {settings.footer_text}
             </p>
           </div>
 
@@ -25,22 +29,22 @@ export function Footer() {
             <h4 className="mb-4 text-sm font-semibold text-[#f6ae66]">Productos</h4>
             <ul className="space-y-3 text-sm text-white/60">
               <li>
-                <Link href="/products?category=colchones" className="hover:text-[#f6ae66] transition-colors">
+                <Link href="/products?category=colchones" className="transition-colors hover:text-[#f6ae66]">
                   Colchones
                 </Link>
               </li>
               <li>
-                <Link href="/products?category=sommiers" className="hover:text-[#f6ae66] transition-colors">
+                <Link href="/products?category=sommiers" className="transition-colors hover:text-[#f6ae66]">
                   Sommiers
                 </Link>
               </li>
               <li>
-                <Link href="/products?category=accesorios" className="hover:text-[#f6ae66] transition-colors">
+                <Link href="/products?category=accesorios" className="transition-colors hover:text-[#f6ae66]">
                   Accesorios
                 </Link>
               </li>
               <li>
-                <Link href="/products" className="hover:text-[#f6ae66] transition-colors">
+                <Link href="/products" className="transition-colors hover:text-[#f6ae66]">
                   Ver todos
                 </Link>
               </li>
@@ -50,26 +54,41 @@ export function Footer() {
           <div>
             <h4 className="mb-4 text-sm font-semibold text-[#f6ae66]">Contacto</h4>
             <ul className="space-y-3 text-sm text-white/60">
-              <li>Av. Industrial 1234</li>
-              <li>Buenos Aires, Argentina</li>
-              <li>+54 11 1234-5678</li>
-              <li>info@pune.com.ar</li>
+              <li>{settings.address_line}</li>
+              <li>
+                {settings.city}, {settings.state}
+              </li>
+              <li>{settings.contact_phone}</li>
+              {settings.whatsapp_phone ? <li>WhatsApp: {settings.whatsapp_phone}</li> : null}
+              <li>{settings.contact_email}</li>
             </ul>
           </div>
 
           <div>
-            <h4 className="mb-4 text-sm font-semibold text-[#f6ae66]">Horarios</h4>
+            <h4 className="mb-4 text-sm font-semibold text-[#f6ae66]">Info</h4>
             <ul className="space-y-3 text-sm text-white/60">
-              <li>Lunes a Viernes: 9:00 - 18:00</li>
-              <li>Sábados: 9:00 - 13:00</li>
-              <li>Domingos: Cerrado</li>
+              <li>{settings.business_hours}</li>
+              {settings.instagram_url ? (
+                <li>
+                  <Link href={settings.instagram_url} className="transition-colors hover:text-[#f6ae66]">
+                    Instagram
+                  </Link>
+                </li>
+              ) : null}
+              {settings.facebook_url ? (
+                <li>
+                  <Link href={settings.facebook_url} className="transition-colors hover:text-[#f6ae66]">
+                    Facebook
+                  </Link>
+                </li>
+              ) : null}
             </ul>
           </div>
         </div>
 
         <div className="mt-12 border-t border-white/10 pt-8 text-center">
           <p className="text-sm text-white/40">
-            © {new Date().getFullYear()} Pune Colchones y Sommiers. Todos los derechos reservados.
+            © {new Date().getFullYear()} {settings.store_name}. Todos los derechos reservados.
           </p>
         </div>
       </div>

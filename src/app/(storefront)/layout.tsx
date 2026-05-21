@@ -1,26 +1,12 @@
-"use client";
+import { getStoreSettings } from "@/actions/store-settings";
+import { StorefrontShell } from "@/components/storefront/storefront-shell";
 
-import { Header } from "@/components/storefront/header";
-import { Footer } from "@/components/storefront/footer";
-import { CartDrawer } from "@/components/storefront/cart-drawer";
-import { CartContent } from "@/components/storefront/cart-content";
-import { useCartStore } from "@/hooks/use-cart";
-
-export default function StorefrontLayout({
+export default async function StorefrontLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { isOpen, setIsOpen } = useCartStore();
+  const settings = await getStoreSettings();
 
-  return (
-    <>
-      <Header />
-      <main className="flex-1">{children}</main>
-      <Footer />
-      <CartDrawer isOpen={isOpen} onClose={() => setIsOpen(false)}>
-        <CartContent />
-      </CartDrawer>
-    </>
-  );
+  return <StorefrontShell settings={settings}>{children}</StorefrontShell>;
 }

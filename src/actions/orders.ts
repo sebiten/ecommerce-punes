@@ -2,10 +2,25 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { ensureUserProfile } from "@/actions/auth";
+import { ensureUserProfile, getProfile, requireAdmin } from "@/actions/auth";
 import { createPreference } from "@/lib/mercadopago/client";
 import { revalidatePath } from "next/cache";
-import type { CartItem } from "@/types";
+import type { CartItem, OrderStatus } from "@/types";
+import { getCartItemUnitPrice } from "@/lib/commerce";
+
+const ORDER_STATUS_VALUES: OrderStatus[] = [
+  "pending",
+  "paid",
+  "shipped",
+  "delivered",
+  "cancelled",
+];
+
+function assertValidOrderStatus(status: string): asserts status is OrderStatus {
+  if (!ORDER_STATUS_VALUES.includes(status as OrderStatus)) {
+    throw new Error("Estado de orden invalido");
+  }
+}
 
 export async function createOrder({
   items,
@@ -21,6 +36,8 @@ export async function createOrder({
   shippingMethod: string;
   shippingAddress: {
     name: string;
+    email: string;
+    phone: string;
     street: string;
     city: string;
     state: string;
@@ -37,7 +54,7 @@ export async function createOrder({
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .insert({
-      profile_id: userId,
+      clerk_user_id: userId,
       total,
       shipping_cost: shippingCost,
       shipping_method: shippingMethod,
@@ -50,12 +67,14 @@ export async function createOrder({
   if (orderError) throw orderError;
 
   for (const item of items) {
+    const unitPrice = getCartItemUnitPrice(item);
+
     await supabase.from("order_items").insert({
       order_id: order.id,
       product_id: item.product_id,
       variant_id: item.variant_id,
       quantity: item.quantity,
-      unit_price: item.product?.basePrice || 0,
+      unit_price: unitPrice,
     });
   }
 
@@ -63,10 +82,15 @@ export async function createOrder({
     items: items.map((item) => ({
       id: item.product_id,
       title: item.product?.name || "Producto",
-      unit_price: item.product?.basePrice || 0,
+      unit_price: getCartItemUnitPrice(item),
       quantity: item.quantity,
       picture_url: item.product?.images?.[0]?.url,
     })),
+    payer: {
+      name: shippingAddress.name.split(" ")[0] || shippingAddress.name,
+      surname: shippingAddress.name.split(" ").slice(1).join(" "),
+      email: shippingAddress.email,
+    },
     external_reference: order.id,
     notification_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/mercadopago`,
     back_urls: {
@@ -95,7 +119,7 @@ export async function getOrders() {
         product:products(*)
       )
     `)
-    .eq("profile_id", userId)
+    .eq("clerk_user_id", userId)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
@@ -103,6 +127,12 @@ export async function getOrders() {
 }
 
 export async function getOrderById(id: string) {
+  const { userId } = await auth();
+  if (!userId) {
+    throw new Error("User not authenticated");
+  }
+
+  const profile = await getProfile();
   const supabase = getSupabaseAdmin();
 
   const { data, error } = await supabase
@@ -119,10 +149,18 @@ export async function getOrderById(id: string) {
     .single();
 
   if (error) throw error;
+
+  const orderOwnerId = data.clerk_user_id || data.profile_id;
+  if (profile?.role !== "admin" && orderOwnerId !== userId) {
+    throw new Error("Forbidden");
+  }
+
   return data;
 }
 
 export async function updateOrderStatus(id: string, status: string) {
+  await requireAdmin();
+  assertValidOrderStatus(status);
   const supabase = getSupabaseAdmin();
 
   const { error } = await supabase
@@ -132,4 +170,6 @@ export async function updateOrderStatus(id: string, status: string) {
 
   if (error) throw error;
   revalidatePath("/dashboard/orders");
+  revalidatePath(`/dashboard/orders/${id}`);
+  revalidatePath("/account/orders");
 }

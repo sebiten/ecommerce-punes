@@ -1,13 +1,12 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Pencil, Trash2 } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { Plus, Pencil } from "lucide-react";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { formatPrice } from "@/lib/utils";
 
 export default async function ProductsPage() {
-  const supabase = await createClient();
+  const supabase = getSupabaseAdmin();
 
   const { data: products } = await supabase
     .from("products")
@@ -92,9 +91,6 @@ export default async function ProductsPage() {
                         <Link href={`/dashboard/products/${product.id}/edit`}>
                           <Pencil className="h-4 w-4" />
                         </Link>
-                      </Button>
-                      <Button variant="ghost" size="icon">
-                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </td>

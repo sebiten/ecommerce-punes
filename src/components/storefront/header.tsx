@@ -60,14 +60,15 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="hidden lg:flex relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <form action="/products" className="relative hidden lg:flex">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
+              name="q"
               placeholder="Buscar productos..."
               className="w-56 pl-9 bg-[#f8f4f0] border-0"
             />
-          </div>
+          </form>
 
           {!isLoaded ? (
             <div className="h-9 w-9 animate-pulse rounded-md bg-muted" />
@@ -114,36 +115,47 @@ export function Header() {
 
       {isMenuOpen && (
         <div className="border-t bg-white md:hidden">
-          <nav className="container mx-auto px-4 py-4 flex flex-col gap-4">
-            <Link
-              href="/products"
-              className="text-sm font-medium py-2"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Productos
-            </Link>
-            <Link
-              href="/products?category=colchones"
-              className="text-sm font-medium py-2"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Colchones
-            </Link>
-            <Link
-              href="/products?category=sommiers"
-              className="text-sm font-medium py-2"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Sommiers
-            </Link>
-            <Link
-              href="/products?category=accesorios"
-              className="text-sm font-medium py-2"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Accesorios
-            </Link>
-          </nav>
+          <div className="container mx-auto px-4 py-4">
+            <form action="/products" className="relative mb-4">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="search"
+                name="q"
+                placeholder="Buscar productos..."
+                className="pl-9"
+              />
+            </form>
+            <nav className="flex flex-col gap-4">
+              <Link
+                href="/products"
+                className="text-sm font-medium py-2"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Productos
+              </Link>
+              <Link
+                href="/products?category=colchones"
+                className="text-sm font-medium py-2"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Colchones
+              </Link>
+              <Link
+                href="/products?category=sommiers"
+                className="text-sm font-medium py-2"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Sommiers
+              </Link>
+              <Link
+                href="/products?category=accesorios"
+                className="text-sm font-medium py-2"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Accesorios
+              </Link>
+            </nav>
+          </div>
         </div>
       )}
     </header>

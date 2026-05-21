@@ -1,21 +1,13 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { DollarSign, ShoppingCart, Package, TrendingUp } from "lucide-react";
 import { StatsCard } from "@/components/dashboard/stats-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/server";
-import { getProfile } from "@/actions/auth";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export default async function DashboardPage() {
-  const profile = await getProfile();
-
-  if (!profile || profile.role !== "admin") {
-    redirect("/");
-  }
-
-  const supabase = await createClient();
+  const supabase = getSupabaseAdmin();
 
   const { data: orders } = await supabase
     .from("orders")

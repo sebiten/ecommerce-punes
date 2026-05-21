@@ -11,6 +11,7 @@ type ProfileRow = {
   id: string;
   email: string;
   full_name: string | null;
+  phone: string | null;
   role: Role;
 };
 
@@ -20,7 +21,7 @@ function buildProfileFromRow(data: ProfileRow): Profile {
     clerk_user_id: data.id,
     email: data.email,
     full_name: data.full_name,
-    phone: null,
+    phone: data.phone,
     role: data.role,
     created_at: "",
   };
@@ -47,7 +48,7 @@ async function getProfileFromDb(userId: string) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, email, full_name, role")
+    .select("id, email, full_name, phone, role")
     .eq("id", userId)
     .maybeSingle();
 
@@ -74,14 +75,14 @@ export async function ensureUserProfile(userId: string) {
   const payload = {
     id: userId,
     email: clerkBasics.email,
-    full_name: clerkBasics.displayName,
+    full_name: existingProfile?.full_name ?? clerkBasics.displayName,
     role: existingProfile?.role ?? "client",
   };
 
   const { data, error } = await supabase
     .from("profiles")
     .upsert(payload, { onConflict: "id" })
-    .select("id, email, full_name, role")
+    .select("id, email, full_name, phone, role")
     .single();
 
   if (error) {
@@ -140,7 +141,9 @@ export async function getAddresses() {
   const { data, error } = await supabase
     .from("addresses")
     .select("*")
-    .eq("profile_id", userId);
+    .eq("clerk_user_id", userId)
+    .order("is_default", { ascending: false })
+    .order("created_at", { ascending: false });
 
   if (error) throw error;
   return data || [];
@@ -159,28 +162,99 @@ export async function addAddress(address: {
 
   await ensureUserProfile(userId);
   const supabase = getSupabaseAdmin();
+  const normalizedAddress = {
+    name: address.name.trim(),
+    street: address.street.trim(),
+    city: address.city.trim(),
+    state: address.state.trim(),
+    zip: address.zip?.trim() || null,
+    is_default: Boolean(address.isDefault),
+  };
 
-  if (address.isDefault) {
+  const { data: existingAddress, error: existingAddressError } = await supabase
+    .from("addresses")
+    .select("id")
+    .eq("clerk_user_id", userId)
+    .eq("name", normalizedAddress.name)
+    .eq("street", normalizedAddress.street)
+    .eq("city", normalizedAddress.city)
+    .eq("state", normalizedAddress.state)
+    .eq("zip", normalizedAddress.zip)
+    .maybeSingle();
+
+  if (existingAddressError) throw existingAddressError;
+
+  if (normalizedAddress.is_default) {
     await supabase
       .from("addresses")
       .update({ is_default: false })
-      .eq("profile_id", userId);
+      .eq("clerk_user_id", userId);
   }
 
-  const { error } = await supabase.from("addresses").insert({
-    profile_id: userId,
-    ...address,
-  });
+  if (existingAddress) {
+    const { error } = await supabase
+      .from("addresses")
+      .update(normalizedAddress)
+      .eq("id", existingAddress.id)
+      .eq("clerk_user_id", userId);
 
-  if (error) throw error;
+    if (error) throw error;
+  } else {
+    const { error } = await supabase.from("addresses").insert({
+      clerk_user_id: userId,
+      ...normalizedAddress,
+    });
+
+    if (error) throw error;
+  }
+
   revalidatePath("/account");
+  revalidatePath("/account/addresses");
+  revalidatePath("/checkout");
 }
 
 export async function deleteAddress(id: string) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("User not authenticated");
+
+  await ensureUserProfile(userId);
   const supabase = getSupabaseAdmin();
-  const { error } = await supabase.from("addresses").delete().eq("id", id);
+  const { error } = await supabase
+    .from("addresses")
+    .delete()
+    .eq("id", id)
+    .eq("clerk_user_id", userId);
+
   if (error) throw error;
   revalidatePath("/account");
+  revalidatePath("/account/addresses");
+  revalidatePath("/checkout");
+}
+
+export async function setDefaultAddress(id: string) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("User not authenticated");
+
+  await ensureUserProfile(userId);
+  const supabase = getSupabaseAdmin();
+
+  const { error: resetError } = await supabase
+    .from("addresses")
+    .update({ is_default: false })
+    .eq("clerk_user_id", userId);
+
+  if (resetError) throw resetError;
+
+  const { error } = await supabase
+    .from("addresses")
+    .update({ is_default: true })
+    .eq("id", id)
+    .eq("clerk_user_id", userId);
+
+  if (error) throw error;
+  revalidatePath("/account");
+  revalidatePath("/account/addresses");
+  revalidatePath("/checkout");
 }
 
 export async function createProfile(): Promise<void> {
@@ -188,4 +262,28 @@ export async function createProfile(): Promise<void> {
   if (!userId) return;
 
   await ensureUserProfile(userId);
+}
+
+export async function updateProfileContact(input: {
+  fullName?: string;
+  phone?: string;
+}) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("User not authenticated");
+
+  await ensureUserProfile(userId);
+  const supabase = getSupabaseAdmin();
+  const payload = {
+    full_name: input.fullName?.trim() || null,
+    phone: input.phone?.trim() || null,
+  };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update(payload)
+    .eq("id", userId);
+
+  if (error) throw error;
+  revalidatePath("/account");
+  revalidatePath("/checkout");
 }

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -15,8 +15,20 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Pune - Colchones y Sommiers",
-  description: "Fábrica de colchones y sommiers de alta calidad. Envíos a todo el país.",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+  ),
+  title: {
+    default: "Pune | Colchones y Sommiers",
+    template: "%s | Pune",
+  },
+  description: "Fabrica de colchones y sommiers de alta calidad. Envios a todo el pais.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#f6ae66",
 };
 
 export default function RootLayout({

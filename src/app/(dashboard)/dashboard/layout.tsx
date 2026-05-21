@@ -1,16 +1,20 @@
-import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
+import { getProfile } from "@/actions/auth";
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { userId } = await auth();
+  const profile = await getProfile();
 
-  if (!userId) {
+  if (!profile) {
     redirect("/login");
+  }
+
+  if (profile.role !== "admin") {
+    redirect("/");
   }
 
   return (

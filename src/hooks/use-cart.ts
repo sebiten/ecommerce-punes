@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { CartItem, ProductWithDetails } from "@/types";
+import { getCartSubtotal } from "@/lib/commerce";
 
 interface CartStore {
   items: CartItem[];
@@ -7,6 +8,7 @@ interface CartStore {
   addItem: (product: ProductWithDetails, variantId: string | null, quantity?: number) => void;
   removeItem: (productId: string, variantId?: string | null) => void;
   updateQuantity: (productId: string, variantId: string | null, quantity: number) => void;
+  setItems: (items: CartItem[]) => void;
   clearCart: () => void;
   toggleCart: () => void;
   setIsOpen: (isOpen: boolean) => void;
@@ -75,6 +77,14 @@ export const useCartStore = create<CartStore>()((set, get) => ({
     });
   },
 
+  setItems: (items) =>
+    set({
+      items: items.map((item) => ({
+        ...item,
+        variant_id: item.variant_id ?? null,
+      })),
+    }),
+
   clearCart: () => set({ items: [] }),
 
   toggleCart: () => set((state) => ({ isOpen: !state.isOpen })),
@@ -83,12 +93,7 @@ export const useCartStore = create<CartStore>()((set, get) => ({
 
   getTotal: () => {
     const { items } = get();
-    return items.reduce((total, item) => {
-      const product = item.product;
-      if (!product) return total;
-      const price = product.basePrice;
-      return total + price * item.quantity;
-    }, 0);
+    return getCartSubtotal(items);
   },
 
   getItemCount: () => {
