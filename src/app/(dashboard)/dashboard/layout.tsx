@@ -10,19 +10,19 @@ export default async function DashboardLayout({
 }) {
   const { userId } = await auth();
 
-  if (!userId) {
-    redirect("/login?redirect_url=/dashboard");
-  }
+  // if (!userId) {
+  //   redirect("/login?redirect_url=/dashboard");
+  // }
 
-  const profile = await getProfile();
+  // const profile = await getProfile();
 
-  if (!profile) {
-    redirect("/");
-  }
+  // if (!profile) {
+  //   redirect("/");
+  // }
 
-  if (profile.role !== "admin") {
-    redirect("/");
-  }
+  // if (profile.role !== "admin") {
+  //   redirect("/");
+  // }
 
   return (
     <div className="flex min-h-screen">
