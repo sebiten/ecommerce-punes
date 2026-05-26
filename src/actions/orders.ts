@@ -46,15 +46,18 @@ export async function createOrder({
   couponCode?: string;
 }) {
   const { userId } = await auth();
-  if (!userId) throw new Error("User not authenticated");
 
-  await ensureUserProfile(userId);
+  if (userId) {
+    await ensureUserProfile(userId);
+  }
+
   const supabase = getSupabaseAdmin();
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .insert({
-      clerk_user_id: userId,
+      clerk_user_id: userId ?? null,
       total,
       shipping_cost: shippingCost,
       shipping_method: shippingMethod,
@@ -92,11 +95,11 @@ export async function createOrder({
       email: shippingAddress.email,
     },
     external_reference: order.id,
-    notification_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/mercadopago`,
+    notification_url: `${appUrl}/api/webhooks/mercadopago`,
     back_urls: {
-      success: `${process.env.NEXT_PUBLIC_APP_URL}/order-confirmation/${order.id}`,
-      failure: `${process.env.NEXT_PUBLIC_APP_URL}/checkout`,
-      pending: `${process.env.NEXT_PUBLIC_APP_URL}/checkout`,
+      success: `${appUrl}/order-confirmation/${order.id}`,
+      failure: `${appUrl}/checkout`,
+      pending: `${appUrl}/checkout`,
     },
   });
 

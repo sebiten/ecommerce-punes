@@ -1,7 +1,16 @@
 import { MercadoPagoConfig } from "mercadopago";
 
+function getMercadoPagoAccessToken() {
+  const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
+  if (!accessToken) {
+    throw new Error("Falta MERCADOPAGO_ACCESS_TOKEN");
+  }
+
+  return accessToken;
+}
+
 const client = new MercadoPagoConfig({
-  accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
+  accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN || "missing-access-token",
 });
 
 export interface MPPreferenceItem {
@@ -35,26 +44,29 @@ export interface MPPreference {
 }
 
 export async function createPreference(preference: MPPreference) {
+  const accessToken = getMercadoPagoAccessToken();
   const response = await fetch("https://api.mercadopago.com/checkout/preferences", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${process.env.MERCADOPAGO_ACCESS_TOKEN}`,
+      Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(preference),
   });
 
   if (!response.ok) {
-    throw new Error("Error creating MercadoPago preference");
+    const errorBody = await response.text();
+    throw new Error(`Error creating MercadoPago preference: ${errorBody}`);
   }
 
   return response.json();
 }
 
 export async function getPreference(preferenceId: string) {
+  const accessToken = getMercadoPagoAccessToken();
   const response = await fetch(`https://api.mercadopago.com/checkout/preferences/${preferenceId}`, {
     headers: {
-      Authorization: `Bearer ${process.env.MERCADOPAGO_ACCESS_TOKEN}`,
+      Authorization: `Bearer ${accessToken}`,
     },
   });
 
