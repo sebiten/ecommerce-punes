@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
-import { getProfile } from "@/actions/auth";
+import { getCurrentProfile } from "@/actions/auth";
 
 export default async function DashboardLayout({
   children,
@@ -10,19 +10,19 @@ export default async function DashboardLayout({
 }) {
   const { userId } = await auth();
 
-  // if (!userId) {
-  //   redirect("/login?redirect_url=/dashboard");
-  // }
+  if (!userId) {
+    redirect("/login?redirect_url=/dashboard");
+  }
 
-  // const profile = await getProfile();
+  const profile = await getCurrentProfile();
 
-  // if (!profile) {
-  //   redirect("/");
-  // }
+  if (!profile) {
+    redirect("/");
+  }
 
-  // if (profile.role !== "admin") {
-  //   redirect("/");
-  // }
+  if (profile.role !== "admin") {
+    redirect("/");
+  }
 
   return (
     <div className="flex min-h-screen">

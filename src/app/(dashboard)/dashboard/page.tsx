@@ -9,21 +9,21 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 export default async function DashboardPage() {
   const supabase = getSupabaseAdmin();
 
-  const { data: orders } = await supabase
-    .from("orders")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(5);
-
-  const { data: products } = await supabase
-    .from("products")
-    .select("*")
-    .eq("active", true);
+  const [{ data: orders }, { count: totalProducts }] = await Promise.all([
+    supabase
+      .from("orders")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(5),
+    supabase
+      .from("products")
+      .select("id", { count: "exact", head: true })
+      .eq("active", true),
+  ]);
 
   const totalSales = orders?.reduce((sum, o) => sum + Number(o.total), 0) || 0;
   const pendingOrders =
     orders?.filter((o) => o.status === "pending" || o.status === "paid").length || 0;
-  const totalProducts = products?.length || 0;
 
   return (
     <div className="space-y-8">
@@ -49,7 +49,7 @@ export default async function DashboardPage() {
         />
         <StatsCard
           title="Productos activos"
-          value={totalProducts}
+          value={totalProducts ?? 0}
           icon={Package}
           description="En el catálogo"
         />

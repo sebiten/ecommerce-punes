@@ -2,6 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { clerkClient } from "@clerk/nextjs/server";
+import { randomUUID } from "node:crypto";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import type { Profile } from "@/types";
@@ -9,21 +10,23 @@ import type { Role } from "@/types";
 
 type ProfileRow = {
   id: string;
+  clerk_user_id: string;
   email: string;
   full_name: string | null;
   phone: string | null;
   role: Role;
+  created_at?: string | null;
 };
 
 function buildProfileFromRow(data: ProfileRow): Profile {
   return {
     id: data.id,
-    clerk_user_id: data.id,
+    clerk_user_id: data.clerk_user_id,
     email: data.email,
     full_name: data.full_name,
     phone: data.phone,
     role: data.role,
-    created_at: "",
+    created_at: data.created_at ?? "",
   };
 }
 
@@ -48,8 +51,8 @@ async function getProfileFromDb(userId: string) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, email, full_name, phone, role")
-    .eq("id", userId)
+    .select("id, clerk_user_id, email, full_name, phone, role, created_at")
+    .eq("clerk_user_id", userId)
     .maybeSingle();
 
   if (error) {
@@ -73,7 +76,8 @@ export async function ensureUserProfile(userId: string) {
   }
 
   const payload = {
-    id: userId,
+    id: existingProfile?.id ?? randomUUID(),
+    clerk_user_id: userId,
     email: clerkBasics.email,
     full_name: existingProfile?.full_name ?? clerkBasics.displayName,
     role: existingProfile?.role ?? "client",
@@ -81,8 +85,8 @@ export async function ensureUserProfile(userId: string) {
 
   const { data, error } = await supabase
     .from("profiles")
-    .upsert(payload, { onConflict: "id" })
-    .select("id, email, full_name, phone, role")
+    .upsert(payload, { onConflict: "clerk_user_id" })
+    .select("id, clerk_user_id, email, full_name, phone, role, created_at")
     .single();
 
   if (error) {
@@ -91,6 +95,13 @@ export async function ensureUserProfile(userId: string) {
   }
 
   return buildProfileFromRow(data as ProfileRow);
+}
+
+export async function getCurrentProfile(): Promise<Profile | null> {
+  const { userId } = await auth();
+  if (!userId) return null;
+
+  return getProfileFromDb(userId);
 }
 
 export async function getProfile(): Promise<Profile | null> {
@@ -109,15 +120,15 @@ export async function isAdmin(): Promise<boolean> {
   const { userId } = await auth();
   if (!userId) return false;
 
-  const profile = await getProfile();
+  const profile = await getProfileFromDb(userId);
   return profile?.role === "admin";
 }
 
 export async function requireAdmin(): Promise<void> {
   const admin = await isAdmin();
-  // if (!admin) {
-  //   throw new Error("Acceso solo para administradores");
-  // } 
+  if (!admin) {
+    throw new Error("Acceso solo para administradores");
+  }
 }
 
 export async function updateRole(profileId: string, role: "client" | "admin") {
@@ -281,7 +292,7 @@ export async function updateProfileContact(input: {
   const { error } = await supabase
     .from("profiles")
     .update(payload)
-    .eq("id", userId);
+    .eq("clerk_user_id", userId);
 
   if (error) throw error;
   revalidatePath("/account");
