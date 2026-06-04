@@ -11,7 +11,7 @@ import {
 import { relations } from "drizzle-orm";
 
 export const profiles = pgTable("profiles", {
-  id: uuid("id").primaryKey(),
+  id: text("id").primaryKey(),
   clerkUserId: text("clerk_user_id").notNull().unique(),
   email: text("email").notNull(),
   fullName: text("full_name"),
@@ -67,9 +67,10 @@ export const productVariants = pgTable("product_variants", {
 
 export const addresses = pgTable("addresses", {
   id: uuid("id").primaryKey().defaultRandom(),
-  profileId: uuid("profile_id")
-    .references(() => profiles.id, { onDelete: "cascade" })
-    .notNull(),
+  profileId: text("profile_id").references(() => profiles.id, { onDelete: "cascade" }),
+  clerkUserId: text("clerk_user_id").references(() => profiles.clerkUserId, {
+    onDelete: "cascade",
+  }),
   name: text("name").notNull(),
   street: text("street").notNull(),
   city: text("city").notNull(),
@@ -81,7 +82,7 @@ export const addresses = pgTable("addresses", {
 
 export const orders = pgTable("orders", {
   id: uuid("id").primaryKey().defaultRandom(),
-  profileId: uuid("profile_id").references(() => profiles.id),
+  profileId: text("profile_id").references(() => profiles.id),
   status: text("status").notNull().default("pending"),
   total: numeric("total", { precision: 10, scale: 2 }).notNull(),
   shippingCost: numeric("shipping_cost", { precision: 10, scale: 2 }),
@@ -122,6 +123,7 @@ export const coupons = pgTable("coupons", {
 
 export const cartItems = pgTable("cart_items", {
   id: uuid("id").primaryKey().defaultRandom(),
+  profileId: text("profile_id").references(() => profiles.id, { onDelete: "cascade" }),
   clerkUserId: text("clerk_user_id")
     .references(() => profiles.clerkUserId, { onDelete: "cascade" })
     .notNull(),
