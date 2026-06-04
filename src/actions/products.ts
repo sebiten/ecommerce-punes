@@ -2,8 +2,7 @@
 
 import { cache } from "react";
 import { z } from "zod";
-import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { revalidatePath, unstable_cache, updateTag } from "next/cache";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/actions/auth";
 import { getCategoriesPublic } from "@/actions/categories";
@@ -35,6 +34,9 @@ const productPayloadSchema = z.object({
 });
 
 type ProductPayload = z.infer<typeof productPayloadSchema>;
+
+const PRODUCTS_CACHE_TAG = "products";
+const PRODUCT_DETAILS_CACHE_TAG = "product-details";
 
 function mapProduct(product: any): ProductWithDetails {
   return {
@@ -132,6 +134,8 @@ async function replaceProductRelations(
 }
 
 async function revalidateProductPaths(slug?: string) {
+  updateTag(PRODUCTS_CACHE_TAG);
+  updateTag(PRODUCT_DETAILS_CACHE_TAG);
   revalidatePath("/");
   revalidatePath("/products");
   revalidatePath("/dashboard/products");
@@ -147,58 +151,25 @@ export async function getProducts(options?: {
   featured?: boolean;
   limit?: number;
 }): Promise<ProductWithDetails[]> {
-  try {
-    const supabase = await createClient();
-
-    let query = supabase
-      .from("products")
-      .select(`
-        *,
-        category:categories(*),
-        images:product_images(*),
-        variants:product_variants(*)
-      `)
-      .eq("active", true)
-      .order("created_at", { ascending: false });
-
-    if (options?.categorySlug) {
-      query = query.eq("category.slug", options.categorySlug);
-    }
-
-    if (options?.searchTerm?.trim()) {
-      const searchTerm = options.searchTerm.trim();
-      query = query.or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
-    }
-
-    if (options?.featured) {
-      query = query.eq("featured", true);
-    }
-
-    if (options?.limit) {
-      query = query.limit(options.limit);
-    }
-
-    const { data, error } = await query;
-    if (error) {
-      console.error("Error fetching products:", error);
-      return [];
-    }
-
-    return (data || []).map(mapProduct);
-  } catch (error) {
-    console.error("Error fetching products:", error);
-    return [];
-  }
+  return getProductsCached({
+    categorySlug: options?.categorySlug,
+    searchTerm: options?.searchTerm?.trim() || undefined,
+    featured: options?.featured,
+    limit: options?.limit,
+  });
 }
 
-export const getProductBySlug = cache(async function getProductBySlug(
-  slug: string
-): Promise<ProductWithDetails | null> {
-  try {
-    const supabase = await createClient();
+const getProductsCached = unstable_cache(
+  async (options?: {
+    categorySlug?: string;
+    searchTerm?: string;
+    featured?: boolean;
+    limit?: number;
+  }): Promise<ProductWithDetails[]> => {
+    try {
+      const supabase = getSupabaseAdmin();
 
-    return fetchProduct(
-      supabase
+      let query = supabase
         .from("products")
         .select(`
           *,
@@ -206,14 +177,78 @@ export const getProductBySlug = cache(async function getProductBySlug(
           images:product_images(*),
           variants:product_variants(*)
         `)
-        .eq("slug", slug)
         .eq("active", true)
-    );
-  } catch (error) {
-    console.error("Error fetching product:", error);
-    return null;
+        .order("created_at", { ascending: false });
+
+      if (options?.categorySlug) {
+        query = query.eq("category.slug", options.categorySlug);
+      }
+
+      if (options?.searchTerm) {
+        query = query.or(`name.ilike.%${options.searchTerm}%,description.ilike.%${options.searchTerm}%`);
+      }
+
+      if (options?.featured) {
+        query = query.eq("featured", true);
+      }
+
+      if (options?.limit) {
+        query = query.limit(options.limit);
+      }
+
+      const { data, error } = await query;
+      if (error) {
+        console.error("Error fetching products:", error);
+        return [];
+      }
+
+      return (data || []).map(mapProduct);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      return [];
+    }
+  },
+  ["products-public"],
+  {
+    tags: [PRODUCTS_CACHE_TAG],
+    revalidate: 3600,
   }
+);
+
+export const getProductBySlug = cache(async function getProductBySlug(
+  slug: string
+): Promise<ProductWithDetails | null> {
+  return getProductBySlugCached(slug);
 });
+
+const getProductBySlugCached = unstable_cache(
+  async (slug: string): Promise<ProductWithDetails | null> => {
+    try {
+      const supabase = getSupabaseAdmin();
+
+      return fetchProduct(
+        supabase
+          .from("products")
+          .select(`
+            *,
+            category:categories(*),
+            images:product_images(*),
+            variants:product_variants(*)
+          `)
+          .eq("slug", slug)
+          .eq("active", true)
+      );
+    } catch (error) {
+      console.error("Error fetching product:", error);
+      return null;
+    }
+  },
+  ["product-by-slug"],
+  {
+    tags: [PRODUCT_DETAILS_CACHE_TAG],
+    revalidate: 3600,
+  }
+);
 
 export async function getProductByIdAdmin(id: string): Promise<ProductWithDetails | null> {
   await requireAdmin();

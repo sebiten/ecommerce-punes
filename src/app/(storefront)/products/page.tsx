@@ -88,7 +88,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
         <main className="lg:col-span-3">
           <Suspense fallback={<div>Cargando productos...</div>}>
             {products.length > 0 ? (
-              <ProductGrid products={products} />
+              <ProductGrid products={products} priorityFirst={4} />
             ) : (
               <div className="py-12 text-center">
                 <p className="text-muted-foreground">

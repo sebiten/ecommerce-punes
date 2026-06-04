@@ -1,9 +1,8 @@
 "use server";
 
 import { z } from "zod";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, unstable_cache, updateTag } from "next/cache";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/actions/auth";
 import type { Category } from "@/types";
 
@@ -21,27 +20,41 @@ export interface CategoryWithCount extends Category {
   productCount: number;
 }
 
+const CATEGORIES_CACHE_TAG = "categories";
+
 function revalidateCategoryPaths() {
+  updateTag(CATEGORIES_CACHE_TAG);
   revalidatePath("/");
   revalidatePath("/products");
   revalidatePath("/dashboard/categories");
 }
 
 export async function getCategoriesPublic(): Promise<Category[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("categories")
-    .select("*")
-    .order("sort_order", { ascending: true })
-    .order("name", { ascending: true });
-
-  if (error) {
-    console.error("Error fetching categories:", error);
-    return [];
-  }
-
-  return (data || []) as Category[];
+  return getCategoriesPublicCached();
 }
+
+const getCategoriesPublicCached = unstable_cache(
+  async (): Promise<Category[]> => {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("categories")
+      .select("*")
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching categories:", error);
+      return [];
+    }
+
+    return (data || []) as Category[];
+  },
+  ["categories-public"],
+  {
+    tags: [CATEGORIES_CACHE_TAG],
+    revalidate: 3600,
+  }
+);
 
 export async function getCategoriesAdmin(): Promise<CategoryWithCount[]> {
   await requireAdmin();

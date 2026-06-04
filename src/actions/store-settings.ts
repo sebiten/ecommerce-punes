@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, unstable_cache, updateTag } from "next/cache";
 import { requireAdmin } from "@/actions/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import type { StoreSettings } from "@/types";
@@ -41,6 +41,8 @@ const defaultStoreSettings: StoreSettings = {
   free_shipping_threshold: 50000,
 };
 
+const STORE_SETTINGS_CACHE_TAG = "store-settings";
+
 function mapStoreSettings(row: any): StoreSettings {
   return {
     store_name: row.store_name ?? defaultStoreSettings.store_name,
@@ -64,20 +66,31 @@ function mapStoreSettings(row: any): StoreSettings {
 }
 
 export async function getStoreSettings(): Promise<StoreSettings> {
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("store_settings")
-    .select("*")
-    .eq("id", 1)
-    .maybeSingle();
-
-  if (error) {
-    console.error("Error fetching store settings:", error);
-    return defaultStoreSettings;
-  }
-
-  return data ? mapStoreSettings(data) : defaultStoreSettings;
+  return getStoreSettingsCached();
 }
+
+const getStoreSettingsCached = unstable_cache(
+  async (): Promise<StoreSettings> => {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("store_settings")
+      .select("*")
+      .eq("id", 1)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error fetching store settings:", error);
+      return defaultStoreSettings;
+    }
+
+    return data ? mapStoreSettings(data) : defaultStoreSettings;
+  },
+  ["store-settings"],
+  {
+    tags: [STORE_SETTINGS_CACHE_TAG],
+    revalidate: 3600,
+  }
+);
 
 export async function updateStoreSettings(input: z.infer<typeof storeSettingsSchema>) {
   await requireAdmin();
@@ -108,6 +121,7 @@ export async function updateStoreSettings(input: z.infer<typeof storeSettingsSch
 
   if (error) throw error;
 
+  updateTag(STORE_SETTINGS_CACHE_TAG);
   revalidatePath("/");
   revalidatePath("/products");
   revalidatePath("/checkout");

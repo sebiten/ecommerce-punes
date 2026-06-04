@@ -7,9 +7,10 @@ import type { ProductWithDetails } from "@/types";
 
 interface ProductCardProps {
   product: ProductWithDetails;
+  priority?: boolean;
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product, priority = false }: ProductCardProps) {
   const imageUrl =
     product.images?.[0]?.url ||
     "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&h=600&fit=crop";
@@ -23,7 +24,8 @@ export function ProductCard({ product }: ProductCardProps) {
             alt={product.name}
             fill
             className="object-cover transition-transform duration-300 group-hover:scale-105"
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+            priority={priority}
           />
           {product.featured && (
             <Badge className="absolute left-3 top-3 bg-[#f6ae66] text-black border-0 font-semibold">

@@ -102,7 +102,11 @@ export const useCartStore = create<CartStore>()((set, get) => ({
   },
 }));
 
-if (typeof window !== "undefined") {
+export function hydrateCartStore() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
   const stored = localStorage.getItem("pune-cart");
   if (stored) {
     try {
@@ -114,8 +118,14 @@ if (typeof window !== "undefined") {
       console.error("Error loading cart from localStorage", e);
     }
   }
+}
 
-  useCartStore.subscribe((state) => {
+export function subscribeCartStorePersistence() {
+  if (typeof window === "undefined") {
+    return () => {};
+  }
+
+  return useCartStore.subscribe((state) => {
     localStorage.setItem("pune-cart", JSON.stringify({ state: { items: state.items } }));
   });
 }
