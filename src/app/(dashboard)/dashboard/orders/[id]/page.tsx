@@ -56,6 +56,13 @@ export default async function DashboardOrderDetailPage({
             <p>
               <strong>Total:</strong> {formatPrice(Number(order.total))}
             </p>
+            {Number(order.discount_total || 0) > 0 ? (
+              <p>
+                <strong>Descuento:</strong>{" "}
+                {formatPrice(Number(order.discount_total))}
+                {order.coupon_code ? ` (${order.coupon_code})` : ""}
+              </p>
+            ) : null}
             <p>
               <strong>Envio:</strong> {formatPrice(Number(order.shipping_cost || 0))}
             </p>

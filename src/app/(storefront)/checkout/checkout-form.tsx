@@ -59,6 +59,7 @@ export function CheckoutForm({ addresses, profile, settings }: CheckoutFormProps
     state: defaultAddress?.state || "",
     zip: defaultAddress?.zip || "",
     shippingMethod: "standard",
+    couponCode: "",
   });
 
   const subtotal = getTotal();
@@ -141,6 +142,7 @@ export function CheckoutForm({ addresses, profile, settings }: CheckoutFormProps
           total,
           shippingCost,
           shippingMethod: formData.shippingMethod,
+          couponCode: formData.couponCode.trim() || undefined,
           shippingAddress: {
             name: fullName,
             email: formData.email,
@@ -414,6 +416,22 @@ export function CheckoutForm({ addresses, profile, settings }: CheckoutFormProps
                     {formatPrice(settings.express_shipping_cost)}
                   </span>
                 </label>
+              </CardContent>
+            </Card>
+
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle>Cupon de descuento</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Label htmlFor="couponCode">Codigo</Label>
+                <Input
+                  id="couponCode"
+                  name="couponCode"
+                  value={formData.couponCode}
+                  onChange={handleInputChange}
+                  placeholder="BIENVENIDO10"
+                />
               </CardContent>
             </Card>
 

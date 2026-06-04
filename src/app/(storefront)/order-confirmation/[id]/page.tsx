@@ -2,21 +2,24 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { CheckCircle } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
-import { getOrderById } from "@/actions/orders";
+import { getOrderForConfirmation } from "@/actions/orders";
 import { ClearCartOnMount } from "./clear-cart-on-mount";
 
 interface OrderConfirmationPageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ token?: string }>;
 }
 
 export default async function OrderConfirmationPage({
   params,
+  searchParams,
 }: OrderConfirmationPageProps) {
   const { id } = await params;
+  const { token } = await searchParams;
   let order;
 
   try {
-    order = await getOrderById(id);
+    order = await getOrderForConfirmation(id, token);
   } catch {
     order = null;
   }
@@ -40,6 +43,12 @@ export default async function OrderConfirmationPage({
           <p className="mb-2">
             <strong>Total:</strong> {formatPrice(Number(order.total))}
           </p>
+          {Number(order.discount_total || 0) > 0 ? (
+            <p className="mb-2">
+              <strong>Descuento:</strong>{" "}
+              {formatPrice(Number(order.discount_total))}
+            </p>
+          ) : null}
           <p className="mb-4">
             <strong>Estado:</strong>{" "}
             <span className="capitalize">{order.status}</span>

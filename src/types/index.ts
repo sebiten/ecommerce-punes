@@ -93,6 +93,10 @@ export interface Order {
   shipping_cost: number;
   shipping_method: string | null;
   shipping_address: ShippingAddress | null;
+  guest_access_token?: string | null;
+  coupon_code?: string | null;
+  discount_total?: number | null;
+  stock_restored?: boolean;
   mercadopago_id: string | null;
   mercadopago_status: string | null;
   created_at: string;

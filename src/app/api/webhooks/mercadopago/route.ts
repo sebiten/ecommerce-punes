@@ -1,15 +1,120 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createHmac, timingSafeEqual } from "node:crypto";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
+
+function parseSignatureHeader(signatureHeader: string | null) {
+  if (!signatureHeader) {
+    return null;
+  }
+
+  return Object.fromEntries(
+    signatureHeader.split(",").map((part) => {
+      const [key, value] = part.split("=");
+      return [key?.trim(), value?.trim()];
+    })
+  ) as { ts?: string; v1?: string };
+}
+
+function isValidWebhookSignature({
+  dataId,
+  requestId,
+  signatureHeader,
+}: {
+  dataId: string;
+  requestId: string | null;
+  signatureHeader: string | null;
+}) {
+  const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
+  if (!secret) {
+    throw new Error("Falta MERCADOPAGO_WEBHOOK_SECRET");
+  }
+
+  const signature = parseSignatureHeader(signatureHeader);
+  if (!signature?.ts || !signature.v1 || !requestId) {
+    return false;
+  }
+
+  const manifest = `id:${dataId};request-id:${requestId};ts:${signature.ts};`;
+  const expectedSignature = createHmac("sha256", secret)
+    .update(manifest)
+    .digest("hex");
+  const expectedBuffer = Buffer.from(expectedSignature, "hex");
+  const receivedBuffer = Buffer.from(signature.v1, "hex");
+
+  return (
+    expectedBuffer.length === receivedBuffer.length &&
+    timingSafeEqual(expectedBuffer, receivedBuffer)
+  );
+}
+
+async function restoreOrderStock(orderId: string) {
+  const supabase = getSupabaseAdmin();
+  const { data: order, error: orderError } = await supabase
+    .from("orders")
+    .select(`
+      id,
+      stock_restored,
+      items:order_items(variant_id, quantity)
+    `)
+    .eq("id", orderId)
+    .single();
+
+  if (orderError || !order || order.stock_restored) {
+    if (orderError) {
+      console.error("Error leyendo orden para restaurar stock:", orderError);
+    }
+    return;
+  }
+
+  for (const item of order.items || []) {
+    if (!item.variant_id) {
+      continue;
+    }
+
+    const { data: variant, error: variantError } = await supabase
+      .from("product_variants")
+      .select("stock")
+      .eq("id", item.variant_id)
+      .single();
+
+    if (variantError) {
+      throw variantError;
+    }
+
+    const { error: updateError } = await supabase
+      .from("product_variants")
+      .update({ stock: Number(variant.stock ?? 0) + Number(item.quantity) })
+      .eq("id", item.variant_id);
+
+    if (updateError) {
+      throw updateError;
+    }
+  }
+
+  await supabase
+    .from("orders")
+    .update({ stock_restored: true })
+    .eq("id", orderId);
+}
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { type, data } = body;
+    const paymentId = String(data?.id || "");
 
-    const supabase = await createClient();
+    const supabase = getSupabaseAdmin();
 
     if (type === "payment") {
-      const paymentId = data.id;
+      const isValidSignature = isValidWebhookSignature({
+        dataId: paymentId,
+        requestId: request.headers.get("x-request-id"),
+        signatureHeader: request.headers.get("x-signature"),
+      });
+
+      if (!isValidSignature) {
+        return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+      }
 
       const paymentResponse = await fetch(
         `https://api.mercadopago.com/v1/payments/${paymentId}`,
@@ -20,17 +125,37 @@ export async function POST(request: Request) {
         }
       );
 
+      if (!paymentResponse.ok) {
+        const errorBody = await paymentResponse.text();
+        throw new Error(`MercadoPago payment fetch failed: ${errorBody}`);
+      }
+
       const payment = await paymentResponse.json();
       const externalReference = payment.external_reference;
       const status = payment.status;
+      const failedStatuses = new Set([
+        "rejected",
+        "cancelled",
+        "refunded",
+        "charged_back",
+      ]);
+      const orderStatus = status === "approved"
+        ? "paid"
+        : failedStatuses.has(status)
+          ? "cancelled"
+          : "pending";
 
       if (externalReference) {
+        if (orderStatus === "cancelled") {
+          await restoreOrderStock(externalReference);
+        }
+
         const { error } = await supabase
           .from("orders")
           .update({
             mercadopago_id: paymentId,
             mercadopago_status: status,
-            status: status === "approved" ? "paid" : "pending",
+            status: orderStatus,
           })
           .eq("id", externalReference);
 
