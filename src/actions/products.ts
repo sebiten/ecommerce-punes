@@ -1,6 +1,7 @@
 "use server";
 
 import { cache } from "react";
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { revalidatePath, unstable_cache, updateTag } from "next/cache";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -37,6 +38,8 @@ type ProductPayload = z.infer<typeof productPayloadSchema>;
 
 const PRODUCTS_CACHE_TAG = "products";
 const PRODUCT_DETAILS_CACHE_TAG = "product-details";
+const PRODUCT_IMAGES_BUCKET = "product-images";
+const MAX_PRODUCT_IMAGE_SIZE = 4 * 1024 * 1024;
 
 function mapProduct(product: any): ProductWithDetails {
   return {
@@ -298,6 +301,44 @@ export async function createProduct(input: ProductPayload) {
   await revalidateProductPaths(product.slug);
 
   return product;
+}
+
+export async function uploadProductImage(formData: FormData) {
+  await requireAdmin();
+
+  const file = formData.get("file");
+  if (!(file instanceof File)) {
+    throw new Error("Archivo invalido");
+  }
+
+  if (file.size > MAX_PRODUCT_IMAGE_SIZE) {
+    throw new Error("La imagen no puede superar 4MB");
+  }
+
+  if (file.type !== "image/webp") {
+    throw new Error("La imagen debe estar convertida a WebP");
+  }
+
+  const supabase = getSupabaseAdmin();
+  const path = `products/${randomUUID()}.webp`;
+  const { error } = await supabase.storage
+    .from(PRODUCT_IMAGES_BUCKET)
+    .upload(path, file, {
+      cacheControl: "31536000",
+      contentType: "image/webp",
+      upsert: false,
+    });
+
+  if (error) {
+    throw error;
+  }
+
+  const { data } = supabase.storage.from(PRODUCT_IMAGES_BUCKET).getPublicUrl(path);
+
+  return {
+    path,
+    url: data.publicUrl,
+  };
 }
 
 export async function updateProduct(id: string, input: ProductPayload) {

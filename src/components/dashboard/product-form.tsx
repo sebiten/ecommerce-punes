@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash2, ImageIcon } from "lucide-react";
-import { createProduct, updateProduct } from "@/actions/products";
+import { Plus, Trash2, ImageIcon, Upload } from "lucide-react";
+import { createProduct, updateProduct, uploadProductImage } from "@/actions/products";
 import { slugify } from "@/lib/utils";
 
 interface VariantFormValue {
@@ -35,6 +35,46 @@ const defaultVariants: VariantFormValue[] = [
   { width: 140, length: 190, priceOverride: null, stock: 0, active: true },
   { width: 160, length: 190, priceOverride: null, stock: 0, active: true },
 ];
+
+const MAX_IMAGE_DIMENSION = 1600;
+const WEBP_QUALITY = 0.84;
+
+async function convertImageToWebp(file: File): Promise<File> {
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Selecciona un archivo de imagen valido");
+  }
+
+  const imageBitmap = await createImageBitmap(file);
+  const scale = Math.min(
+    1,
+    MAX_IMAGE_DIMENSION / Math.max(imageBitmap.width, imageBitmap.height)
+  );
+  const width = Math.round(imageBitmap.width * scale);
+  const height = Math.round(imageBitmap.height * scale);
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const context = canvas.getContext("2d");
+  if (!context) {
+    imageBitmap.close();
+    throw new Error("No se pudo procesar la imagen");
+  }
+
+  context.drawImage(imageBitmap, 0, 0, width, height);
+  imageBitmap.close();
+
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, "image/webp", WEBP_QUALITY);
+  });
+
+  if (!blob) {
+    throw new Error("El navegador no pudo convertir la imagen a WebP");
+  }
+
+  const baseName = file.name.replace(/\.[^.]+$/, "") || "producto";
+  return new File([blob], `${slugify(baseName)}.webp`, { type: "image/webp" });
+}
 
 export function ProductForm({ categories, mode, product }: ProductFormProps) {
   const [name, setName] = useState(product?.name ?? "");
@@ -64,6 +104,7 @@ export function ProductForm({ categories, mode, product }: ProductFormProps) {
       : []
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const updateVariant = (
@@ -84,6 +125,40 @@ export function ProductForm({ categories, mode, product }: ProductFormProps) {
         currentIndex === index ? { ...image, [field]: value } : image
       )
     );
+  };
+
+  const handleImageFiles = async (fileList: FileList | null) => {
+    const files = Array.from(fileList || []);
+    if (!files.length) return;
+
+    setIsUploadingImage(true);
+    setError(null);
+
+    try {
+      const uploadedImages: ImageFormValue[] = [];
+
+      for (const file of files) {
+        const webpFile = await convertImageToWebp(file);
+        const formData = new FormData();
+        formData.append("file", webpFile);
+
+        const uploaded = await uploadProductImage(formData);
+        uploadedImages.push({
+          url: uploaded.url,
+          alt: name || file.name.replace(/\.[^.]+$/, ""),
+        });
+      }
+
+      setImages((current) => [...current, ...uploadedImages]);
+    } catch (uploadError) {
+      setError(
+        uploadError instanceof Error
+          ? uploadError.message
+          : "No se pudo subir la imagen"
+      );
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -329,35 +404,53 @@ export function ProductForm({ categories, mode, product }: ProductFormProps) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Imagenes</CardTitle>
-          <Button
-            type="button"
-            size="sm"
-            onClick={() =>
-              setImages((current) => [...current, { url: "", alt: "" }])
-            }
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Agregar imagen
-          </Button>
+          <div>
+            <Input
+              id="productImages"
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              disabled={isUploadingImage || isSubmitting}
+              onChange={async (event) => {
+                await handleImageFiles(event.target.files);
+                event.target.value = "";
+              }}
+            />
+            <Button
+              type="button"
+              size="sm"
+              disabled={isUploadingImage || isSubmitting}
+              onClick={() => document.getElementById("productImages")?.click()}
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              {isUploadingImage ? "Subiendo..." : "Subir imagen"}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {!images.length ? (
             <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-muted-foreground">
               <ImageIcon className="mb-4 h-12 w-12" />
               <p>No hay imagenes cargadas.</p>
+              <p className="mt-1 text-xs">
+                Se convierten a WebP antes de subirlas a Supabase Storage.
+              </p>
             </div>
           ) : null}
 
           {images.map((image, index) => (
             <div
               key={`${image.url}-${index}`}
-              className="grid grid-cols-1 gap-4 rounded-lg border p-4 md:grid-cols-[1fr_1fr_auto]"
+              className="grid grid-cols-1 gap-4 rounded-lg border p-4 md:grid-cols-[8rem_1fr_auto]"
             >
-              <div>
-                <Label>URL</Label>
-                <Input
-                  value={image.url}
-                  onChange={(event) => updateImage(index, "url", event.target.value)}
+              <div className="relative aspect-square overflow-hidden rounded-md border bg-muted">
+                <Image
+                  src={image.url}
+                  alt={image.alt || name || "Producto"}
+                  fill
+                  className="object-cover"
+                  sizes="8rem"
                 />
               </div>
               <div>
@@ -366,6 +459,9 @@ export function ProductForm({ categories, mode, product }: ProductFormProps) {
                   value={image.alt}
                   onChange={(event) => updateImage(index, "alt", event.target.value)}
                 />
+                <p className="mt-2 break-all text-xs text-muted-foreground">
+                  {image.url}
+                </p>
               </div>
               <div className="flex items-end">
                 <Button
@@ -383,18 +479,6 @@ export function ProductForm({ categories, mode, product }: ProductFormProps) {
               </div>
             </div>
           ))}
-
-          {images[0]?.url ? (
-            <div className="relative aspect-video max-w-sm overflow-hidden rounded-lg border">
-              <Image
-                src={images[0].url}
-                alt={images[0].alt || name || "Preview"}
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 100vw, 24rem"
-              />
-            </div>
-          ) : null}
         </CardContent>
       </Card>
 
