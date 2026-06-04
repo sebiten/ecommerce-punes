@@ -3,16 +3,27 @@ import { getCategoriesAdmin } from "@/actions/categories";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (
+    error &&
+    typeof error === "object" &&
+    "message" in error &&
+    typeof error.message === "string"
+  ) {
+    return error.message;
+  }
+
+  return "No se pudieron cargar las categorias";
+}
+
 export default async function CategoriesPage() {
   try {
     const categories = await getCategoriesAdmin();
 
     return <CategoriesManager initialCategories={categories} />;
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : "No se pudieron cargar las categorias";
+    const message = getErrorMessage(error);
 
     console.error("Error loading dashboard categories:", error);
 

@@ -22,6 +22,20 @@ export interface CategoryWithCount extends Category {
 
 const CATEGORIES_CACHE_TAG = "categories";
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error) return error.message;
+  if (
+    error &&
+    typeof error === "object" &&
+    "message" in error &&
+    typeof error.message === "string"
+  ) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
 function revalidateCategoryPaths() {
   updateTag(CATEGORIES_CACHE_TAG);
   revalidatePath("/");
@@ -71,11 +85,13 @@ export async function getCategoriesAdmin(): Promise<CategoryWithCount[]> {
     ]);
 
   if (categoriesError) {
-    throw categoriesError;
+    throw new Error(
+      getErrorMessage(categoriesError, "No se pudieron cargar las categorias")
+    );
   }
 
   if (productsError) {
-    throw productsError;
+    console.error("Error fetching category product counts:", productsError);
   }
 
   const counts = new Map<string, number>();
