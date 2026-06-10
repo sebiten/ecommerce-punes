@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const maxDuration = 30;
+
 function parseSignatureHeader(signatureHeader: string | null) {
   if (!signatureHeader) {
     return null;
@@ -26,7 +30,8 @@ function isValidWebhookSignature({
 }) {
   const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
   if (!secret) {
-    throw new Error("Falta MERCADOPAGO_WEBHOOK_SECRET");
+    console.warn("Falta MERCADOPAGO_WEBHOOK_SECRET; se validara contra la API de MercadoPago");
+    return false;
   }
 
   const signature = parseSignatureHeader(signatureHeader);
@@ -116,7 +121,11 @@ export async function POST(request: Request) {
       });
 
       if (!isValidSignature) {
-        return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+        console.warn("Webhook MercadoPago sin firma valida; se valida el pago con la API", {
+          paymentId,
+          hasRequestId: Boolean(request.headers.get("x-request-id")),
+          hasSignature: Boolean(request.headers.get("x-signature")),
+        });
       }
 
       const payment =
@@ -180,4 +189,8 @@ export async function POST(request: Request) {
     console.error("Webhook error:", error);
     return NextResponse.json({ error: "Webhook failed" }, { status: 500 });
   }
+}
+
+export async function GET() {
+  return NextResponse.json({ ok: true });
 }
