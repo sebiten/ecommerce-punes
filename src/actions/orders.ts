@@ -3,7 +3,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { ensureUserProfile, getProfile, requireAdmin } from "@/actions/auth";
-import { createPreference } from "@/lib/mercadopago/client";
+import { createPreference, searchPaymentsByExternalReference } from "@/lib/mercadopago/client";
 import { revalidatePath } from "next/cache";
 import type { CartItem, OrderStatus } from "@/types";
 import { getShippingCost } from "@/lib/commerce";
@@ -45,6 +45,25 @@ type MercadoPagoCheckoutItem = {
 
 function createGuestAccessToken() {
   return crypto.randomUUID().replaceAll("-", "");
+}
+
+function getAppUrl() {
+  return (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/+$/, "");
+}
+
+function getOrderStatusFromMercadoPagoStatus(status: string): OrderStatus {
+  const failedStatuses = new Set([
+    "rejected",
+    "cancelled",
+    "refunded",
+    "charged_back",
+  ]);
+
+  if (status === "approved") {
+    return "paid";
+  }
+
+  return failedStatuses.has(status) ? "cancelled" : "pending";
 }
 
 function normalizeCheckoutItems(items: CartItem[]) {
@@ -317,6 +336,65 @@ async function clearUserCart(userId: string | null) {
   }
 }
 
+async function reconcilePendingOrderPayment(order: any) {
+  if (order.status !== "pending" || order.mercadopago_id) {
+    return order;
+  }
+
+  try {
+    const paymentSearch = await searchPaymentsByExternalReference(order.id);
+    const payments = Array.isArray(paymentSearch?.results)
+      ? paymentSearch.results
+      : [];
+    const payment =
+      payments.find((item: any) => item.status === "approved") ??
+      payments.find((item: any) => item.status);
+
+    if (!payment?.status) {
+      return order;
+    }
+
+    const nextStatus = getOrderStatusFromMercadoPagoStatus(payment.status);
+    if (nextStatus === "pending") {
+      return order;
+    }
+
+    if (nextStatus === "cancelled") {
+      await restoreOrderStock(order.id);
+    }
+
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("orders")
+      .update({
+        mercadopago_id: String(payment.id),
+        mercadopago_status: payment.status,
+        status: nextStatus,
+      })
+      .eq("id", order.id)
+      .select()
+      .single();
+
+    if (error || !data) {
+      console.error("Error reconciliando orden con MercadoPago:", error);
+      return order;
+    }
+
+    revalidatePath("/account/orders");
+    revalidatePath(`/account/orders/${order.id}`);
+    revalidatePath("/dashboard/orders");
+    revalidatePath(`/dashboard/orders/${order.id}`);
+
+    return {
+      ...order,
+      ...data,
+    };
+  } catch (error) {
+    console.error("Error buscando pagos de MercadoPago para orden pendiente:", error);
+    return order;
+  }
+}
+
 function buildMercadoPagoItems(
   items: ResolvedCheckoutItem[],
   subtotal: number,
@@ -379,7 +457,7 @@ export async function createOrder({
   }
 
   const supabase = getSupabaseAdmin();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const appUrl = getAppUrl();
   const resolvedItems = await resolveCheckoutItems(items);
   const subtotal = resolvedItems.reduce(
     (sum, item) => sum + item.unitPrice * item.quantity,
@@ -498,7 +576,7 @@ export async function getOrders() {
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-  return data;
+  return Promise.all((data || []).map((order) => reconcilePendingOrderPayment(order)));
 }
 
 export async function getOrderById(id: string) {
@@ -530,7 +608,7 @@ export async function getOrderById(id: string) {
     throw new Error("Forbidden");
   }
 
-  return data;
+  return reconcilePendingOrderPayment(data);
 }
 
 export async function getOrderForConfirmation(id: string, accessToken?: string) {
@@ -558,12 +636,12 @@ export async function getOrderForConfirmation(id: string, accessToken?: string) 
     const profile = await getProfile();
     const orderOwnerId = data.clerk_user_id || data.profile_id;
     if (profile?.role === "admin" || orderOwnerId === userId) {
-      return data;
+      return reconcilePendingOrderPayment(data);
     }
   }
 
   if (accessToken && data.guest_access_token === accessToken) {
-    return data;
+    return reconcilePendingOrderPayment(data);
   }
 
   throw new Error("Forbidden");

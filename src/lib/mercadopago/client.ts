@@ -85,4 +85,23 @@ export async function getPreference(preferenceId: string) {
   return response.json();
 }
 
+export async function searchPaymentsByExternalReference(externalReference: string) {
+  const accessToken = getMercadoPagoAccessToken();
+  const url = new URL("https://api.mercadopago.com/v1/payments/search");
+  url.searchParams.set("external_reference", externalReference);
+
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`Error searching MercadoPago payments: ${errorBody}`);
+  }
+
+  return response.json();
+}
+
 export { client as mercadopagoClient };
