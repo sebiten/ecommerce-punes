@@ -116,21 +116,28 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
       }
 
-      const paymentResponse = await fetch(
-        `https://api.mercadopago.com/v1/payments/${paymentId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${process.env.MERCADOPAGO_ACCESS_TOKEN}`,
-          },
-        }
-      );
+      const payment =
+        process.env.E2E_MERCADOPAGO_FAKE === "1"
+          ? {
+              id: paymentId,
+              status: "approved",
+              external_reference: paymentId,
+            }
+          : await fetch(
+              `https://api.mercadopago.com/v1/payments/${paymentId}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${process.env.MERCADOPAGO_ACCESS_TOKEN}`,
+                },
+              }
+            ).then(async (paymentResponse) => {
+              if (!paymentResponse.ok) {
+                const errorBody = await paymentResponse.text();
+                throw new Error(`MercadoPago payment fetch failed: ${errorBody}`);
+              }
 
-      if (!paymentResponse.ok) {
-        const errorBody = await paymentResponse.text();
-        throw new Error(`MercadoPago payment fetch failed: ${errorBody}`);
-      }
-
-      const payment = await paymentResponse.json();
+              return paymentResponse.json();
+            });
       const externalReference = payment.external_reference;
       const status = payment.status;
       const failedStatuses = new Set([

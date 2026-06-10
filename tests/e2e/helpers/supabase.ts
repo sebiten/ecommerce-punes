@@ -8,6 +8,20 @@ type SeededProduct = {
   variantId: string;
 };
 
+type OrderWithItems = {
+  id: string;
+  status: string;
+  mercadopago_id: string | null;
+  mercadopago_status: string | null;
+  stock_restored: boolean;
+  guest_access_token: string | null;
+  items: Array<{
+    product_id: string;
+    variant_id: string | null;
+    quantity: number;
+  }>;
+};
+
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -102,11 +116,77 @@ export async function seedCheckoutSmokeProduct(): Promise<SeededProduct> {
 
 export async function cleanupCheckoutSmokeProduct(seed: SeededProduct) {
   const supabase = getSupabaseAdmin();
+  const { data: orderItems } = await supabase
+    .from("order_items")
+    .select("order_id")
+    .eq("product_id", seed.productId);
+  const orderIds = Array.from(
+    new Set((orderItems || []).map((item) => item.order_id).filter(Boolean))
+  );
 
   await supabase.from("order_items").delete().eq("product_id", seed.productId);
+  if (orderIds.length > 0) {
+    await supabase.from("orders").delete().in("id", orderIds);
+  }
   await supabase.from("cart_items").delete().eq("product_id", seed.productId);
   await supabase.from("product_images").delete().eq("product_id", seed.productId);
   await supabase.from("product_variants").delete().eq("product_id", seed.productId);
   await supabase.from("products").delete().eq("id", seed.productId);
   await supabase.from("categories").delete().eq("id", seed.categoryId);
+}
+
+export async function getLatestOrderForProduct(productId: string) {
+  const supabase = getSupabaseAdmin();
+  const { data: orderItems, error: orderItemsError } = await supabase
+    .from("order_items")
+    .select("order_id")
+    .eq("product_id", productId);
+
+  if (orderItemsError) {
+    throw orderItemsError;
+  }
+
+  const orderIds = Array.from(
+    new Set((orderItems || []).map((item) => item.order_id).filter(Boolean))
+  );
+  if (orderIds.length === 0) {
+    throw new Error("No se encontro la orden e2e");
+  }
+
+  const { data, error } = await supabase
+    .from("orders")
+    .select(`
+      id,
+      status,
+      mercadopago_id,
+      mercadopago_status,
+      stock_restored,
+      guest_access_token,
+      items:order_items(product_id, variant_id, quantity)
+    `)
+    .in("id", orderIds)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error || !data) {
+    throw error ?? new Error("No se encontro la orden e2e");
+  }
+
+  return data as OrderWithItems;
+}
+
+export async function getVariantStock(variantId: string) {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("product_variants")
+    .select("stock")
+    .eq("id", variantId)
+    .single();
+
+  if (error || !data) {
+    throw error ?? new Error("No se encontro la variante e2e");
+  }
+
+  return Number(data.stock ?? 0);
 }

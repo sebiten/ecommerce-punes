@@ -44,6 +44,14 @@ export interface MPPreference {
 }
 
 export async function createPreference(preference: MPPreference) {
+  if (process.env.E2E_MERCADOPAGO_FAKE === "1") {
+    return {
+      id: `e2e-${preference.external_reference ?? Date.now()}`,
+      init_point: preference.back_urls?.success,
+      sandbox_init_point: preference.back_urls?.success,
+    };
+  }
+
   const accessToken = getMercadoPagoAccessToken();
   const response = await fetch("https://api.mercadopago.com/checkout/preferences", {
     method: "POST",
