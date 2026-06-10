@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Pencil } from "lucide-react";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { formatPrice } from "@/lib/utils";
+import { DeleteProductButton } from "./delete-product-button";
 
 export default async function ProductsPage() {
   const supabase = getSupabaseAdmin();
@@ -92,6 +93,10 @@ export default async function ProductsPage() {
                           <Pencil className="h-4 w-4" />
                         </Link>
                       </Button>
+                      <DeleteProductButton
+                        productId={product.id}
+                        productName={product.name}
+                      />
                     </div>
                   </td>
                 </tr>
