@@ -174,10 +174,8 @@ function mergeCartCollections(remoteItems: CartItem[], localItems: CartItemInput
 
   for (const item of normalizeCartItems(localItems)) {
     const key = createCartKey(item.product_id, item.variant_id);
-    const existing = merged.get(key);
 
-    if (existing) {
-      existing.quantity += item.quantity;
+    if (merged.has(key)) {
       continue;
     }
 

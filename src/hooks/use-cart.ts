@@ -21,6 +21,31 @@ const initialState = {
   isOpen: false,
 };
 
+function normalizeCartItems(items: CartItem[]) {
+  const itemsByKey = new Map<string, CartItem>();
+
+  for (const item of items) {
+    const variantId = item.variant_id ?? null;
+    const key = `${item.product_id}:${variantId ?? "default"}`;
+    const existing = itemsByKey.get(key);
+
+    if (existing) {
+      itemsByKey.set(key, {
+        ...existing,
+        quantity: Math.max(existing.quantity, item.quantity),
+      });
+      continue;
+    }
+
+    itemsByKey.set(key, {
+      ...item,
+      variant_id: variantId,
+    });
+  }
+
+  return Array.from(itemsByKey.values());
+}
+
 export const useCartStore = create<CartStore>()((set, get) => ({
   ...initialState,
 
@@ -80,10 +105,7 @@ export const useCartStore = create<CartStore>()((set, get) => ({
 
   setItems: (items) =>
     set({
-      items: items.map((item) => ({
-        ...item,
-        variant_id: item.variant_id ?? null,
-      })),
+      items: normalizeCartItems(items),
     }),
 
   clearCart: () => set({ items: [], isOpen: false }),
@@ -113,7 +135,7 @@ export function hydrateCartStore() {
     try {
       const parsed = JSON.parse(stored);
       if (parsed.state?.items) {
-        useCartStore.setState({ items: parsed.state.items }, false);
+        useCartStore.setState({ items: normalizeCartItems(parsed.state.items) }, false);
       }
     } catch (e) {
       console.error("Error loading cart from localStorage", e);
