@@ -192,7 +192,7 @@ export function CheckoutForm({ addresses, profile, settings }: CheckoutFormProps
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <form id={formId} onSubmit={handleSubmit}>
+          <form id={formId} data-testid="checkout-form" onSubmit={handleSubmit}>
             {addresses.length > 0 ? (
               <Card className="mb-6">
                 <CardHeader>
@@ -481,6 +481,7 @@ export function CheckoutForm({ addresses, profile, settings }: CheckoutFormProps
                 size="lg"
                 type="submit"
                 form={formId}
+                data-testid="checkout-submit"
                 disabled={isProcessing}
               >
                 {isProcessing ? "Procesando..." : "Confirmar y pagar"}

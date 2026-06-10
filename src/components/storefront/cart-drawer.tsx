@@ -40,6 +40,7 @@ export function CartDrawer({ isOpen, onClose, children }: CartDrawerProps) {
         aria-label="Cart"
         role="dialog"
         aria-modal="true"
+        data-testid="cart-drawer"
       >
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between border-b p-4">

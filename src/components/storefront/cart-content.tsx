@@ -123,7 +123,11 @@ export function CartContent() {
           <span>{formatPrice(getTotal())}</span>
         </div>
         <Button className="w-full" size="lg" asChild>
-          <Link href="/checkout" onClick={() => setIsOpen(false)}>
+          <Link
+            href="/checkout"
+            data-testid="cart-checkout-link"
+            onClick={() => setIsOpen(false)}
+          >
             Finalizar compra
           </Link>
         </Button>

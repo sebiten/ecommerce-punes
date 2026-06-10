@@ -61,9 +61,14 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
             </Button>
           </div>
         </div>
-        <Button className="w-full" size="lg" onClick={handleAddToCart}>
-          Agregar al carrito - {formatPrice(Number(currentPrice) * quantity)}
-        </Button>
+      <Button
+        className="w-full"
+        size="lg"
+        data-testid="add-to-cart-button"
+        onClick={handleAddToCart}
+      >
+        Agregar al carrito - {formatPrice(Number(currentPrice) * quantity)}
+      </Button>
       </div>
     );
   }
@@ -145,7 +150,13 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
         </div>
       </div>
 
-      <Button className="w-full" size="lg" onClick={handleAddToCart} disabled={!canAddToCart}>
+      <Button
+        className="w-full"
+        size="lg"
+        data-testid="add-to-cart-button"
+        onClick={handleAddToCart}
+        disabled={!canAddToCart}
+      >
         Agregar al carrito - {formatPrice(Number(currentPrice) * quantity)}
       </Button>
     </div>
