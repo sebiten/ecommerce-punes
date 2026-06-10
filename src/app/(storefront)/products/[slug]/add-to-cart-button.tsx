@@ -13,12 +13,41 @@ interface AddToCartButtonProps {
 }
 
 export function AddToCartButton({ product }: AddToCartButtonProps) {
+  const variants = useMemo(() => {
+    const variantsBySize = new Map<string, ProductVariant>();
+
+    for (const variant of product.variants ?? []) {
+      const key = `${variant.width}x${variant.length}`;
+      const existing = variantsBySize.get(key);
+
+      if (!existing) {
+        variantsBySize.set(key, variant);
+        continue;
+      }
+
+      const existingStock = Number(existing.stock ?? 0);
+      const variantStock = Number(variant.stock ?? 0);
+      const shouldReplace =
+        (variant.active !== false && existing.active === false) ||
+        (variant.active !== false &&
+          existing.active !== false &&
+          variantStock > existingStock);
+
+      if (shouldReplace) {
+        variantsBySize.set(key, variant);
+      }
+    }
+
+    return Array.from(variantsBySize.values()).sort(
+      (a, b) => a.width - b.width || a.length - b.length
+    );
+  }, [product.variants]);
   const availableVariants = useMemo(
     () =>
-      product.variants?.filter(
+      variants.filter(
         (variant) => variant.active !== false && Number(variant.stock ?? 0) > 0
-      ) ?? [],
-    [product.variants]
+      ),
+    [variants]
   );
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
     availableVariants[0] || null
@@ -26,7 +55,7 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
   const [quantity, setQuantity] = useState(1);
   const addItem = useCartStore((state) => state.addItem);
   const selectedStock = Number(selectedVariant?.stock ?? 0);
-  const canAddToCart = !product.variants?.length || Boolean(selectedVariant);
+  const canAddToCart = !variants.length || Boolean(selectedVariant);
 
   const handleAddToCart = () => {
     if (!canAddToCart) return;
@@ -34,11 +63,11 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
   };
 
   const currentPrice = selectedVariant?.priceOverride || product.basePrice;
-  const nextQuantity = product.variants?.length
+  const nextQuantity = variants.length
     ? Math.min(quantity + 1, selectedStock)
     : quantity + 1;
 
-  if (!product.variants || product.variants.length === 0) {
+  if (!variants.length) {
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-4">
@@ -80,7 +109,7 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
         <RadioGroup
           value={selectedVariant?.id}
           onValueChange={(value) => {
-            const variant = product.variants?.find((v) => v.id === value);
+            const variant = variants.find((v) => v.id === value);
             setSelectedVariant(variant || null);
             setQuantity((current) =>
               variant ? Math.min(current, Number(variant.stock ?? 0)) : 1
@@ -88,7 +117,7 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
           }}
           className="grid grid-cols-2 gap-2"
         >
-          {product.variants.map((variant) => {
+          {variants.map((variant) => {
             const variantStock = Number(variant.stock ?? 0);
             const isAvailable = variant.active !== false && variantStock > 0;
 
@@ -143,7 +172,7 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
             variant="outline"
             size="sm"
             onClick={() => setQuantity(nextQuantity)}
-            disabled={Boolean(product.variants?.length) && quantity >= selectedStock}
+            disabled={variants.length > 0 && quantity >= selectedStock}
           >
             +
           </Button>

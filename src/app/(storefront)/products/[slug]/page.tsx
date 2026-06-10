@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import { Star, Truck, Shield, RotateCcw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { getProductBySlug } from "@/actions/products";
 import { formatPrice } from "@/lib/utils";
 import { AddToCartButton } from "./add-to-cart-button";
@@ -91,34 +90,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
           <div className="prose prose-sm mb-6 text-muted-foreground">
             <p>{product.description || "Descripcion no disponible."}</p>
           </div>
-
-          {product.variants?.length ? (
-            <Card className="mb-6">
-              <CardContent className="p-4">
-                <h3 className="mb-3 font-semibold">Tamanos disponibles</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {product.variants.map((variant) => (
-                    <div
-                      key={variant.id}
-                      className="rounded-md border p-3 text-center"
-                    >
-                      <p className="text-sm">
-                        {variant.width} x {variant.length} cm
-                      </p>
-                      {variant.priceOverride ? (
-                        <p className="text-sm font-semibold">
-                          {formatPrice(Number(variant.priceOverride))}
-                        </p>
-                      ) : null}
-                      <p className="text-xs text-muted-foreground">
-                        Stock: {variant.stock}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ) : null}
 
           <AddToCartButton product={product} />
 

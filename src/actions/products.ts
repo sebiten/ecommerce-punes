@@ -41,6 +41,31 @@ const PRODUCT_DETAILS_CACHE_TAG = "product-details";
 const PRODUCT_IMAGES_BUCKET = "product-images";
 const MAX_PRODUCT_IMAGE_SIZE = 4 * 1024 * 1024;
 
+function normalizeProductVariants(variants: ProductPayload["variants"]) {
+  const variantsBySize = new Map<string, ProductPayload["variants"][number]>();
+
+  for (const variant of variants) {
+    const key = `${variant.width}x${variant.length}`;
+    const existing = variantsBySize.get(key);
+
+    if (!existing) {
+      variantsBySize.set(key, { ...variant });
+      continue;
+    }
+
+    variantsBySize.set(key, {
+      ...existing,
+      priceOverride: existing.priceOverride ?? variant.priceOverride ?? null,
+      stock: Number(existing.stock ?? 0) + Number(variant.stock ?? 0),
+      active: Boolean(existing.active ?? true) || Boolean(variant.active ?? true),
+    });
+  }
+
+  return Array.from(variantsBySize.values()).sort(
+    (a, b) => a.width - b.width || a.length - b.length
+  );
+}
+
 function mapProduct(product: any): ProductWithDetails {
   return {
     id: product.id,
@@ -118,9 +143,11 @@ async function replaceProductRelations(
     }
   }
 
-  if (payload.variants.length > 0) {
+  const variants = normalizeProductVariants(payload.variants);
+
+  if (variants.length > 0) {
     const { error } = await supabase.from("product_variants").insert(
-      payload.variants.map((variant) => ({
+      variants.map((variant) => ({
         product_id: productId,
         width: variant.width,
         length: variant.length,

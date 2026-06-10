@@ -36,6 +36,35 @@ const defaultVariants: VariantFormValue[] = [
   { width: 160, length: 190, priceOverride: null, stock: 0, active: true },
 ];
 
+function normalizeVariantValues(variants: VariantFormValue[]) {
+  const variantsBySize = new Map<string, VariantFormValue>();
+
+  for (const variant of variants) {
+    if (variant.width <= 0 || variant.length <= 0) {
+      continue;
+    }
+
+    const key = `${variant.width}x${variant.length}`;
+    const existing = variantsBySize.get(key);
+
+    if (!existing) {
+      variantsBySize.set(key, { ...variant });
+      continue;
+    }
+
+    variantsBySize.set(key, {
+      ...existing,
+      priceOverride: existing.priceOverride ?? variant.priceOverride ?? null,
+      stock: Number(existing.stock || 0) + Number(variant.stock || 0),
+      active: existing.active || variant.active,
+    });
+  }
+
+  return Array.from(variantsBySize.values()).sort(
+    (a, b) => a.width - b.width || a.length - b.length
+  );
+}
+
 const MAX_IMAGE_DIMENSION = 1600;
 const WEBP_QUALITY = 0.84;
 
@@ -86,13 +115,15 @@ export function ProductForm({ categories, mode, product }: ProductFormProps) {
   const [active, setActive] = useState(product?.active ?? true);
   const [variants, setVariants] = useState<VariantFormValue[]>(
     product?.variants?.length
-      ? product.variants.map((variant) => ({
-          width: variant.width,
-          length: variant.length,
-          priceOverride: variant.priceOverride,
-          stock: variant.stock,
-          active: variant.active,
-        }))
+      ? normalizeVariantValues(
+          product.variants.map((variant) => ({
+            width: variant.width,
+            length: variant.length,
+            priceOverride: variant.priceOverride,
+            stock: variant.stock,
+            active: variant.active,
+          }))
+        )
       : defaultVariants
   );
   const [images, setImages] = useState<ImageFormValue[]>(
@@ -176,9 +207,7 @@ export function ProductForm({ categories, mode, product }: ProductFormProps) {
         featured,
         active,
         images: images.filter((image) => image.url.trim()),
-        variants: variants
-          .filter((variant) => variant.width > 0 && variant.length > 0)
-          .map((variant) => ({
+        variants: normalizeVariantValues(variants).map((variant) => ({
             ...variant,
             priceOverride:
               variant.priceOverride === null || Number.isNaN(variant.priceOverride)
