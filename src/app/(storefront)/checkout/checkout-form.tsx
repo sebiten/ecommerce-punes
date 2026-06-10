@@ -38,7 +38,7 @@ function getDefaultAddress(addresses: Address[]) {
 export function CheckoutForm({ addresses, profile, settings }: CheckoutFormProps) {
   const formId = "checkout-form";
   const router = useRouter();
-  const { items, getTotal } = useCartStore();
+  const { items, getTotal, clearCart } = useCartStore();
   const isSignedIn = Boolean(profile);
   const defaultAddress = getDefaultAddress(addresses);
   const defaultName = splitFullName(defaultAddress?.name || profile?.full_name);
@@ -161,6 +161,7 @@ export function CheckoutForm({ addresses, profile, settings }: CheckoutFormProps
       }
 
       if (data.preference?.init_point) {
+        clearCart();
         window.location.href = data.preference.init_point;
         return;
       }

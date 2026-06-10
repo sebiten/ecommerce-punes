@@ -75,20 +75,23 @@ test("approved MercadoPago webhook marks guest order as paid", async ({ page }) 
 
     const requestId = `e2e-request-${Date.now()}`;
     const timestamp = Math.floor(Date.now() / 1000).toString();
-    const response = await page.request.post("/api/webhooks/mercadopago", {
-      headers: {
-        "x-request-id": requestId,
-        "x-signature": createMercadoPagoSignature({
-          dataId: pendingOrder.id,
-          requestId,
-          timestamp,
-        }),
-      },
-      data: {
-        type: "payment",
-        data: { id: pendingOrder.id },
-      },
-    });
+    const response = await page.request.post(
+      `/api/webhooks/mercadopago?type=payment&data.id=${pendingOrder.id}`,
+      {
+        headers: {
+          "x-request-id": requestId,
+          "x-signature": createMercadoPagoSignature({
+            dataId: pendingOrder.id,
+            requestId,
+            timestamp,
+          }),
+        },
+        data: {
+          type: "payment",
+          data: { id: pendingOrder.id },
+        },
+      }
+    );
 
     expect(response.ok()).toBe(true);
 

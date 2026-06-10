@@ -301,6 +301,22 @@ async function restoreOrderStock(orderId: string) {
   }
 }
 
+async function clearUserCart(userId: string | null) {
+  if (!userId) {
+    return;
+  }
+
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from("cart_items")
+    .delete()
+    .eq("clerk_user_id", userId);
+
+  if (error) {
+    throw error;
+  }
+}
+
 function buildMercadoPagoItems(
   items: ResolvedCheckoutItem[],
   subtotal: number,
@@ -429,7 +445,7 @@ export async function createOrder({
         email: shippingAddress.email,
       },
       external_reference: order.id,
-      notification_url: `${appUrl}/api/webhooks/mercadopago`,
+      notification_url: `${appUrl}/api/webhooks/mercadopago?source_news=webhooks`,
       back_urls: {
         success: `${appUrl}/order-confirmation/${order.id}${
           guestAccessToken ? `?token=${guestAccessToken}` : ""
@@ -456,6 +472,8 @@ export async function createOrder({
       .update({ used_count: Number(coupon?.used_count || 0) + 1 })
       .eq("code", discount.code);
   }
+
+  await clearUserCart(userId);
 
   return { order, preference };
 }

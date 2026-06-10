@@ -99,13 +99,16 @@ async function restoreOrderStock(orderId: string) {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { type, data } = body;
-    const paymentId = String(data?.id || "");
+    const url = new URL(request.url);
+    const body = await request.json().catch(() => null);
+    const type = url.searchParams.get("type") || body?.type;
+    const paymentId = String(
+      url.searchParams.get("data.id") || body?.data?.id || body?.id || ""
+    );
 
     const supabase = getSupabaseAdmin();
 
-    if (type === "payment") {
+    if (type === "payment" && paymentId) {
       const isValidSignature = isValidWebhookSignature({
         dataId: paymentId,
         requestId: request.headers.get("x-request-id"),
