@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const ACCOUNT_NAV_ITEMS = [
+  { href: "/account/profile", label: "Perfil" },
   { href: "/account/orders", label: "Pedidos" },
   { href: "/account/addresses", label: "Direcciones" },
 ];
