@@ -13,12 +13,11 @@ export function Footer({ settings }: FooterProps) {
         <div className="grid grid-cols-1 gap-12 md:grid-cols-4">
           <div>
             <Image
-              src="/punes-logo.webp"
+              src="/logo-punes.jpg"
               alt={settings.store_name}
-              width={120}
+              width={40}
               height={40}
-              className="mb-6 h-10 w-auto brightness-0 invert"
-              style={{ width: "auto", height: "40px" }}
+              className="mb-6 h-10 w-10 object-contain brightness-0 invert"
             />
             <p className="text-sm leading-relaxed text-white/60">
               {settings.footer_text}

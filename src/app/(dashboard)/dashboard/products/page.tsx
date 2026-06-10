@@ -61,6 +61,7 @@ export default async function ProductsPage() {
                           alt={product.name}
                           fill
                           className="object-cover"
+                          sizes="48px"
                         />
                       </div>
                       <div>

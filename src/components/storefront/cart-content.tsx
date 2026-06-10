@@ -47,6 +47,7 @@ export function CartContent() {
                   alt={item.product?.name || "Producto"}
                   fill
                   className="object-cover"
+                  sizes="80px"
                 />
               </div>
 

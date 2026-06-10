@@ -51,10 +51,9 @@ export function Header() {
             <Image
               src="/logo-punes.jpg"
               alt="Pune"
-              width={120}
+              width={40}
               height={40}
-              className="h-10 w-auto"
-              style={{ width: "auto", height: "40px" }}
+              className="h-10 w-10 object-contain"
             />
           </Link>
 

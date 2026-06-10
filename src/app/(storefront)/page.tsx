@@ -72,7 +72,7 @@ export default async function HomePage() {
                 className="border-white text-black "
                 asChild
               >
-                <Link href="/products?category=sommiers ">Ver sommiers</Link>
+                <Link href="/products?category=sommiers">Ver sommiers</Link>
               </Button>
             </div>
           </div>

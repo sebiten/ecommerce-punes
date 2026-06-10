@@ -8,7 +8,7 @@ import { revalidatePath } from "next/cache";
 import type { CartItem, OrderStatus } from "@/types";
 import { getShippingCost } from "@/lib/commerce";
 import { getStoreSettings } from "@/actions/store-settings";
-import { revalidateProductCacheFromServerAction } from "@/lib/cache/products";
+import { revalidateProductCacheFromRouteHandler } from "@/lib/cache/products";
 
 const ORDER_STATUS_VALUES: OrderStatus[] = [
   "pending",
@@ -65,6 +65,14 @@ function getOrderStatusFromMercadoPagoStatus(status: string): OrderStatus {
   }
 
   return failedStatuses.has(status) ? "cancelled" : "pending";
+}
+
+function revalidateProductCacheAfterStockChange() {
+  try {
+    revalidateProductCacheFromRouteHandler();
+  } catch (error) {
+    console.error("Error revalidando cache de productos:", error);
+  }
 }
 
 function normalizeCheckoutItems(items: CartItem[]) {
@@ -239,7 +247,7 @@ async function decrementVariantStock(items: ResolvedCheckoutItem[]) {
   }
 
   if (stockChanged) {
-    revalidateProductCacheFromServerAction();
+    revalidateProductCacheAfterStockChange();
   }
 }
 
@@ -277,7 +285,7 @@ async function restoreVariantStock(items: ResolvedCheckoutItem[]) {
   }
 
   if (stockChanged) {
-    revalidateProductCacheFromServerAction();
+    revalidateProductCacheAfterStockChange();
   }
 }
 
@@ -340,7 +348,7 @@ async function restoreOrderStock(orderId: string) {
   }
 
   if (stockChanged) {
-    revalidateProductCacheFromServerAction();
+    revalidateProductCacheAfterStockChange();
   }
 }
 
