@@ -9,14 +9,16 @@ import { formatPrice } from "@/lib/utils";
 import { getCartItemLineTotal } from "@/lib/commerce";
 
 export function CartContent() {
-  const { items, removeItem, updateQuantity, getTotal } = useCartStore();
+  const { items, removeItem, updateQuantity, getTotal, setIsOpen } = useCartStore();
 
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center">
         <p className="text-muted-foreground mb-4">Tu carrito está vacío</p>
         <Button asChild>
-          <Link href="/products">Ver productos</Link>
+          <Link href="/products" onClick={() => setIsOpen(false)}>
+            Ver productos
+          </Link>
         </Button>
       </div>
     );
@@ -104,7 +106,9 @@ export function CartContent() {
           <span>{formatPrice(getTotal())}</span>
         </div>
         <Button className="w-full" size="lg" asChild>
-          <Link href="/checkout">Finalizar compra</Link>
+          <Link href="/checkout" onClick={() => setIsOpen(false)}>
+            Finalizar compra
+          </Link>
         </Button>
       </div>
     </div>
