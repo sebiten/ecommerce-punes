@@ -61,6 +61,25 @@ export interface ProductWithDetails extends Product {
   variants: ProductVariant[];
 }
 
+export interface ProductReview {
+  id: string;
+  product_id: string;
+  clerk_user_id: string;
+  order_id: string | null;
+  rating: number;
+  title: string | null;
+  comment: string;
+  reviewer_name: string | null;
+  approved: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProductReviewStats {
+  average: number;
+  count: number;
+}
+
 export interface Address {
   id: string;
   profile_id?: string | null;

@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
-import Image from "next/image";
-import { Star, Truck, Shield, RotateCcw } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Truck, Shield, RotateCcw } from "lucide-react";
 import { getProductBySlug } from "@/actions/products";
 import { formatPrice } from "@/lib/utils";
 import { AddToCartButton } from "./add-to-cart-button";
+import { ProductGallery } from "./product-gallery";
+import { ProductReviews, ProductReviewSummary } from "./product-reviews";
 import type { Metadata } from "next";
 
 interface ProductPageProps {
@@ -27,7 +27,7 @@ export async function generateMetadata({
     openGraph: {
       title: product.name,
       description: product.description || `Comprar ${product.name}`,
-      images: product.images?.[0]?.url ? [product.images[0].url] : [],
+      images: product.images?.map((image) => image.url) ?? [],
     },
   };
 }
@@ -40,26 +40,14 @@ export default async function ProductPage({ params }: ProductPageProps) {
     notFound();
   }
 
-  const imageUrl =
-    product.images?.[0]?.url ||
-    "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&h=800&fit=crop";
-
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        <div className="relative aspect-square overflow-hidden rounded-xl bg-muted">
-          <Image
-            src={imageUrl}
-            alt={product.name}
-            fill
-            className="object-cover"
-            priority
-            sizes="(max-width: 1024px) 100vw, 50vw"
-          />
-          {product.featured ? (
-            <Badge className="absolute left-4 top-4">Destacado</Badge>
-          ) : null}
-        </div>
+        <ProductGallery
+          productName={product.name}
+          featured={product.featured}
+          images={product.images}
+        />
 
         <div className="flex flex-col">
           {product.category ? (
@@ -69,19 +57,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
           ) : null}
           <h1 className="mb-4 text-3xl font-bold">{product.name}</h1>
 
-          <div className="mb-6 flex items-center gap-2">
-            <div className="flex items-center">
-              {[...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  className={`h-4 w-4 ${
-                    i < 4 ? "fill-primary text-primary" : "text-muted"
-                  }`}
-                />
-              ))}
-            </div>
-            <span className="text-sm text-muted-foreground">(128 resenas)</span>
-          </div>
+          <ProductReviewSummary productId={product.id} />
 
           <p className="mb-6 text-3xl font-bold">
             {formatPrice(Number(product.basePrice))}
@@ -109,6 +85,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
           </div>
         </div>
       </div>
+
+      <ProductReviews productId={product.id} productSlug={product.slug} />
     </div>
   );
 }

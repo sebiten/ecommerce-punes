@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
 import type { CartItem, OrderStatus } from "@/types";
 import { getShippingCost } from "@/lib/commerce";
 import { getStoreSettings } from "@/actions/store-settings";
+import { revalidateProductCacheFromServerAction } from "@/lib/cache/products";
 
 const ORDER_STATUS_VALUES: OrderStatus[] = [
   "pending",
@@ -203,6 +204,7 @@ async function getCouponDiscount(couponCode: string | undefined, subtotal: numbe
 
 async function decrementVariantStock(items: ResolvedCheckoutItem[]) {
   const supabase = getSupabaseAdmin();
+  let stockChanged = false;
 
   for (const item of items) {
     if (!item.variant_id) {
@@ -232,11 +234,18 @@ async function decrementVariantStock(items: ResolvedCheckoutItem[]) {
     if (updateError) {
       throw updateError;
     }
+
+    stockChanged = true;
+  }
+
+  if (stockChanged) {
+    revalidateProductCacheFromServerAction();
   }
 }
 
 async function restoreVariantStock(items: ResolvedCheckoutItem[]) {
   const supabase = getSupabaseAdmin();
+  let stockChanged = false;
 
   for (const item of items) {
     if (!item.variant_id) {
@@ -261,7 +270,14 @@ async function restoreVariantStock(items: ResolvedCheckoutItem[]) {
 
     if (updateError) {
       console.error("Error restaurando stock:", updateError);
+      continue;
     }
+
+    stockChanged = true;
+  }
+
+  if (stockChanged) {
+    revalidateProductCacheFromServerAction();
   }
 }
 
@@ -284,6 +300,8 @@ async function restoreOrderStock(orderId: string) {
   if (order.stock_restored) {
     return;
   }
+
+  let stockChanged = false;
 
   for (const item of order.items || []) {
     if (!item.variant_id) {
@@ -308,6 +326,8 @@ async function restoreOrderStock(orderId: string) {
     if (updateError) {
       throw updateError;
     }
+
+    stockChanged = true;
   }
 
   const { error: restoreError } = await supabase
@@ -317,6 +337,10 @@ async function restoreOrderStock(orderId: string) {
 
   if (restoreError) {
     throw restoreError;
+  }
+
+  if (stockChanged) {
+    revalidateProductCacheFromServerAction();
   }
 }
 

@@ -3,10 +3,15 @@
 import { cache } from "react";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { revalidatePath, unstable_cache, updateTag } from "next/cache";
+import { unstable_cache } from "next/cache";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/actions/auth";
 import { getCategoriesPublic } from "@/actions/categories";
+import {
+  PRODUCT_DETAILS_CACHE_TAG,
+  PRODUCTS_CACHE_TAG,
+  revalidateProductCacheFromServerAction,
+} from "@/lib/cache/products";
 import type { Category, ProductWithDetails } from "@/types";
 
 const productImageSchema = z.object({
@@ -36,8 +41,6 @@ const productPayloadSchema = z.object({
 
 type ProductPayload = z.infer<typeof productPayloadSchema>;
 
-const PRODUCTS_CACHE_TAG = "products";
-const PRODUCT_DETAILS_CACHE_TAG = "product-details";
 const PRODUCT_IMAGES_BUCKET = "product-images";
 const MAX_PRODUCT_IMAGE_SIZE = 4 * 1024 * 1024;
 
@@ -160,18 +163,6 @@ async function replaceProductRelations(
     if (error) {
       throw error;
     }
-  }
-}
-
-async function revalidateProductPaths(slug?: string) {
-  updateTag(PRODUCTS_CACHE_TAG);
-  updateTag(PRODUCT_DETAILS_CACHE_TAG);
-  revalidatePath("/");
-  revalidatePath("/products");
-  revalidatePath("/dashboard/products");
-
-  if (slug) {
-    revalidatePath(`/products/${slug}`);
   }
 }
 
@@ -325,7 +316,7 @@ export async function createProduct(input: ProductPayload) {
   }
 
   await replaceProductRelations(supabase, product.id, payload);
-  await revalidateProductPaths(product.slug);
+  revalidateProductCacheFromServerAction(product.slug);
 
   return product;
 }
@@ -396,8 +387,8 @@ export async function updateProduct(id: string, input: ProductPayload) {
   }
 
   await replaceProductRelations(supabase, id, payload);
-  await revalidateProductPaths(existing.slug);
-  await revalidateProductPaths(payload.slug);
+  revalidateProductCacheFromServerAction(existing.slug);
+  revalidateProductCacheFromServerAction(payload.slug);
 }
 
 export async function deleteProduct(id: string) {
@@ -410,5 +401,5 @@ export async function deleteProduct(id: string) {
     throw error;
   }
 
-  await revalidateProductPaths(existing?.slug);
+  revalidateProductCacheFromServerAction(existing?.slug);
 }

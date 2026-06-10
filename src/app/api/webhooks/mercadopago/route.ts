@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { revalidateProductCacheFromRouteHandler } from "@/lib/cache/products";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -71,6 +72,8 @@ async function restoreOrderStock(orderId: string) {
     return;
   }
 
+  let stockChanged = false;
+
   for (const item of order.items || []) {
     if (!item.variant_id) {
       continue;
@@ -94,12 +97,18 @@ async function restoreOrderStock(orderId: string) {
     if (updateError) {
       throw updateError;
     }
+
+    stockChanged = true;
   }
 
   await supabase
     .from("orders")
     .update({ stock_restored: true })
     .eq("id", orderId);
+
+  if (stockChanged) {
+    revalidateProductCacheFromRouteHandler();
+  }
 }
 
 export async function POST(request: Request) {
