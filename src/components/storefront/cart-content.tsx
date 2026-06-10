@@ -31,6 +31,13 @@ export function CartContent() {
           const imageUrl =
             item.product?.images?.[0]?.url ||
             "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=300&h=300&fit=crop";
+          const selectedVariant = item.variant_id
+            ? item.product?.variants?.find((variant) => variant.id === item.variant_id)
+            : null;
+          const maxQuantity = selectedVariant ? Number(selectedVariant.stock ?? 0) : null;
+          const hasReachedStockLimit =
+            maxQuantity !== null && item.quantity >= maxQuantity;
+          const isUnavailableVariant = Boolean(item.variant_id && !selectedVariant);
 
           return (
             <div key={`${item.product_id}-${item.variant_id}`} className="flex gap-4">
@@ -48,12 +55,21 @@ export function CartContent() {
                   <h4 className="text-sm font-medium line-clamp-1">
                     {item.product?.name}
                   </h4>
-                  {item.variant_id && item.product?.variants && (
+                  {selectedVariant ? (
                     <p className="text-xs text-muted-foreground">
-                      {item.product.variants.find((v) => v.id === item.variant_id)?.width} x{" "}
-                      {item.product.variants.find((v) => v.id === item.variant_id)?.length} cm
+                      {selectedVariant?.width} x {selectedVariant?.length} cm
                     </p>
-                  )}
+                  ) : null}
+                  {isUnavailableVariant ? (
+                    <p className="text-xs text-destructive">
+                      Variante no disponible
+                    </p>
+                  ) : null}
+                  {maxQuantity !== null ? (
+                    <p className="text-xs text-muted-foreground">
+                      Stock disponible: {maxQuantity}
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -76,6 +92,7 @@ export function CartContent() {
                       onClick={() =>
                         updateQuantity(item.product_id, item.variant_id, item.quantity + 1)
                       }
+                      disabled={hasReachedStockLimit || isUnavailableVariant}
                     >
                       <Plus className="h-3 w-3" />
                     </Button>

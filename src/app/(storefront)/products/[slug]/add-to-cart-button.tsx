@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useCartStore } from "@/hooks/use-cart";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -13,17 +13,30 @@ interface AddToCartButtonProps {
 }
 
 export function AddToCartButton({ product }: AddToCartButtonProps) {
+  const availableVariants = useMemo(
+    () =>
+      product.variants?.filter(
+        (variant) => variant.active !== false && Number(variant.stock ?? 0) > 0
+      ) ?? [],
+    [product.variants]
+  );
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
-    product.variants?.[0] || null
+    availableVariants[0] || null
   );
   const [quantity, setQuantity] = useState(1);
   const addItem = useCartStore((state) => state.addItem);
+  const selectedStock = Number(selectedVariant?.stock ?? 0);
+  const canAddToCart = !product.variants?.length || Boolean(selectedVariant);
 
   const handleAddToCart = () => {
+    if (!canAddToCart) return;
     addItem(product, selectedVariant?.id ?? null, quantity);
   };
 
   const currentPrice = selectedVariant?.priceOverride || product.basePrice;
+  const nextQuantity = product.variants?.length
+    ? Math.min(quantity + 1, selectedStock)
+    : quantity + 1;
 
   if (!product.variants || product.variants.length === 0) {
     return (
@@ -64,19 +77,27 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
           onValueChange={(value) => {
             const variant = product.variants?.find((v) => v.id === value);
             setSelectedVariant(variant || null);
+            setQuantity((current) =>
+              variant ? Math.min(current, Number(variant.stock ?? 0)) : 1
+            );
           }}
           className="grid grid-cols-2 gap-2"
         >
-          {product.variants.map((variant) => (
+          {product.variants.map((variant) => {
+            const variantStock = Number(variant.stock ?? 0);
+            const isAvailable = variant.active !== false && variantStock > 0;
+
+            return (
             <div key={variant.id}>
               <RadioGroupItem
                 value={variant.id}
                 id={variant.id}
                 className="peer sr-only"
+                disabled={!isAvailable}
               />
               <Label
                 htmlFor={variant.id}
-                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:text-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                className="flex cursor-pointer flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-45 peer-data-[state=checked]:border-primary peer-data-[state=checked]:text-primary [&:has([data-state=checked])]:border-primary"
               >
                 <span className="text-sm font-medium">
                   {variant.width} x {variant.length} cm
@@ -87,12 +108,18 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
                   </span>
                 )}
                 <span className="text-xs text-muted-foreground">
-                  Stock: {variant.stock}
+                  {isAvailable ? `Stock: ${variantStock}` : "Sin stock"}
                 </span>
               </Label>
             </div>
-          ))}
+            );
+          })}
         </RadioGroup>
+        {!availableVariants.length ? (
+          <p className="mt-2 text-sm text-destructive">
+            No hay medidas con stock disponible.
+          </p>
+        ) : null}
       </div>
 
       <div className="flex items-center gap-4">
@@ -102,6 +129,7 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
             variant="outline"
             size="sm"
             onClick={() => setQuantity(Math.max(1, quantity - 1))}
+            disabled={quantity <= 1}
           >
             -
           </Button>
@@ -109,14 +137,15 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setQuantity(quantity + 1)}
+            onClick={() => setQuantity(nextQuantity)}
+            disabled={Boolean(product.variants?.length) && quantity >= selectedStock}
           >
             +
           </Button>
         </div>
       </div>
 
-      <Button className="w-full" size="lg" onClick={handleAddToCart}>
+      <Button className="w-full" size="lg" onClick={handleAddToCart} disabled={!canAddToCart}>
         Agregar al carrito - {formatPrice(Number(currentPrice) * quantity)}
       </Button>
     </div>
