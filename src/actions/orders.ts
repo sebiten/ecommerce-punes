@@ -535,6 +535,7 @@ export async function createOrder({
   );
 
   if (orderItemsError) {
+    await supabase.from("orders").update({ status: "cancelled" }).eq("id", order.id);
     throw orderItemsError;
   }
 
@@ -566,7 +567,10 @@ export async function createOrder({
     });
   } catch (error) {
     await restoreVariantStock(resolvedItems);
-    await supabase.from("orders").update({ status: "cancelled" }).eq("id", order.id);
+    await supabase
+      .from("orders")
+      .update({ status: "cancelled", stock_restored: true })
+      .eq("id", order.id);
     throw error;
   }
 

@@ -17,7 +17,12 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Checkout error:", error);
     return NextResponse.json(
-      { error: "Error processing checkout" },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Error processing checkout",
+      },
       { status: 500 }
     );
   }
