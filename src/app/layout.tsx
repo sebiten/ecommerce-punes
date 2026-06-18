@@ -41,8 +41,8 @@ export default function RootLayout({
     <html lang="es" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body className="min-h-full flex flex-col antialiased">
         <ClerkProvider
+          localization={esES as any}
           publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY!}
-          localization={esES}
         >
           <ThemeProvider>{children}</ThemeProvider>
         </ClerkProvider>
