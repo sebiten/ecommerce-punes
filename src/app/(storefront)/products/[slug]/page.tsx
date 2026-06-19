@@ -95,20 +95,41 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 <ProductReviewSummary productId={product.id} />
               </div>
 
-              <div className="mt-6 rounded-[1.5rem] bg-[#201710] p-5 text-[#fff7ea]">
-                <p className="text-sm text-[#ffd6a5]">Precio desde</p>
-                <p className="mt-1 text-4xl font-black tracking-tight">
-                  {formatPrice(Number(product.basePrice))}
-                </p>
-                <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
-                  <div className="rounded-2xl bg-[#fff7ea]/8 p-3">
-                    <Ruler className="mb-2 h-4 w-4 text-[#ffd6a5]" />
-                    {activeVariants.length} medida
-                    {activeVariants.length !== 1 ? "s" : ""}
+              <div className="mt-6 rounded-[1.5rem] border border-[#eadfce] bg-[#fff8ef] p-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-[#9a5b19]">
+                      Precio desde
+                    </p>
+                    <p className="mt-1 text-4xl font-black tracking-tight text-[#17110c]">
+                      {formatPrice(Number(product.basePrice))}
+                    </p>
                   </div>
-                  <div className="rounded-2xl bg-[#fff7ea]/8 p-3">
-                    <CheckCircle2 className="mb-2 h-4 w-4 text-[#ffd6a5]" />
-                    {availableStock > 0 ? `Stock ${availableStock}` : "A pedido"}
+                  <span className="inline-flex w-fit items-center gap-2 rounded-full border border-[#dfcbb1] bg-[#fffdf9] px-3 py-2 text-sm font-semibold text-[#5f3b18]">
+                    <CheckCircle2 className="h-4 w-4 text-[#9a5b19]" />
+                    {availableStock > 0 ? "Disponible" : "Consultar stock"}
+                  </span>
+                </div>
+
+                <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
+                  <div className="rounded-2xl border border-[#eadfce] bg-[#fffdf9] p-4 text-[#17110c]">
+                    <Ruler className="mb-3 h-4 w-4 text-[#9a5b19]" />
+                    <p className="font-bold">
+                      {activeVariants.length} medida
+                      {activeVariants.length !== 1 ? "s" : ""}
+                    </p>
+                    <p className="mt-1 text-xs text-[#66584a]">
+                      Elegí la variante antes de comprar.
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-[#eadfce] bg-[#fffdf9] p-4 text-[#17110c]">
+                    <CheckCircle2 className="mb-3 h-4 w-4 text-[#9a5b19]" />
+                    <p className="font-bold">
+                      {availableStock > 0 ? `Stock ${availableStock}` : "A pedido"}
+                    </p>
+                    <p className="mt-1 text-xs text-[#66584a]">
+                      Actualizado según medidas activas.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -150,10 +171,10 @@ export default async function ProductPage({ params }: ProductPageProps) {
           </div>
         </div>
 
-        <div className="mt-8 rounded-[2rem] border border-[#eadfce] bg-[#201710] p-6 text-[#fff7ea] sm:p-8">
+        <div className="mt-8 rounded-[2rem] border border-[#eadfce] bg-[#fff8ef] p-6 text-[#17110c] sm:p-8">
           <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
             <div>
-              <p className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-[0.16em] text-[#ffd6a5]">
+              <p className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-[0.16em] text-[#9a5b19]">
                 <Sparkles className="h-4 w-4" />
                 Sensación Punes
               </p>
@@ -162,17 +183,17 @@ export default async function ProductPage({ params }: ProductPageProps) {
               </h2>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl bg-[#fff7ea]/8 p-4">
-                <BedDouble className="mb-3 h-5 w-5 text-[#ffd6a5]" />
-                <p className="text-sm text-[#fff7ea]/70">Soporte para uso diario.</p>
+              <div className="rounded-2xl border border-[#eadfce] bg-[#fffdf9] p-4">
+                <BedDouble className="mb-3 h-5 w-5 text-[#9a5b19]" />
+                <p className="text-sm text-[#66584a]">Soporte para uso diario.</p>
               </div>
-              <div className="rounded-2xl bg-[#fff7ea]/8 p-4">
-                <Moon className="mb-3 h-5 w-5 text-[#ffd6a5]" />
-                <p className="text-sm text-[#fff7ea]/70">Confort para dormir mejor.</p>
+              <div className="rounded-2xl border border-[#eadfce] bg-[#fffdf9] p-4">
+                <Moon className="mb-3 h-5 w-5 text-[#9a5b19]" />
+                <p className="text-sm text-[#66584a]">Confort para dormir mejor.</p>
               </div>
-              <div className="rounded-2xl bg-[#fff7ea]/8 p-4">
-                <Shield className="mb-3 h-5 w-5 text-[#ffd6a5]" />
-                <p className="text-sm text-[#fff7ea]/70">Compra segura y respaldada.</p>
+              <div className="rounded-2xl border border-[#eadfce] bg-[#fffdf9] p-4">
+                <Shield className="mb-3 h-5 w-5 text-[#9a5b19]" />
+                <p className="text-sm text-[#66584a]">Compra segura y respaldada.</p>
               </div>
             </div>
           </div>

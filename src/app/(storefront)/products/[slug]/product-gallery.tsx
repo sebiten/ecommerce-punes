@@ -33,8 +33,7 @@ export function ProductGallery({
           alt={selectedImage.alt || productName}
           fill
           className="object-cover"
-          loading="eager"
-          fetchPriority="high"
+          preload
           sizes="(max-width: 1024px) 100vw, 50vw"
         />
         <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#17110c]/45 to-transparent" />

@@ -91,7 +91,7 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
           </div>
         </div>
       <Button
-        className="w-full"
+        className="w-full rounded-xl bg-[#f6ae66] font-bold text-[#17110c] shadow-sm shadow-[#5c3514]/10 hover:bg-[#ffbd79]"
         size="lg"
         data-testid="add-to-cart-button"
         onClick={handleAddToCart}
@@ -180,7 +180,7 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
       </div>
 
       <Button
-        className="w-full"
+        className="w-full rounded-xl bg-[#f6ae66] font-bold text-[#17110c] shadow-sm shadow-[#5c3514]/10 hover:bg-[#ffbd79]"
         size="lg"
         data-testid="add-to-cart-button"
         onClick={handleAddToCart}
