@@ -131,7 +131,7 @@ export default async function HomePage() {
               <div className="absolute inset-0 bg-gradient-to-t from-[#17110c]/22 via-transparent to-transparent" />
             </div>
 
-            <div className="animate-punes-float absolute left-0 top-20 w-56 rounded-[2rem] border border-[#eadfce] bg-[#fffdf9] p-5 text-[#21170f] shadow-2xl shadow-[#5c3514]/14">
+            <div className="animate-punes-float absolute left-0 top-20 w-56 rounded-[2rem] border border-[#eadfce] bg-[#fffdf9] p-5 text-[#17110c] shadow-2xl shadow-[#5c3514]/14">
               <Factory className="mb-5 h-6 w-6 text-[#9a5b19]" />
               <p className="text-sm font-bold">Hecho para uso real</p>
               <p className="mt-2 text-sm leading-6 text-[#6d6257]">
@@ -247,11 +247,11 @@ export default async function HomePage() {
         </section>
       ) : null}
 
-      <section className="relative overflow-hidden bg-[#1a110b] py-20 text-[#fff7ea]">
+      <section className="relative overflow-hidden border-y border-[#eadfce] bg-[#fffdf9] py-20 text-[#17110c]">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(246,174,102,0.18),transparent_34%)]" />
         <div className="container relative mx-auto px-4">
           <div className="mb-14 max-w-2xl">
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#ffd6a5]">
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#9a5b19]">
               Compra sin dudas
             </p>
             <h2 className="mt-3 text-4xl font-black tracking-tight">
@@ -265,13 +265,13 @@ export default async function HomePage() {
               return (
                 <div
                   key={benefit.title}
-                  className="rounded-[1.75rem] border border-[#fff7ea]/12 bg-[#fff7ea]/7 p-6"
+                  className="rounded-[1.75rem] border border-[#eadfce] bg-[#fffaf4] p-6 shadow-sm shadow-[#5c3514]/5"
                 >
                   <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f6ae66] text-[#17110c]">
                     <Icon className="h-6 w-6" />
                   </div>
                   <h3 className="text-lg font-bold">{benefit.title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-[#fff7ea]/62">
+                  <p className="mt-3 text-sm leading-6 text-[#66584a]">
                     {benefit.text}
                   </p>
                 </div>

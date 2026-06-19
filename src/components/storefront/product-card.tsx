@@ -93,7 +93,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
                 {formatPrice(getDisplayPrice(product))}
               </p>
             </div>
-            <span className="inline-flex w-full items-center justify-center rounded-full bg-[#17110c] px-4 py-3 text-sm font-semibold text-[#fff7ea] transition group-hover:bg-[#f6ae66] group-hover:text-[#17110c]">
+            <span className="inline-flex w-full items-center justify-center rounded-full bg-[#f6ae66] px-4 py-3 text-sm font-bold text-[#17110c] shadow-sm shadow-[#5c3514]/10 transition group-hover:bg-[#ffbd79]">
               Ver producto
             </span>
           </div>
