@@ -60,25 +60,25 @@ export function Header() {
           <nav className="hidden md:flex items-center gap-6">
             <Link
               href="/products"
-              className="text-sm font-medium hover:text-[#f6ae66] transition-colors"
+              className="text-sm font-medium transition-colors hover:text-[#9a5b19]"
             >
               Productos
             </Link>
             <Link
               href="/products?category=colchones"
-              className="text-sm font-medium hover:text-[#f6ae66] transition-colors"
+              className="text-sm font-medium transition-colors hover:text-[#9a5b19]"
             >
               Colchones
             </Link>
             <Link
               href="/products?category=sommiers"
-              className="text-sm font-medium hover:text-[#f6ae66] transition-colors"
+              className="text-sm font-medium transition-colors hover:text-[#9a5b19]"
             >
               Sommiers
             </Link>
             <Link
               href="/products?category=accesorios"
-              className="text-sm font-medium hover:text-[#f6ae66] transition-colors"
+              className="text-sm font-medium transition-colors hover:text-[#9a5b19]"
             >
               Accesorios
             </Link>
@@ -132,7 +132,7 @@ export function Header() {
             <Button
               variant="ghost"
               size="sm"
-              className="text-[#f6ae66] hover:text-[#f6ae66] hover:bg-[#f6ae66]/10"
+              className="text-[#9a5b19] hover:bg-[#f6ae66]/10 hover:text-[#9a5b19]"
               asChild
             >
               <Link href="/login">
@@ -148,7 +148,7 @@ export function Header() {
             className="relative border-[#f6ae66] hover:bg-[#f6ae66]/10"
             onClick={toggleCart}
           >
-            <ShoppingBag className="h-5 w-5 text-[#f6ae66]" />
+            <ShoppingBag className="h-5 w-5 text-[#9a5b19]" />
             {itemCount > 0 && (
               <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#f6ae66] text-xs text-black font-bold">
                 {itemCount}

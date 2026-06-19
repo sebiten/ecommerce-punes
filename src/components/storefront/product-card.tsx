@@ -48,7 +48,8 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
             fill
             className="object-cover transition duration-500 ease-out group-hover:scale-[1.04]"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            priority={priority}
+            loading={priority ? "eager" : "lazy"}
+            fetchPriority={priority ? "high" : "auto"}
           />
           <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#17110c]/45 to-transparent" />
           {product.featured ? (
@@ -63,7 +64,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
 
         <div className="flex flex-1 flex-col p-5">
           {product.category ? (
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#a66b2f]">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9a5b19]">
               {product.category.name}
             </p>
           ) : null}
