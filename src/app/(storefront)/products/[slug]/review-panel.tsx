@@ -36,7 +36,7 @@ export function ReviewPanel({ productId, productSlug }: ReviewPanelProps) {
         if (active) {
           setEligibility({
             canReview: false,
-            reason: "No pudimos validar si puedes dejar una resena.",
+            reason: "No pudimos validar si puedes dejar una reseña.",
             existingReview: null,
           });
         }
@@ -50,9 +50,9 @@ export function ReviewPanel({ productId, productSlug }: ReviewPanelProps) {
   if (!eligibility) {
     return (
       <div className="rounded-xl border bg-card p-5">
-        <h3 className="text-lg font-semibold">Resenas verificadas</h3>
+        <h3 className="text-lg font-semibold">Reseñas verificadas</h3>
         <p className="mt-2 text-sm text-muted-foreground">
-          Validando si puedes dejar una resena...
+          Validando si puedes dejar una reseña...
         </p>
       </div>
     );
@@ -70,7 +70,7 @@ export function ReviewPanel({ productId, productSlug }: ReviewPanelProps) {
 
   return (
     <div className="rounded-xl border bg-card p-5">
-      <h3 className="text-lg font-semibold">Resenas verificadas</h3>
+      <h3 className="text-lg font-semibold">Reseñas verificadas</h3>
       <p className="mt-2 text-sm text-muted-foreground">{eligibility.reason}</p>
     </div>
   );

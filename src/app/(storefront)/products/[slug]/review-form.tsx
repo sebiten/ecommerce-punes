@@ -34,7 +34,7 @@ export function ReviewForm({
 
       <div>
         <h3 className="text-lg font-semibold">
-          {existingReview ? "Editar tu resena" : "Dejar una resena"}
+          {existingReview ? "Editar tu reseña" : "Dejar una reseña"}
         </h3>
         <p className="text-sm text-muted-foreground">
           Tu opinion ayuda a otros clientes a elegir mejor.
@@ -91,7 +91,7 @@ export function ReviewForm({
       ) : null}
 
       <Button type="submit" disabled={pending}>
-        {pending ? "Guardando..." : "Guardar resena"}
+        {pending ? "Guardando..." : "Guardar reseña"}
       </Button>
     </form>
   );

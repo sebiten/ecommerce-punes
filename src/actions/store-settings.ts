@@ -35,7 +35,7 @@ const defaultStoreSettings: StoreSettings = {
   instagram_url: null,
   facebook_url: null,
   footer_text:
-    "Mas de 30 anos fabricando colchones y sommiers con los mejores materiales. El descanso que tu familia merece.",
+    "Más de 30 años fabricando colchones y sommiers con los mejores materiales. El descanso que tu familia merece.",
   standard_shipping_cost: 5000,
   express_shipping_cost: 10000,
   free_shipping_threshold: 50000,

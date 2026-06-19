@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     default: "Pune | Colchones y Sommiers",
     template: "%s | Pune",
   },
-  description: "Fabrica de colchones y sommiers de alta calidad. Envios a todo el pais.",
+  description: "Fábrica de colchones y sommiers de alta calidad. Envíos a todo el país.",
 };
 
 export const viewport: Viewport = {

@@ -31,9 +31,9 @@ export async function ProductReviewSummary({ productId }: { productId: string })
       <span className="text-sm text-muted-foreground">
         {stats.count > 0
           ? `${stats.average.toFixed(1)} (${stats.count} ${
-              stats.count === 1 ? "resena" : "resenas"
+              stats.count === 1 ? "reseña" : "reseñas"
             })`
-          : "Sin resenas todavia"}
+          : "Sin reseñas todavía"}
       </span>
     </div>
   );
@@ -52,7 +52,7 @@ export async function ProductReviews({
     <section className="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_380px]">
       <div className="space-y-4">
         <div>
-          <h2 className="text-2xl font-bold">Resenas de clientes</h2>
+          <h2 className="text-2xl font-bold">Reseñas de clientes</h2>
           <p className="text-sm text-muted-foreground">
             Opiniones verificadas de clientes que compraron este producto.
           </p>
@@ -82,7 +82,7 @@ export async function ProductReviews({
           </div>
         ) : (
           <div className="rounded-xl border bg-muted/30 p-6 text-sm text-muted-foreground">
-            Este producto todavia no tiene resenas.
+            Este producto todavía no tiene reseñas.
           </div>
         )}
       </div>

@@ -36,12 +36,12 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   const selectedCategoryName = getCategoryName(categories, categorySlug);
   const pageTitle = searchTerm
     ? `Resultados para "${searchTerm}"`
-    : selectedCategoryName || "Coleccion de descanso";
+    : selectedCategoryName || "Colección de descanso";
   const pageDescription = searchTerm
-    ? "Productos que coinciden con tu busqueda en nuestro catalogo."
+    ? "Productos que coinciden con tu búsqueda en nuestro catálogo."
     : selectedCategoryName
       ? `Selecciones de ${selectedCategoryName.toLowerCase()} pensadas para descansar mejor cada noche.`
-      : "Colchones, sommiers y accesorios elegidos por soporte, confort y terminacion.";
+      : "Colchones, sommiers y accesorios elegidos por soporte, confort y terminación.";
   const productCountLabel = `${products.length} producto${products.length !== 1 ? "s" : ""} disponible${products.length !== 1 ? "s" : ""}`;
 
   return (
@@ -68,15 +68,15 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
               <div className="mt-5 grid grid-cols-3 gap-4">
                 <div>
                   <p className="text-2xl font-bold">10</p>
-                  <p className="text-xs text-[#fff7ea]/65">anos de garantia</p>
+                  <p className="text-xs text-[#fff7ea]/65">años de garantía</p>
                 </div>
                 <div>
                   <p className="text-2xl font-bold">30</p>
-                  <p className="text-xs text-[#fff7ea]/65">dias de prueba</p>
+                  <p className="text-xs text-[#fff7ea]/65">días de prueba</p>
                 </div>
                 <div>
                   <p className="text-2xl font-bold">AR</p>
-                  <p className="text-xs text-[#fff7ea]/65">envios al pais</p>
+                  <p className="text-xs text-[#fff7ea]/65">envíos al país</p>
                 </div>
               </div>
             </div>
@@ -98,7 +98,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
             <div>
               <Button variant="outline" asChild>
                 <Link href={categorySlug ? `/products?category=${categorySlug}` : "/products"}>
-                  Limpiar busqueda
+                  Limpiar búsqueda
                 </Link>
               </Button>
             </div>
@@ -109,7 +109,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
           <aside>
             <div className="sticky top-24 rounded-[1.5rem] border border-[#eadfce] bg-white/80 p-3 shadow-sm">
               <div className="px-3 py-3">
-                <h3 className="font-semibold text-[#17110c]">Categorias</h3>
+                <h3 className="font-semibold text-[#17110c]">Categorías</h3>
                 <p className="mt-1 text-sm text-[#7c6d5d]">
                   Filtra por tipo de descanso.
                 </p>
@@ -152,7 +152,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                 <div className="rounded-[1.5rem] border border-[#eadfce] bg-white/75 px-6 py-16 text-center">
                   <p className="text-[#66584a]">
                     {searchTerm
-                      ? "No encontramos productos para esa busqueda."
+                      ? "No encontramos productos para esa búsqueda."
                       : "No hay productos disponibles en este momento."}
                   </p>
                 </div>

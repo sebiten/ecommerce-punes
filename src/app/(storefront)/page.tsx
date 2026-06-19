@@ -52,8 +52,8 @@ export default async function HomePage() {
               El descanso que tu familia merece
             </h1>
             <p className="mb-8 text-xl leading-relaxed text-white/90">
-              Mas de 30 anos fabricando colchones y sommiers con los mejores
-              materiales. Garantia de 10 anos y envio gratis en Argentina.
+              Más de 30 años fabricando colchones y sommiers con los mejores
+              materiales. Garantía de 10 años y envío gratis en Argentina.
             </p>
             <div className="flex flex-wrap gap-4">
               <Button
@@ -82,7 +82,7 @@ export default async function HomePage() {
       <section className="bg-[#f8f4f0] py-16">
         <div className="container mx-auto px-4">
           <div className="mb-12 text-center">
-            <h2 className="mb-4 text-3xl font-bold">Nuestras categorias</h2>
+            <h2 className="mb-4 text-3xl font-bold">Nuestras categorías</h2>
             <p className="text-muted-foreground">
               Encontra el producto perfecto para tu descanso
             </p>
@@ -119,7 +119,7 @@ export default async function HomePage() {
           </div>
           {categories.length === 0 ? (
             <p className="mt-6 text-center text-sm text-muted-foreground">
-              No hay categorias publicadas todavia.
+              No hay categorías publicadas todavía.
             </p>
           ) : null}
         </div>
@@ -152,7 +152,7 @@ export default async function HomePage() {
           <div className="mb-16 text-center">
             <h2 className="mb-4 text-3xl font-bold">Por que elegir Pune?</h2>
             <p className="text-white/70">
-              Mas de 30 anos cuidando el descanso de las familias argentinas
+              Más de 30 años cuidando el descanso de las familias argentinas
             </p>
           </div>
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
@@ -160,18 +160,18 @@ export default async function HomePage() {
               <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-[#f6ae66]/20">
                 <Truck className="h-8 w-8 text-[#f6ae66]" />
               </div>
-              <h3 className="mb-3 text-lg font-semibold">Envio gratis</h3>
+              <h3 className="mb-3 text-lg font-semibold">Envío gratis</h3>
               <p className="text-sm text-white/60">
-                En pedidos superiores a $50.000 a todo el pais
+                En pedidos superiores a $50.000 a todo el país
               </p>
             </div>
             <div className="text-center">
               <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-[#f6ae66]/20">
                 <Shield className="h-8 w-8 text-[#f6ae66]" />
               </div>
-              <h3 className="mb-3 text-lg font-semibold">Garantia 10 anos</h3>
+              <h3 className="mb-3 text-lg font-semibold">Garantía 10 años</h3>
               <p className="text-sm text-white/60">
-                Todos nuestros productos tienen garantia extendida
+                Todos nuestros productos tienen garantía extendida
               </p>
             </div>
             <div className="text-center">

@@ -80,7 +80,7 @@ export default async function AccountOrderDetailPage({
               </p>
             ) : null}
             <p>
-              <strong>Envio:</strong> {formatPrice(Number(order.shipping_cost || 0))}
+              <strong>Envío:</strong> {formatPrice(Number(order.shipping_cost || 0))}
             </p>
             <p>
               <strong>Metodo:</strong> {order.shipping_method || "No informado"}

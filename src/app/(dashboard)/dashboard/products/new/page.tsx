@@ -9,7 +9,7 @@ export default async function NewProductPage() {
       <div>
         <h1 className="text-3xl font-bold">Nuevo producto</h1>
         <p className="text-muted-foreground">
-          Agrega un nuevo producto al catalogo.
+          Agrega un nuevo producto al catálogo.
         </p>
       </div>
 

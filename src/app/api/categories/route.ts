@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          error instanceof Error ? error.message : "Error creando categoria",
+          error instanceof Error ? error.message : "Error creando categoría",
       },
       { status: 500 }
     );

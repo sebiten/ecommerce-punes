@@ -291,14 +291,14 @@ export function ProductForm({ categories, mode, product }: ProductFormProps) {
             </div>
 
             <div>
-              <Label htmlFor="categoryId">Categoria</Label>
+              <Label htmlFor="categoryId">Categoría</Label>
               <select
                 id="categoryId"
                 value={categoryId}
                 onChange={(event) => setCategoryId(event.target.value)}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
               >
-                <option value="">Sin categoria</option>
+                <option value="">Sin categoría</option>
                 {categories.map((category) => (
                   <option key={category.id} value={category.id}>
                     {category.name}

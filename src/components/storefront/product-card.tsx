@@ -85,14 +85,14 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
             </span>
           </div>
 
-          <div className="mt-auto flex items-end justify-between gap-4 pt-6">
+          <div className="mt-auto space-y-4 pt-6">
             <div>
               <p className="text-xs text-[#8b7a69]">Desde</p>
               <p className="text-2xl font-black tracking-tight text-[#17110c]">
                 {formatPrice(getDisplayPrice(product))}
               </p>
             </div>
-            <span className="rounded-full bg-[#17110c] px-4 py-2 text-sm font-semibold text-[#fff7ea] transition group-hover:bg-[#f6ae66] group-hover:text-[#17110c]">
+            <span className="inline-flex w-full items-center justify-center rounded-full bg-[#17110c] px-4 py-3 text-sm font-semibold text-[#fff7ea] transition group-hover:bg-[#f6ae66] group-hover:text-[#17110c]">
               Ver producto
             </span>
           </div>

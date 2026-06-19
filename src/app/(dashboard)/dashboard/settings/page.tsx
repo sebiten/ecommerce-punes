@@ -11,7 +11,7 @@ export default async function SettingsPage() {
       <div>
         <h1 className="text-3xl font-bold">Configuracion</h1>
         <p className="text-muted-foreground">
-          Datos reales del negocio, contacto y envios.
+          Datos reales del negocio, contacto y envíos.
         </p>
       </div>
 

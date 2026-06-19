@@ -110,7 +110,7 @@ export async function getProductReviewEligibility(productId: string) {
   if (!userId) {
     return {
       canReview: false,
-      reason: "Inicia sesion para dejar una resena.",
+      reason: "Inicia sesión para dejar una reseña.",
       existingReview: null,
     };
   }
@@ -145,7 +145,7 @@ export async function getProductReviewEligibility(productId: string) {
     canReview: Boolean(orders?.[0]),
     reason: orders?.[0]
       ? null
-      : "Solo clientes con una compra pagada pueden dejar resena.",
+      : "Solo clientes con una compra pagada pueden dejar reseña.",
     existingReview: existingReview ? mapReview(existingReview) : null,
     orderId: orders?.[0]?.id ?? null,
   };
@@ -157,7 +157,7 @@ export async function submitProductReview(
 ): Promise<ReviewFormState> {
   const { userId } = await auth();
   if (!userId) {
-    return { ok: false, message: "Inicia sesion para dejar una resena." };
+    return { ok: false, message: "Inicia sesión para dejar una reseña." };
   }
 
   const parsed = reviewSchema.safeParse({
@@ -169,7 +169,7 @@ export async function submitProductReview(
   });
 
   if (!parsed.success) {
-    return { ok: false, message: "Completa la resena con datos validos." };
+    return { ok: false, message: "Completa la reseña con datos válidos." };
   }
 
   const profile = await ensureUserProfile(userId);
@@ -200,7 +200,7 @@ export async function submitProductReview(
 
   if (error) {
     console.error("Error saving review:", error);
-    return { ok: false, message: "No se pudo guardar la resena." };
+    return { ok: false, message: "No se pudo guardar la reseña." };
   }
 
   updateTag(PRODUCT_REVIEWS_CACHE_TAG);

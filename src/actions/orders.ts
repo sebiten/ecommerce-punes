@@ -452,7 +452,7 @@ function buildMercadoPagoItems(
   if (shippingCost > 0) {
     preferenceItems.push({
       id: "shipping",
-      title: "Envio",
+      title: "Envío",
       unit_price: Number(shippingCost.toFixed(2)),
       quantity: 1,
     });

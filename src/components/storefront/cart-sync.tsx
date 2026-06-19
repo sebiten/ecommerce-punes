@@ -51,7 +51,7 @@ export function CartSync() {
         syncedUserIdRef.current = user.id;
         setItems(mergedItems);
       } catch (error) {
-        console.error("Error sincronizando carrito al iniciar sesion:", error);
+        console.error("Error sincronizando carrito al iniciar sesión:", error);
       }
     })();
 

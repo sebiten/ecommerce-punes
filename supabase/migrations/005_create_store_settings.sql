@@ -10,7 +10,7 @@ create table if not exists store_settings (
   business_hours text not null default 'Lunes a Viernes: 9:00 - 18:00 | Sabados: 9:00 - 13:00',
   instagram_url text,
   facebook_url text,
-  footer_text text not null default 'Mas de 30 anos fabricando colchones y sommiers con los mejores materiales. El descanso que tu familia merece.',
+  footer_text text not null default 'Más de 30 años fabricando colchones y sommiers con los mejores materiales. El descanso que tu familia merece.',
   standard_shipping_cost numeric(10,2) not null default 5000,
   express_shipping_cost numeric(10,2) not null default 10000,
   free_shipping_threshold numeric(10,2) not null default 50000,

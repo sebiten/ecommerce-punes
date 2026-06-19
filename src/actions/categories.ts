@@ -86,7 +86,7 @@ export async function getCategoriesAdmin(): Promise<CategoryWithCount[]> {
 
   if (categoriesError) {
     throw new Error(
-      getErrorMessage(categoriesError, "No se pudieron cargar las categorias")
+      getErrorMessage(categoriesError, "No se pudieron cargar las categorías")
     );
   }
 
@@ -168,7 +168,7 @@ export async function deleteCategory(id: string) {
   }
 
   if ((count || 0) > 0) {
-    throw new Error("No se puede eliminar una categoria con productos asociados");
+    throw new Error("No se puede eliminar una categoría con productos asociados");
   }
 
   const { error } = await supabase.from("categories").delete().eq("id", id);

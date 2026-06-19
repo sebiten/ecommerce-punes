@@ -72,15 +72,15 @@ export default async function ProductPage({ params }: ProductPageProps) {
           <div className="mt-8 space-y-4">
             <div className="flex items-center gap-3 text-sm">
               <Truck className="h-5 w-5 text-muted-foreground" />
-              <span>Envio gratis a todo el pais en pedidos mayores a $50.000</span>
+              <span>Envío gratis a todo el país en pedidos mayores a $50.000</span>
             </div>
             <div className="flex items-center gap-3 text-sm">
               <Shield className="h-5 w-5 text-muted-foreground" />
-              <span>Garantia de 10 anos en todos los productos</span>
+              <span>Garantía de 10 años en todos los productos</span>
             </div>
             <div className="flex items-center gap-3 text-sm">
               <RotateCcw className="h-5 w-5 text-muted-foreground" />
-              <span>30 dias de prueba - Si no te gusta, te devolvemos el dinero</span>
+              <span>30 días de prueba - Si no te gusta, te devolvemos el dinero</span>
             </div>
           </div>
         </div>

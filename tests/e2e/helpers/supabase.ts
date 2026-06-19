@@ -56,7 +56,7 @@ export async function seedCheckoutSmokeProduct(): Promise<SeededProduct> {
     .single();
 
   if (categoryError || !category) {
-    throw categoryError ?? new Error("No se pudo crear la categoria e2e");
+    throw categoryError ?? new Error("No se pudo crear la categoría e2e");
   }
 
   const { data: product, error: productError } = await supabase

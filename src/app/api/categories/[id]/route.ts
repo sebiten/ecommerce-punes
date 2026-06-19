@@ -16,7 +16,7 @@ export async function PUT(request: Request, context: CategoryRouteContext) {
     return NextResponse.json(
       {
         error:
-          error instanceof Error ? error.message : "Error actualizando categoria",
+          error instanceof Error ? error.message : "Error actualizando categoría",
       },
       { status: 500 }
     );
@@ -33,7 +33,7 @@ export async function DELETE(_request: Request, context: CategoryRouteContext) {
     return NextResponse.json(
       {
         error:
-          error instanceof Error ? error.message : "Error eliminando categoria",
+          error instanceof Error ? error.message : "Error eliminando categoría",
       },
       { status: 500 }
     );

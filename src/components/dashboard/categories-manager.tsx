@@ -90,7 +90,7 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
       setError(
         submitError instanceof Error
           ? submitError.message
-          : "No se pudo guardar la categoria"
+          : "No se pudo guardar la categoría"
       );
     } finally {
       setIsSubmitting(false);
@@ -98,7 +98,7 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
   };
 
   const handleDelete = async (categoryId: string) => {
-    const confirmed = window.confirm("Eliminar esta categoria?");
+    const confirmed = window.confirm("Eliminar esta categoría?");
     if (!confirmed) return;
 
     try {
@@ -110,7 +110,7 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
       setError(
         deleteError instanceof Error
           ? deleteError.message
-          : "No se pudo eliminar la categoria"
+          : "No se pudo eliminar la categoría"
       );
     }
   };
@@ -132,9 +132,9 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Categorias</h1>
+          <h1 className="text-3xl font-bold">Categorías</h1>
           <p className="text-muted-foreground">
-            {categories.length} categorias en el sitio
+            {categories.length} categorías en el sitio
           </p>
         </div>
         <Button
@@ -150,7 +150,7 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
           }}
         >
           <Plus className="mr-2 h-4 w-4" />
-          Nueva categoria
+          Nueva categoría
         </Button>
       </div>
 
@@ -158,7 +158,7 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>
-              {isEditing ? "Editar categoria" : "Crear categoria"}
+              {isEditing ? "Editar categoría" : "Crear categoría"}
             </CardTitle>
             <Button variant="ghost" size="icon" onClick={resetForm}>
               <X className="h-4 w-4" />
@@ -255,7 +255,7 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
                     ? "Guardando..."
                     : isEditing
                       ? "Guardar cambios"
-                      : "Crear categoria"}
+                      : "Crear categoría"}
                 </Button>
                 <Button type="button" variant="outline" onClick={resetForm}>
                   Cancelar
@@ -310,7 +310,7 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
                 {!categories.length ? (
                   <tr>
                     <td colSpan={5} className="p-8 text-center text-muted-foreground">
-                      No hay categorias todavia.
+                      No hay categorías todavía.
                     </td>
                   </tr>
                 ) : null}

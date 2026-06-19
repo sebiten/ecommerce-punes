@@ -138,15 +138,15 @@ export function StoreSettingsForm({ settings }: StoreSettingsFormProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Envios</CardTitle>
+          <CardTitle>Envíos</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
           <div>
-            <Label htmlFor="standardShippingCost">Envio estandar</Label>
+            <Label htmlFor="standardShippingCost">Envío estándar</Label>
             <Input id="standardShippingCost" name="standardShippingCost" type="number" min="0" value={formData.standardShippingCost} onChange={handleChange} />
           </div>
           <div>
-            <Label htmlFor="expressShippingCost">Envio express</Label>
+            <Label htmlFor="expressShippingCost">Envío express</Label>
             <Input id="expressShippingCost" name="expressShippingCost" type="number" min="0" value={formData.expressShippingCost} onChange={handleChange} />
           </div>
           <div>

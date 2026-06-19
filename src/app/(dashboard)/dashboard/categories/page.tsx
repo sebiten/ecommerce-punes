@@ -14,7 +14,7 @@ function getErrorMessage(error: unknown) {
     return error.message;
   }
 
-  return "No se pudieron cargar las categorias";
+  return "No se pudieron cargar las categorías";
 }
 
 export default async function CategoriesPage() {
@@ -30,7 +30,7 @@ export default async function CategoriesPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Categorias</h1>
+          <h1 className="text-3xl font-bold">Categorías</h1>
           <p className="text-muted-foreground">
             No se pudo cargar esta seccion del dashboard.
           </p>
@@ -38,7 +38,7 @@ export default async function CategoriesPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Error al cargar categorias</CardTitle>
+            <CardTitle>Error al cargar categorías</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">{message}</p>

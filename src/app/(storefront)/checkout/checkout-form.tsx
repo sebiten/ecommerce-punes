@@ -383,9 +383,9 @@ export function CheckoutForm({ addresses, profile, settings }: CheckoutFormProps
                       onChange={handleInputChange}
                     />
                     <div>
-                      <p className="font-medium">Envio estandar</p>
+                      <p className="font-medium">Envío estándar</p>
                       <p className="text-sm text-muted-foreground">
-                        Entrega en 5-7 dias habiles
+                        Entrega en 5-7 días hábiles
                       </p>
                     </div>
                   </div>
@@ -406,7 +406,7 @@ export function CheckoutForm({ addresses, profile, settings }: CheckoutFormProps
                       onChange={handleInputChange}
                     />
                     <div>
-                      <p className="font-medium">Envio express</p>
+                      <p className="font-medium">Envío express</p>
                       <p className="text-sm text-muted-foreground">
                         Entrega en 24-48 horas
                       </p>
@@ -465,7 +465,7 @@ export function CheckoutForm({ addresses, profile, settings }: CheckoutFormProps
                   <span>{formatPrice(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span>Envio</span>
+                  <span>Envío</span>
                   <span>
                     {shippingCost === 0 ? "Gratis" : formatPrice(shippingCost)}
                   </span>
