@@ -60,22 +60,22 @@ export default async function HomePage() {
 
   return (
     <div className="overflow-hidden bg-[#fffaf4]">
-      <section className="relative isolate min-h-[760px] overflow-hidden bg-[#21170f] text-[#fff7ea]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(246,174,102,0.24),transparent_34%),radial-gradient(circle_at_80%_10%,rgba(255,247,234,0.12),transparent_30%),linear-gradient(135deg,#21170f_0%,#342216_52%,#140e09_100%)]" />
-        <div className="absolute left-1/2 top-0 h-full w-[1px] bg-[#fff7ea]/10" />
-        <div className="animate-punes-drift absolute -right-28 top-24 h-80 w-80 rounded-full border border-[#f6ae66]/25" />
-        <div className="animate-punes-shimmer absolute bottom-16 left-10 hidden h-56 w-56 rounded-full border border-[#fff7ea]/10 sm:block" />
+      <section className="relative isolate min-h-[760px] overflow-hidden border-b border-[#eadfce] bg-[#fffaf4] text-[#17110c]">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(246,174,102,0.32),transparent_34%),radial-gradient(circle_at_82%_12%,rgba(246,174,102,0.22),transparent_30%),linear-gradient(135deg,#fffaf4_0%,#fff3e4_54%,#fffdf9_100%)]" />
+        <div className="absolute left-1/2 top-0 h-full w-[1px] bg-[#eadfce]" />
+        <div className="animate-punes-drift absolute -right-28 top-24 h-80 w-80 rounded-full border border-[#f6ae66]/35" />
+        <div className="animate-punes-shimmer absolute bottom-16 left-10 hidden h-56 w-56 rounded-full border border-[#f6ae66]/25 sm:block" />
 
         <div className="container relative mx-auto grid min-h-[760px] items-center gap-12 px-4 py-16 lg:grid-cols-[0.95fr_1.05fr]">
           <div className="animate-punes-rise max-w-3xl">
-            <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#f6ae66]/35 bg-[#fff7ea]/8 px-4 py-2 text-sm font-semibold text-[#ffd6a5]">
+            <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#f6ae66]/45 bg-[#fffdf9] px-4 py-2 text-sm font-bold text-[#9a5b19] shadow-sm">
               <Sparkles className="h-4 w-4" />
               Descanso fabricado con oficio
             </p>
-            <h1 className="text-balance text-5xl font-black leading-[0.9] tracking-[-0.05em] sm:text-7xl lg:text-8xl">
+            <h1 className="text-balance text-5xl font-black leading-[0.9] tracking-[-0.05em] text-[#17110c] sm:text-7xl lg:text-8xl">
               Dormir bien también puede verse extraordinario.
             </h1>
-            <p className="mt-7 max-w-xl text-lg leading-8 text-[#fff7ea]/72">
+            <p className="mt-7 max-w-xl text-lg leading-8 text-[#5f5246]">
               Colchones, sommiers y accesorios seleccionados para que la
               habitación se sienta más cálida, más firme y más tuya desde la
               primera noche.
@@ -84,7 +84,7 @@ export default async function HomePage() {
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
               <Button
                 size="lg"
-                className="rounded-full bg-[#f6ae66] px-7 font-bold text-[#17110c] shadow-xl shadow-[#000]/20 hover:bg-[#ffbd79]"
+                className="rounded-full bg-[#f6ae66] px-7 font-bold text-[#17110c] shadow-xl shadow-[#5c3514]/12 hover:bg-[#ffbd79]"
                 asChild
               >
                 <Link href="/products">
@@ -95,7 +95,7 @@ export default async function HomePage() {
               <Button
                 size="lg"
                 variant="outline"
-                className="rounded-full border-[#fff7ea]/30 bg-[#fff7ea]/8 px-7 text-[#fff7ea] hover:bg-[#fff7ea] hover:text-[#21170f]"
+                className="rounded-full border-[#d8b98f] bg-[#fffdf9] px-7 text-[#5f3b18] hover:bg-[#fff3e4] hover:text-[#17110c]"
                 asChild
               >
                 <Link href="/products?category=sommiers">Ver sommiers</Link>
@@ -103,23 +103,23 @@ export default async function HomePage() {
             </div>
 
             <div className="mt-10 grid max-w-xl grid-cols-3 gap-3 text-sm">
-              <div className="rounded-2xl border border-[#fff7ea]/12 bg-[#fff7ea]/7 p-4">
-                <p className="text-2xl font-black text-[#ffd6a5]">30+</p>
-                <p className="mt-1 text-[#fff7ea]/62">años de experiencia</p>
+              <div className="rounded-2xl border border-[#eadfce] bg-[#fffdf9] p-4 shadow-sm">
+                <p className="text-2xl font-black text-[#9a5b19]">30+</p>
+                <p className="mt-1 text-[#6d6257]">años de experiencia</p>
               </div>
-              <div className="rounded-2xl border border-[#fff7ea]/12 bg-[#fff7ea]/7 p-4">
-                <p className="text-2xl font-black text-[#ffd6a5]">10</p>
-                <p className="mt-1 text-[#fff7ea]/62">años de garantía</p>
+              <div className="rounded-2xl border border-[#eadfce] bg-[#fffdf9] p-4 shadow-sm">
+                <p className="text-2xl font-black text-[#9a5b19]">10</p>
+                <p className="mt-1 text-[#6d6257]">años de garantía</p>
               </div>
-              <div className="rounded-2xl border border-[#fff7ea]/12 bg-[#fff7ea]/7 p-4">
-                <p className="text-2xl font-black text-[#ffd6a5]">AR</p>
-                <p className="mt-1 text-[#fff7ea]/62">envíos al país</p>
+              <div className="rounded-2xl border border-[#eadfce] bg-[#fffdf9] p-4 shadow-sm">
+                <p className="text-2xl font-black text-[#9a5b19]">AR</p>
+                <p className="mt-1 text-[#6d6257]">envíos al país</p>
               </div>
             </div>
           </div>
 
           <div className="relative min-h-[560px]">
-            <div className="animate-punes-float-slow absolute right-0 top-6 h-[74%] w-[78%] overflow-hidden rounded-[3rem] border border-[#fff7ea]/18 bg-[#fff7ea]/8 shadow-2xl shadow-black/35">
+            <div className="animate-punes-float-slow absolute right-0 top-6 h-[74%] w-[78%] overflow-hidden rounded-[3rem] border border-[#eadfce] bg-[#fffdf9] shadow-2xl shadow-[#5c3514]/16">
               <Image
                 src={IMAGES.hero}
                 alt="Dormitorio cálido con cama preparada para descanso premium"
@@ -128,10 +128,10 @@ export default async function HomePage() {
                 preload
                 sizes="(max-width: 1024px) 100vw, 55vw"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#21170f]/45 via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#17110c]/22 via-transparent to-transparent" />
             </div>
 
-            <div className="animate-punes-float absolute left-0 top-20 w-56 rounded-[2rem] border border-[#f6ae66]/30 bg-[#fff7ea] p-5 text-[#21170f] shadow-2xl shadow-black/25">
+            <div className="animate-punes-float absolute left-0 top-20 w-56 rounded-[2rem] border border-[#eadfce] bg-[#fffdf9] p-5 text-[#21170f] shadow-2xl shadow-[#5c3514]/14">
               <Factory className="mb-5 h-6 w-6 text-[#9a5b19]" />
               <p className="text-sm font-bold">Hecho para uso real</p>
               <p className="mt-2 text-sm leading-6 text-[#6d6257]">
@@ -139,18 +139,18 @@ export default async function HomePage() {
               </p>
             </div>
 
-            <div className="absolute bottom-8 left-12 right-12 rounded-[2rem] border border-[#fff7ea]/18 bg-[#140e09]/80 p-5 shadow-2xl shadow-black/30 backdrop-blur-sm">
+            <div className="absolute bottom-8 left-12 right-12 rounded-[2rem] border border-[#eadfce] bg-[#fffdf9]/92 p-5 text-[#17110c] shadow-2xl shadow-[#5c3514]/16 backdrop-blur-sm">
               <div className="grid grid-cols-3 gap-3 text-center text-sm">
-                <div className="rounded-2xl bg-[#fff7ea]/8 p-4">
-                  <BedDouble className="mx-auto mb-2 h-5 w-5 text-[#ffd6a5]" />
+                <div className="rounded-2xl bg-[#fff3e4] p-4">
+                  <BedDouble className="mx-auto mb-2 h-5 w-5 text-[#9a5b19]" />
                   Firmeza
                 </div>
-                <div className="rounded-2xl bg-[#fff7ea]/8 p-4">
-                  <Moon className="mx-auto mb-2 h-5 w-5 text-[#ffd6a5]" />
+                <div className="rounded-2xl bg-[#fff3e4] p-4">
+                  <Moon className="mx-auto mb-2 h-5 w-5 text-[#9a5b19]" />
                   Confort
                 </div>
-                <div className="rounded-2xl bg-[#fff7ea]/8 p-4">
-                  <Shield className="mx-auto mb-2 h-5 w-5 text-[#ffd6a5]" />
+                <div className="rounded-2xl bg-[#fff3e4] p-4">
+                  <Shield className="mx-auto mb-2 h-5 w-5 text-[#9a5b19]" />
                   Respaldo
                 </div>
               </div>
