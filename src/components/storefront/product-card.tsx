@@ -1,7 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { formatPrice } from "@/lib/utils";
 import type { ProductWithDetails } from "@/types";
 
@@ -10,46 +9,95 @@ interface ProductCardProps {
   priority?: boolean;
 }
 
+function getAvailableVariants(product: ProductWithDetails) {
+  return product.variants.filter(
+    (variant) => variant.active !== false && Number(variant.stock ?? 0) > 0
+  );
+}
+
+function getDisplayPrice(product: ProductWithDetails) {
+  const variantPrices = getAvailableVariants(product)
+    .map((variant) => Number(variant.priceOverride ?? product.basePrice))
+    .filter((price) => Number.isFinite(price) && price > 0);
+
+  return variantPrices.length ? Math.min(...variantPrices) : Number(product.basePrice);
+}
+
 export function ProductCard({ product, priority = false }: ProductCardProps) {
   const imageUrl =
     product.images?.[0]?.url ||
     "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&h=600&fit=crop";
+  const availableVariants = getAvailableVariants(product);
+  const totalStock = availableVariants.reduce(
+    (sum, variant) => sum + Number(variant.stock ?? 0),
+    0
+  );
+  const availableMeasureCount =
+    availableVariants.length || product.variants.length || 1;
 
   return (
-    <Link href={`/products/${product.slug}`}>
-      <Card className="group h-full overflow-hidden transition-all hover:shadow-xl hover:-translate-y-1">
-        <div className="relative aspect-square overflow-hidden bg-[#f8f4f0]">
+    <Link
+      href={`/products/${product.slug}`}
+      className="group block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f6ae66] focus-visible:ring-offset-4"
+    >
+      <article className="flex h-full flex-col overflow-hidden rounded-[1.75rem] border border-[#eadfce] bg-[#fffdf9] shadow-sm shadow-[#5c3514]/5 transition duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[#5c3514]/12">
+        <div className="relative aspect-[4/3] overflow-hidden bg-[#efe2d1]">
           <Image
             src={imageUrl}
             alt={product.name}
             fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+            className="object-cover transition duration-500 ease-out group-hover:scale-[1.04]"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             priority={priority}
           />
-          {product.featured && (
-            <Badge className="absolute left-3 top-3 bg-[#f6ae66] text-black border-0 font-semibold">
+          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#17110c]/45 to-transparent" />
+          {product.featured ? (
+            <Badge className="absolute left-4 top-4 border-0 bg-[#f6ae66] text-[#17110c] shadow-lg shadow-black/10">
               Destacado
             </Badge>
-          )}
+          ) : null}
+          <span className="absolute bottom-4 left-4 rounded-full bg-[#fffaf4]/95 px-3 py-1 text-xs font-semibold text-[#5f3b18] shadow-sm">
+            {totalStock > 0 ? "Entrega disponible" : "Consultar stock"}
+          </span>
         </div>
-        <CardContent className="p-5">
-          {product.category && (
-            <p className="text-xs text-[#f6ae66] font-medium uppercase tracking-wider mb-2">
+
+        <div className="flex flex-1 flex-col p-5">
+          {product.category ? (
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#a66b2f]">
               {product.category.name}
             </p>
-          )}
-          <h3 className="font-semibold text-lg line-clamp-2 mb-2">{product.name}</h3>
-        </CardContent>
-        <CardFooter className="p-5 pt-0 flex items-center justify-between">
-          <p className="font-bold text-xl text-[#1a1a1a]">
-            {formatPrice(Number(product.basePrice))}
+          ) : null}
+
+          <h3 className="mt-2 line-clamp-2 text-xl font-bold leading-tight text-[#17110c]">
+            {product.name}
+          </h3>
+
+          <p className="mt-3 line-clamp-2 text-sm leading-6 text-[#6d6257]">
+            {product.description || "Descanso confiable con terminacion cuidada."}
           </p>
-          <span className="text-sm text-[#f6ae66] font-medium group-hover:translate-x-1 transition-transform">
-            Ver →
-          </span>
-        </CardFooter>
-      </Card>
+
+          <div className="mt-5 flex flex-wrap gap-2 text-xs text-[#6d4c2c]">
+            <span className="rounded-full bg-[#f8f0e5] px-3 py-1">
+              {availableMeasureCount} medida{availableMeasureCount !== 1 ? "s" : ""}
+            </span>
+            <span className="rounded-full bg-[#f8f0e5] px-3 py-1">
+              {totalStock > 0 ? `Stock ${totalStock}` : "A pedido"}
+            </span>
+          </div>
+
+          <div className="mt-auto flex items-end justify-between gap-4 pt-6">
+            <div>
+              <p className="text-xs text-[#8b7a69]">Desde</p>
+              <p className="text-2xl font-black tracking-tight text-[#17110c]">
+                {formatPrice(getDisplayPrice(product))}
+              </p>
+            </div>
+            <span className="rounded-full bg-[#17110c] px-4 py-2 text-sm font-semibold text-[#fff7ea] transition group-hover:bg-[#f6ae66] group-hover:text-[#17110c]">
+              Ver producto
+            </span>
+          </div>
+        </div>
+      </article>
     </Link>
   );
 }
