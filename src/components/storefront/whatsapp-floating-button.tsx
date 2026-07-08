@@ -28,9 +28,6 @@ export function WhatsAppFloatingButton() {
         <span className="block text-sm font-black leading-tight">
           Consultar por WhatsApp
         </span>
-        <span className="mt-0.5 block text-xs font-medium text-[#4f6f5d]">
-          Demo comercial lista para vender
-        </span>
       </span>
     </a>
   );
