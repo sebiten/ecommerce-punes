@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { updateOrderStatus } from "@/actions/orders";
 import type { OrderStatus } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ export function OrderStatusForm({
   currentStatus,
   shippingMethod,
 }: OrderStatusFormProps) {
+  const router = useRouter();
   const [status, setStatus] = useState<OrderStatus>(currentStatus);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -51,6 +53,7 @@ export function OrderStatusForm({
     startTransition(async () => {
       try {
         await updateOrderStatus(orderId, status);
+        router.refresh();
       } catch (submitError) {
         setError(
           submitError instanceof Error

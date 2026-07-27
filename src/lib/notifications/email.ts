@@ -15,7 +15,6 @@ type OrderEmailEvent =
   | "order-created"
   | "payment-approved"
   | "payment-review"
-  | "ready-for-pickup"
   | "shipped"
   | "delivered"
   | "cancelled";
@@ -38,11 +37,6 @@ const ORDER_EMAIL_COPY: Record<
     subject: "Pago recibido, pedido en revisión",
     heading: "Estamos verificando tu pedido",
     body: "Recibimos el pago y estamos confirmando el stock. Te contactaremos a la brevedad.",
-  },
-  "ready-for-pickup": {
-    subject: "Tu pedido está listo para retirar",
-    heading: "Ya podés coordinar el retiro",
-    body: "Mostrá el código del pedido cuando pases por el local.",
   },
   shipped: {
     subject: "Tu pedido está en camino",

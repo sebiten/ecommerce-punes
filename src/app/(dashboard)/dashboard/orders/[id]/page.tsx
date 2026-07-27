@@ -16,6 +16,15 @@ interface DashboardOrderDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
+function normalizeArgentinaWhatsAppPhone(phone: string) {
+  const digits = phone.replace(/\D/g, "").replace(/^0/, "");
+
+  if (digits.startsWith("54")) return digits;
+  if (digits.length === 10) return `54${digits}`;
+
+  return digits;
+}
+
 export default async function DashboardOrderDetailPage({
   params,
 }: DashboardOrderDetailPageProps) {
@@ -33,20 +42,23 @@ export default async function DashboardOrderDetailPage({
   }
 
   const shippingAddress = order.shipping_address as Record<string, string> | null;
-  const customerPhone = shippingAddress?.phone?.replace(/\D/g, "") || "";
+  const customerPhone = normalizeArgentinaWhatsAppPhone(
+    shippingAddress?.phone || ""
+  );
   const orderCode = order.id.slice(0, 8).toUpperCase();
   const customerName = shippingAddress?.name?.trim().split(/\s+/)[0] || "";
+  const canSendManualWhatsapp =
+    (order.shipping_method !== "local_delivery" &&
+      order.status === "ready_for_pickup") ||
+    (order.shipping_method === "local_delivery" && order.status === "shipped");
   const notificationMessage =
     order.shipping_method === "local_delivery"
-      ? order.status === "shipped"
-        ? `Hola ${customerName}, tu pedido ${orderCode} de Pilchería Gloria ya está en camino.`
-        : `Hola ${customerName}, recibimos tu pedido ${orderCode} de Pilchería Gloria. Te avisaremos cuando salga para entrega.`
-      : order.status === "ready_for_pickup"
-        ? `Hola ${customerName}, tu pedido ${orderCode} de Pilchería Gloria ya está listo para retirar. ${shippingAddress?.references || "Mostrá el código del pedido al retirarlo."}`
-        : `Hola ${customerName}, recibimos tu pedido ${orderCode} de Pilchería Gloria. Te avisaremos cuando esté listo para retirar.`;
-  const whatsappHref = customerPhone
-    ? `https://wa.me/${customerPhone}?text=${encodeURIComponent(notificationMessage)}`
-    : null;
+      ? `Hola ${customerName}, tu pedido ${orderCode} de Pilchería Gloria ya está en camino.`
+      : `Hola ${customerName}, tu pedido ${orderCode} de Pilchería Gloria ya está listo para retirar. ${shippingAddress?.references || "Mostrá el código del pedido al retirarlo."}`;
+  const whatsappHref =
+    customerPhone && canSendManualWhatsapp
+      ? `https://web.whatsapp.com/send?phone=${customerPhone}&text=${encodeURIComponent(notificationMessage)}`
+      : null;
 
   return (
     <div className="space-y-6">
@@ -113,12 +125,28 @@ export default async function DashboardOrderDetailPage({
               />
             </div>
             {whatsappHref ? (
-              <Button asChild variant="outline" className="mt-2">
-                <Link href={whatsappHref} target="_blank" rel="noreferrer">
-                  <MessageCircle className="mr-2 size-4" />
-                  Avisar por WhatsApp
-                </Link>
-              </Button>
+              <div className="space-y-2 rounded-lg border border-green-200 bg-green-50 p-3">
+                <p className="text-xs leading-5 text-green-900">
+                  El aviso no se envía automáticamente. Revisá el mensaje y
+                  presioná Enviar desde tu WhatsApp Web.
+                </p>
+                <Button
+                  asChild
+                  variant="outline"
+                  className="border-green-300 bg-white"
+                >
+                  <Link href={whatsappHref} target="_blank" rel="noreferrer">
+                    <MessageCircle className="mr-2 size-4" />
+                    Avisar manualmente por WhatsApp
+                  </Link>
+                </Button>
+              </div>
+            ) : order.shipping_method !== "local_delivery" &&
+              order.status === "paid" ? (
+              <p className="text-xs leading-5 text-muted-foreground">
+                El botón para avisar por WhatsApp aparecerá cuando marques el
+                pedido como listo para retirar.
+              </p>
             ) : null}
           </CardContent>
         </Card>
