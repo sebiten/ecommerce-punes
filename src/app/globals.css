@@ -51,6 +51,7 @@
     background: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-gloria-body), sans-serif;
+    overflow-x: clip;
   }
 
   ::selection {

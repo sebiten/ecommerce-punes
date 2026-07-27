@@ -10,6 +10,7 @@ import {
 import { getProducts } from "@/actions/products";
 import { getStoreSettings } from "@/actions/store-settings";
 import { ProductGrid } from "@/components/storefront/product-grid";
+import { PaymentConfidence } from "@/components/storefront/payment-confidence";
 import { Button } from "@/components/ui/button";
 import { serializeJsonLd } from "@/lib/site";
 
@@ -203,6 +204,8 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      <PaymentConfidence />
 
       <section className="container mx-auto px-4 py-16 sm:py-20">
         <div className="mb-8 flex items-end justify-between gap-5">

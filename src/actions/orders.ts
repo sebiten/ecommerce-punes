@@ -7,6 +7,7 @@ import { createPreference, searchPaymentsByExternalReference } from "@/lib/merca
 import { revalidatePath } from "next/cache";
 import type { CartItem, OrderStatus, ShippingAddress } from "@/types";
 import { getShippingCost } from "@/lib/commerce";
+import { MERCADO_PAGO_MAX_INSTALLMENTS } from "@/lib/payment-options";
 import { getStoreSettings } from "@/actions/store-settings";
 import { revalidateProductCacheFromRouteHandler } from "@/lib/cache/products";
 import {
@@ -470,6 +471,7 @@ export async function createOrder({
       expiration_date_from: new Date().toISOString(),
       expiration_date_to: reservationExpiresAt,
       payment_methods: {
+        installments: MERCADO_PAGO_MAX_INSTALLMENTS,
         excluded_payment_types: [
           { id: "ticket" },
           { id: "atm" },

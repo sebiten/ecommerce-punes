@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { ProductWithDetails, ProductVariant } from "@/types";
 import { formatPrice } from "@/lib/utils";
+import { PaymentConfidence } from "@/components/storefront/payment-confidence";
 
 interface AddToCartButtonProps {
   product: ProductWithDetails;
@@ -175,6 +176,8 @@ export function AddToCartButton({
       >
         Agregar al carrito - {formatPrice(currentPrice * quantity)}
       </Button>
+
+      <PaymentConfidence amount={currentPrice * quantity} compact />
 
       {whatsappUrl ? (
         <Button variant="outline" className="min-h-11 w-full" asChild>

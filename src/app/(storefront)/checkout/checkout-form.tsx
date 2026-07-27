@@ -14,6 +14,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { getCartItemLineTotal, getShippingCost } from "@/lib/commerce";
 import { formatPrice } from "@/lib/utils";
 import type { Address, Profile, StoreSettings } from "@/types";
+import { PaymentConfidence } from "@/components/storefront/payment-confidence";
 
 interface CheckoutFormProps {
   addresses: Address[];
@@ -386,6 +387,7 @@ export function CheckoutForm({
             <Button className="min-h-12 w-full" size="lg" type="submit" form={formId} data-testid="checkout-submit" disabled={isProcessing}>
               {isProcessing ? "Abriendo Mercado Pago..." : "Pagar con Mercado Pago"}
             </Button>
+            <PaymentConfidence amount={total} compact />
             <p className="text-xs leading-5 text-muted-foreground">
               El stock se reserva durante 30 minutos. Al continuar aceptás los{" "}
               <Link href="/terminos" className="font-semibold underline">

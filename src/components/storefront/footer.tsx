@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { SITE_NAME } from "@/lib/site";
 import type { StoreSettings } from "@/types";
+import { PaymentBrandLogos } from "@/components/storefront/payment-confidence";
 
 interface FooterProps {
   settings: StoreSettings;
@@ -77,8 +78,14 @@ export function Footer({ settings }: FooterProps) {
             </Link>
           </div>
         </div>
-        <div className="mt-12 border-t border-background/15 pt-6 text-xs text-background/55">
-          © {new Date().getFullYear()} {SITE_NAME}. Todos los derechos reservados.
+        <div className="mt-12 flex flex-col gap-5 border-t border-background/15 pt-6 text-xs text-background/55 lg:flex-row lg:items-center lg:justify-between">
+          <p>
+            © {new Date().getFullYear()} {SITE_NAME}. Todos los derechos reservados.
+          </p>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <span>Pagos procesados por Mercado Pago</span>
+            <PaymentBrandLogos small />
+          </div>
         </div>
       </div>
     </footer>
