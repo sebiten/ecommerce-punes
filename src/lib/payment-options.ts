@@ -1,4 +1,4 @@
-export const MERCADO_PAGO_MAX_INSTALLMENTS = 3;
+export const MERCADO_PAGO_PROMO_INSTALLMENTS = 3;
 
 export const MERCADO_PAGO_CARD_BRANDS = [
   {

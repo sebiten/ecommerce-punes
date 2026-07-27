@@ -2,7 +2,7 @@ import Image from "next/image";
 import { CreditCard, ShieldCheck } from "lucide-react";
 import {
   MERCADO_PAGO_CARD_BRANDS,
-  MERCADO_PAGO_MAX_INSTALLMENTS,
+  MERCADO_PAGO_PROMO_INSTALLMENTS,
 } from "@/lib/payment-options";
 import { cn, formatPrice } from "@/lib/utils";
 
@@ -54,11 +54,11 @@ export function PaymentConfidence({
 }: PaymentConfidenceProps) {
   const installmentAmount =
     typeof amount === "number" && amount > 0
-      ? formatPrice(amount / MERCADO_PAGO_MAX_INSTALLMENTS)
+      ? formatPrice(amount / MERCADO_PAGO_PROMO_INSTALLMENTS)
       : null;
   const title = installmentAmount
-    ? `${MERCADO_PAGO_MAX_INSTALLMENTS} cuotas sin interés de ${installmentAmount}`
-    : `Hasta ${MERCADO_PAGO_MAX_INSTALLMENTS} cuotas sin interés`;
+    ? `${MERCADO_PAGO_PROMO_INSTALLMENTS} cuotas sin interés de ${installmentAmount}`
+    : `Hasta ${MERCADO_PAGO_PROMO_INSTALLMENTS} cuotas sin interés`;
 
   if (compact) {
     return (

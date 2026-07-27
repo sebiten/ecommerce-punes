@@ -46,7 +46,6 @@ export interface MPPreference {
   expiration_date_to?: string;
   payment_methods?: {
     excluded_payment_types?: Array<{ id: string }>;
-    installments?: number;
   };
 }
 

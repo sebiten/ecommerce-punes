@@ -275,7 +275,7 @@ const getProductsCached = unstable_cache(
 
     return (data || []).map(mapProduct);
   },
-  ["products-public"],
+  ["products-public-v2"],
   {
     tags: [PRODUCTS_CACHE_TAG],
     revalidate: 3600,
@@ -311,7 +311,7 @@ const getBrandsCached = unstable_cache(
       )
     );
   },
-  ["product-brands"],
+  ["product-brands-v2"],
   {
     tags: [PRODUCTS_CACHE_TAG],
     revalidate: 3600,
@@ -346,7 +346,7 @@ const getProductBySlugCached = unstable_cache(
         .eq("active", true)
     );
   },
-  ["product-by-slug"],
+  ["product-by-slug-v2"],
   {
     tags: [PRODUCT_DETAILS_CACHE_TAG],
     revalidate: 3600,

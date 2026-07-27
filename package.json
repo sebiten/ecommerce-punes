@@ -11,6 +11,7 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "cron:configure": "node scripts/configure-cron-jobs.mts",
+    "db:seed:demo": "node --env-file=.env.local scripts/seed-demo-catalog.mts",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"
