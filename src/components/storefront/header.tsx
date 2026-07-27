@@ -22,7 +22,7 @@ const NAV_ITEMS = [
   { href: "/products", label: "Todo" },
   { href: "/categories/mujer", label: "Mujer" },
   { href: "/categories/hombre", label: "Hombre" },
-  { href: "/categories/uniformes-escolares", label: "Uniformes" },
+  { href: "/uniformes-escolares-ledesma", label: "Uniformes" },
   { href: "/products?q=remera", label: "Remeras" },
   { href: "/products?q=jean", label: "Jeans" },
 ];

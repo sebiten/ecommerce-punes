@@ -1,5 +1,7 @@
 import { getStoreSettings } from "@/actions/store-settings";
+import { JsonLd } from "@/components/seo/json-ld";
 import { StorefrontShell } from "@/components/storefront/storefront-shell";
+import { getStorefrontJsonLd } from "@/lib/seo";
 
 export default async function StorefrontLayout({
   children,
@@ -8,5 +10,10 @@ export default async function StorefrontLayout({
 }) {
   const settings = await getStoreSettings();
 
-  return <StorefrontShell settings={settings}>{children}</StorefrontShell>;
+  return (
+    <>
+      <JsonLd data={getStorefrontJsonLd(settings)} />
+      <StorefrontShell settings={settings}>{children}</StorefrontShell>
+    </>
+  );
 }

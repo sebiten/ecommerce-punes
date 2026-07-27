@@ -37,7 +37,7 @@ export function Footer({ settings }: FooterProps) {
             links={[
               ["/categories/mujer", "Mujer"],
               ["/categories/hombre", "Hombre"],
-              ["/categories/uniformes-escolares", "Uniformes escolares"],
+              ["/uniformes-escolares-ledesma", "Uniformes escolares"],
               ["/products?q=remera", "Remeras"],
               ["/products?q=jean", "Jeans"],
             ]}
@@ -79,9 +79,15 @@ export function Footer({ settings }: FooterProps) {
           </div>
         </div>
         <div className="mt-12 flex flex-col gap-5 border-t border-background/15 pt-6 text-xs text-background/55 lg:flex-row lg:items-center lg:justify-between">
-          <p>
-            © {new Date().getFullYear()} {SITE_NAME}. Todos los derechos reservados.
-          </p>
+          <div>
+            <p>
+              © {new Date().getFullYear()} {SITE_NAME}. Todos los derechos reservados.
+            </p>
+            <p className="mt-2 max-w-xl leading-5">
+              Ropa y uniformes escolares para primaria y secundaria en
+              Libertador General San Martín, Ledesma, Jujuy.
+            </p>
+          </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <span>Pagos procesados por Mercado Pago</span>
             <PaymentBrandLogos small />

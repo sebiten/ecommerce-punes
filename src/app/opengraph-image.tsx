@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { GloriaWordmark } from "@/components/brand/gloria-wordmark";
 
 export const alt =
-  "Pilchería Gloria, ropa para mujer y hombre en Libertador General San Martín";
+  "Pilchería Gloria, ropa y uniformes escolares en Ledesma, Jujuy";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -78,7 +78,7 @@ export default function OpenGraphImage() {
               color: "#486139",
             }}
           >
-            Mujer y hombre · Libertador General San Martín, Jujuy
+            Ropa y uniformes escolares · Ledesma, Jujuy
           </div>
         </div>
       </div>

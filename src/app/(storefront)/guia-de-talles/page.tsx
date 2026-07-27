@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { LegalPage, LegalSection } from "@/components/storefront/legal-page";
 
 export const metadata: Metadata = {
-  title: "Guía de talles",
-  description: "Cómo tomar tus medidas antes de elegir una prenda.",
+  title: "Guía de talles de ropa y uniformes escolares",
+  description:
+    "Cómo tomar medidas para elegir remeras, camisas, pantalones y uniformes escolares.",
+  alternates: { canonical: "/guia-de-talles" },
 };
 
 const measurements = [

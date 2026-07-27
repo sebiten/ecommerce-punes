@@ -6,18 +6,50 @@ import { ProductGrid } from "@/components/storefront/product-grid";
 import { Button } from "@/components/ui/button";
 import { SITE_DESCRIPTION } from "@/lib/site";
 
-export const metadata: Metadata = {
-  title: "Ropa para mujer y hombre",
-  description: SITE_DESCRIPTION,
-  alternates: { canonical: "/products" },
-};
-
 interface ProductsPageProps {
   searchParams: Promise<{
     category?: string;
     brand?: string;
     q?: string;
   }>;
+}
+
+export async function generateMetadata({
+  searchParams,
+}: ProductsPageProps): Promise<Metadata> {
+  const params = await searchParams;
+  const category = params.category?.trim();
+  const brand = params.brand?.trim();
+  const query = params.q?.trim();
+  const hasFilters = Boolean(category || brand || query);
+  const title = query
+    ? `Resultados para ${query}`
+    : brand
+      ? `Ropa ${brand} en Ledesma`
+      : category
+        ? `Ropa por categoría en Ledesma`
+        : "Tienda de ropa en Ledesma, Jujuy";
+  const canonical = category
+    ? `/categories/${category}`
+    : brand
+      ? `/brands/${encodeURIComponent(brand)}`
+      : "/products";
+
+  return {
+    title,
+    description: hasFilters
+      ? "Explorá prendas, talles y stock disponibles en Pilchería Gloria."
+      : SITE_DESCRIPTION,
+    alternates: { canonical },
+    robots: hasFilters ? { index: false, follow: true } : undefined,
+    openGraph: hasFilters
+      ? undefined
+      : {
+          title: "Tienda de ropa en Ledesma, Jujuy",
+          description: SITE_DESCRIPTION,
+          url: "/products",
+        },
+  };
 }
 
 function buildProductsHref(params: {
@@ -67,6 +99,12 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                 {products.length} producto{products.length === 1 ? "" : "s"} disponible
                 {products.length === 1 ? "" : "s"}
               </p>
+              {!activeFilterCount ? (
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                  Indumentaria y uniformes escolares con talles y stock visibles
+                  en Libertador General San Martín, Ledesma.
+                </p>
+              ) : null}
             </div>
             {activeFilterCount ? (
               <Button variant="outline" className="w-fit rounded-full" asChild>

@@ -1,6 +1,11 @@
+import type { Metadata } from "next";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { AccountNav } from "@/components/storefront/account-nav";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function AccountLayout({
   children,

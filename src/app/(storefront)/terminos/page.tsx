@@ -5,6 +5,7 @@ import { LegalPage, LegalSection } from "@/components/storefront/legal-page";
 export const metadata: Metadata = {
   title: "Términos de compra",
   description: "Condiciones de compra, pago, stock, retiro y entrega.",
+  alternates: { canonical: "/terminos" },
 };
 
 export default async function TermsPage() {

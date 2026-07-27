@@ -3,8 +3,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCategories, getProducts } from "@/actions/products";
 import { getStoreSettings } from "@/actions/store-settings";
+import { JsonLd } from "@/components/seo/json-ld";
 import { ProductGrid } from "@/components/storefront/product-grid";
 import { Button } from "@/components/ui/button";
+import { getBreadcrumbJsonLd } from "@/lib/seo";
+import {
+  absoluteUrl,
+  SCHOOL_UNIFORMS_DESCRIPTION,
+  SITE_LOCALITY,
+} from "@/lib/site";
 
 interface CategoryPageProps {
   params: Promise<{ slug: string }>;
@@ -17,15 +24,24 @@ export async function generateMetadata({
   const category = (await getCategories()).find((item) => item.slug === slug);
   if (!category) return { title: "Categoría no encontrada" };
 
-  const description =
-    category.description ||
-    `${category.name} para comprar online en Pilchería Gloria, Libertador General San Martín.`;
+  const isSchoolUniforms = category.slug === "uniformes-escolares";
+  const title = isSchoolUniforms
+    ? "Uniformes escolares por escuela y talle en Ledesma"
+    : `${category.name} en Ledesma, Jujuy`;
+  const description = isSchoolUniforms
+    ? SCHOOL_UNIFORMS_DESCRIPTION
+    : category.description ||
+      `${category.name} para comprar online en Pilchería Gloria, ${SITE_LOCALITY}, Ledesma.`;
 
   return {
-    title: category.name,
+    title,
     description,
     alternates: { canonical: `/categories/${category.slug}` },
-    openGraph: { title: category.name, description },
+    openGraph: {
+      title,
+      description,
+      url: `/categories/${category.slug}`,
+    },
   };
 }
 
@@ -45,9 +61,43 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
         "Hola, quiero consultar por uniformes escolares. La escuela es: "
       )}`
     : null;
+  const itemList = {
+    "@type": "ItemList",
+    name: category.name,
+    numberOfItems: products.length,
+    itemListElement: products.map((product, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      url: absoluteUrl(`/products/${product.slug}`),
+      name: product.name,
+      image: product.images[0]?.url,
+    })),
+  };
+  const categoryJsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "CollectionPage",
+        name: `${category.name} en Ledesma, Jujuy`,
+        description:
+          category.description ||
+          `${category.name} disponibles en Pilchería Gloria.`,
+        url: absoluteUrl(`/categories/${category.slug}`),
+        inLanguage: "es-AR",
+        mainEntity: itemList,
+      },
+      itemList,
+      getBreadcrumbJsonLd([
+        { name: "Inicio", path: "/" },
+        { name: "Productos", path: "/products" },
+        { name: category.name, path: `/categories/${category.slug}` },
+      ]),
+    ],
+  };
 
   return (
     <main className="min-h-screen bg-background">
+      <JsonLd data={categoryJsonLd} />
       <header className="border-b border-border bg-gloria-50">
         <div className="container mx-auto px-4 py-10 sm:py-14">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-gloria-700">
@@ -59,6 +109,14 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
           <p className="mt-3 max-w-xl text-muted-foreground">
             {category.description || "Prendas disponibles con talle, color y stock real."}
           </p>
+          {isSchoolUniforms ? (
+            <Link
+              href="/uniformes-escolares-ledesma"
+              className="mt-5 inline-flex min-h-11 items-center rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90"
+            >
+              Guía de uniformes en Ledesma
+            </Link>
+          ) : null}
           {children.length ? (
             <nav
               className="mt-6 flex flex-wrap gap-2"
@@ -103,6 +161,18 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
             </Button>
           </div>
         )}
+        {isSchoolUniforms ? (
+          <div className="mt-10 border-t border-gloria-200 pt-8">
+            <h2 className="font-display text-3xl text-gloria-950">
+              Uniformes para primaria y secundaria
+            </h2>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground">
+              Consultá prendas para todas las escuelas de Ledesma: remeras,
+              camisas, pantalones y medias en talles infantiles, juveniles y de
+              adulto, sujetos al stock de cada modelo.
+            </p>
+          </div>
+        ) : null}
       </section>
     </main>
   );

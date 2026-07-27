@@ -23,6 +23,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "daily",
       priority: 0.9,
     },
+    {
+      url: absoluteUrl("/uniformes-escolares-ledesma"),
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.95,
+    },
     ...[
       "/guia-de-talles",
       "/cambios-y-devoluciones",
@@ -52,7 +58,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(product.createdAt),
       changeFrequency: "weekly" as const,
       priority: 0.8,
-      images: product.images[0]?.url ? [product.images[0].url] : undefined,
+      images: product.images.length
+        ? product.images.map((image) => image.url)
+        : undefined,
     })),
   ];
 }

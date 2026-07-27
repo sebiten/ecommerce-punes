@@ -1,6 +1,13 @@
 export const SITE_NAME = "Pilchería Gloria";
+export const SITE_LOCALITY = "Libertador General San Martín";
+export const SITE_DEPARTMENT = "Ledesma";
+export const SITE_REGION = "Jujuy";
+export const SITE_REGION_CODE = "AR-Y";
+export const SITE_COUNTRY = "Argentina";
 export const SITE_DESCRIPTION =
-  "Ropa para mujer y hombre en Libertador General San Martín, Jujuy. Compra online y retiro coordinado.";
+  "Tienda de ropa y uniformes escolares en Libertador General San Martín, Ledesma, Jujuy. Remeras, camisas, pantalones y medias en todos los talles.";
+export const SCHOOL_UNIFORMS_DESCRIPTION =
+  "Uniformes escolares para escuelas primarias y secundarias de Ledesma, Jujuy. Remeras, camisas, pantalones, medias y todos los talles.";
 
 export function getSiteUrl() {
   return (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(

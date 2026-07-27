@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { Metadata } from "next";
 import {
   ArrowRight,
   CreditCard,
@@ -12,7 +13,18 @@ import { getStoreSettings } from "@/actions/store-settings";
 import { ProductGrid } from "@/components/storefront/product-grid";
 import { PaymentConfidence } from "@/components/storefront/payment-confidence";
 import { Button } from "@/components/ui/button";
-import { serializeJsonLd } from "@/lib/site";
+import { SITE_DESCRIPTION } from "@/lib/site";
+
+export const metadata: Metadata = {
+  title: "Ropa y uniformes escolares en Ledesma, Jujuy",
+  description: SITE_DESCRIPTION,
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: "Ropa y uniformes escolares en Ledesma, Jujuy",
+    description: SITE_DESCRIPTION,
+    url: "/",
+  },
+};
 
 const EDITORIAL_IMAGES = {
   hero: "https://images.unsplash.com/photo-1767968037382-8eb9c564339f?auto=format&fit=crop&w=1600&q=86",
@@ -29,7 +41,7 @@ const collectionLinks = [
   {
     title: "Uniformes",
     eyebrow: "Vuelta al cole",
-    href: "/categories/uniformes-escolares",
+    href: "/uniformes-escolares-ledesma",
     image: EDITORIAL_IMAGES.uniforms,
   },
   {
@@ -96,35 +108,8 @@ export default async function HomePage() {
     ["Pago", "Mercado Pago", CreditCard] as const,
     ["Consulta", "Por WhatsApp", MessageCircle] as const,
   ];
-  const hasPublicAddress =
-    !/completar|confirmar|industrial 1234/i.test(settings.address_line);
-
-  const localBusinessJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "ClothingStore",
-    name: settings.store_name,
-    url: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
-    address: {
-      "@type": "PostalAddress",
-      ...(hasPublicAddress
-        ? { streetAddress: settings.address_line }
-        : {}),
-      addressLocality: settings.city,
-      addressRegion: "Jujuy",
-      addressCountry: "AR",
-    },
-    ...(settings.contact_phone !== "Completar"
-      ? { telephone: settings.contact_phone }
-      : {}),
-  };
-
   return (
     <main className="overflow-hidden bg-background">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: serializeJsonLd(localBusinessJsonLd) }}
-      />
-
       <section className="relative isolate border-b border-border bg-gloria-50">
         <div className="absolute -left-32 top-16 size-72 rounded-full bg-gloria-200/70 blur-3xl" />
         <div className="container relative mx-auto grid min-h-[calc(100svh-4rem)] items-center gap-8 px-4 py-10 lg:grid-cols-[0.88fr_1.12fr] lg:py-14">
@@ -297,6 +282,35 @@ export default async function HomePage() {
           <ProductGrid products={offers} />
         </section>
       ) : null}
+
+      <section className="border-y border-gloria-200 bg-white py-14 sm:py-16">
+        <div className="container mx-auto grid gap-7 px-4 lg:grid-cols-[1fr_auto] lg:items-end">
+          <div className="max-w-3xl">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-gloria-700">
+              Pilchería en Libertador General San Martín
+            </p>
+            <h2 className="mt-3 font-display text-3xl text-gloria-950 sm:text-5xl">
+              Ropa y uniformes escolares en Ledesma, Jujuy
+            </h2>
+            <p className="mt-4 max-w-2xl leading-7 text-muted-foreground">
+              Encontrá indumentaria para mujer y hombre, además de uniformes
+              para escuelas primarias y secundarias: remeras, camisas,
+              pantalones y medias en todos los talles disponibles.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button variant="outline" className="rounded-full" asChild>
+              <Link href="/guia-de-talles">Ver guía de talles</Link>
+            </Button>
+            <Button className="rounded-full" asChild>
+              <Link href="/uniformes-escolares-ledesma">
+                Buscar uniformes
+                <ArrowRight className="ml-2 size-4" />
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </section>
 
       <section className="bg-gloria-950 py-14 text-white">
         <div className="container mx-auto grid gap-8 px-4 lg:grid-cols-[1fr_1.35fr] lg:items-center">

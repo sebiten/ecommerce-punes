@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getBrands, getProducts } from "@/actions/products";
+import { JsonLd } from "@/components/seo/json-ld";
 import { ProductGrid } from "@/components/storefront/product-grid";
 import { Button } from "@/components/ui/button";
+import { getBreadcrumbJsonLd } from "@/lib/seo";
+import { absoluteUrl, SITE_NAME } from "@/lib/site";
 
 interface BrandPageProps {
   params: Promise<{ brand: string }>;
@@ -17,13 +20,21 @@ export async function generateMetadata({
     (item) => item.toLowerCase() === requestedBrand.toLowerCase()
   );
   if (!brand) return { title: "Marca no encontrada" };
-  const description = `Prendas ${brand} disponibles en Pilchería Gloria, Libertador General San Martín.`;
+  const description = `Ropa ${brand} disponible en Pilchería Gloria, Libertador General San Martín, Ledesma, Jujuy.`;
+  const title =
+    brand.toLowerCase() === SITE_NAME.toLowerCase()
+      ? "Colección propia en Ledesma, Jujuy"
+      : `${brand} en Ledesma, Jujuy`;
 
   return {
-    title: brand,
+    title,
     description,
     alternates: { canonical: `/brands/${encodeURIComponent(brand)}` },
-    openGraph: { title: brand, description },
+    openGraph: {
+      title,
+      description,
+      url: `/brands/${encodeURIComponent(brand)}`,
+    },
   };
 }
 
@@ -35,9 +46,39 @@ export default async function BrandPage({ params }: BrandPageProps) {
   );
   if (!brand) notFound();
   const products = await getProducts({ brand });
+  const itemList = {
+    "@type": "ItemList",
+    name: `Ropa ${brand}`,
+    numberOfItems: products.length,
+    itemListElement: products.map((product, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      url: absoluteUrl(`/products/${product.slug}`),
+      name: product.name,
+      image: product.images[0]?.url,
+    })),
+  };
+  const brandJsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "CollectionPage",
+        name: `${brand} en Ledesma, Jujuy`,
+        url: absoluteUrl(`/brands/${encodeURIComponent(brand)}`),
+        mainEntity: itemList,
+      },
+      itemList,
+      getBreadcrumbJsonLd([
+        { name: "Inicio", path: "/" },
+        { name: "Productos", path: "/products" },
+        { name: brand, path: `/brands/${encodeURIComponent(brand)}` },
+      ]),
+    ],
+  };
 
   return (
     <main className="min-h-screen bg-background">
+      <JsonLd data={brandJsonLd} />
       <header className="border-b border-border bg-gloria-950 text-white">
         <div className="container mx-auto px-4 py-10 sm:py-14">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-gloria-200">

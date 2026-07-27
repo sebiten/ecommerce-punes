@@ -11,8 +11,10 @@ import {
 } from "lucide-react";
 import { getProductBySlug } from "@/actions/products";
 import { getStoreSettings } from "@/actions/store-settings";
+import { JsonLd } from "@/components/seo/json-ld";
+import { getBreadcrumbJsonLd } from "@/lib/seo";
 import { formatPrice } from "@/lib/utils";
-import { absoluteUrl, serializeJsonLd } from "@/lib/site";
+import { absoluteUrl, SITE_LOCALITY, SITE_NAME } from "@/lib/site";
 import { AddToCartButton } from "./add-to-cart-button";
 import { ProductGallery } from "./product-gallery";
 import { ProductReviews, ProductReviewSummary } from "./product-reviews";
@@ -40,13 +42,20 @@ export async function generateMetadata({
   if (!product) return { title: "Producto no encontrado" };
 
   const price = getProductPrice(product);
-  const description =
-    product.description?.slice(0, 155) ||
-    `${product.name}${product.brand ? ` de ${product.brand}` : ""} disponible en Pilchería Gloria.`;
+  const productDescription = product.description?.trim();
+  const brandTitle =
+    product.brand?.toLowerCase() === SITE_NAME.toLowerCase()
+      ? ""
+      : product.brand
+        ? ` | ${product.brand}`
+        : "";
+  const description = productDescription
+    ? `${productDescription.slice(0, 112).replace(/[.,;:\s]+$/, "")}. Disponible en Pilchería Gloria, Ledesma, Jujuy.`
+    : `${product.name}${product.brand ? ` de ${product.brand}` : ""} disponible en Pilchería Gloria, Ledesma, Jujuy.`;
   const image = product.images?.[0]?.url;
 
   return {
-    title: `${product.name}${product.brand ? ` | ${product.brand}` : ""}`,
+    title: `${product.name}${brandTitle}`,
     description,
     alternates: { canonical: `/products/${product.slug}` },
     openGraph: {
@@ -120,10 +129,13 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const productJsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
+    "@id": `${productUrl}#product`,
+    url: productUrl,
     name: product.name,
     description: product.description || undefined,
     image: images,
     sku: activeVariants.find((variant) => variant.sku)?.sku || undefined,
+    productID: product.id,
     brand: product.brand
       ? { "@type": "Brand", name: product.brand }
       : undefined,
@@ -138,15 +150,33 @@ export default async function ProductPage({ params }: ProductPageProps) {
           ? "https://schema.org/InStock"
           : "https://schema.org/OutOfStock",
       itemCondition: "https://schema.org/NewCondition",
+      seller: {
+        "@id": absoluteUrl("/#store"),
+      },
+      areaServed: {
+        "@type": "City",
+        name: SITE_LOCALITY,
+      },
     },
   };
+  const breadcrumbJsonLd = getBreadcrumbJsonLd([
+    { name: "Inicio", path: "/" },
+    { name: "Productos", path: "/products" },
+    ...(product.category
+      ? [
+          {
+            name: product.category.name,
+            path: `/categories/${product.category.slug}`,
+          },
+        ]
+      : []),
+    { name: product.name, path: `/products/${product.slug}` },
+  ]);
 
   return (
     <main className="bg-background">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: serializeJsonLd(productJsonLd) }}
-      />
+      <JsonLd data={productJsonLd} />
+      <JsonLd data={breadcrumbJsonLd} />
 
       <section className="border-b border-border">
         <div className="container mx-auto px-4 py-5 sm:py-8">

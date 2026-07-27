@@ -6,6 +6,7 @@ import { LegalPage, LegalSection } from "@/components/storefront/legal-page";
 export const metadata: Metadata = {
   title: "Cambios y devoluciones",
   description: "Procedimiento para cambios, devoluciones y compras online.",
+  alternates: { canonical: "/cambios-y-devoluciones" },
 };
 
 export default async function ExchangesPage() {

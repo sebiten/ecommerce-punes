@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Pilchería Gloria",
     short_name: "Gloria",
     description:
-      "Ropa para mujer y hombre en Libertador General San Martín, Jujuy.",
+      "Ropa y uniformes escolares en Libertador General San Martín, Ledesma, Jujuy.",
     start_url: "/",
     display: "standalone",
     background_color: "#f8fbed",

@@ -5,6 +5,7 @@ import { LegalPage, LegalSection } from "@/components/storefront/legal-page";
 export const metadata: Metadata = {
   title: "Privacidad",
   description: "Cómo se usan y protegen los datos personales en la tienda.",
+  alternates: { canonical: "/privacidad" },
 };
 
 export default async function PrivacyPage() {

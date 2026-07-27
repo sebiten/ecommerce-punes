@@ -6,6 +6,7 @@ import { WithdrawalForm } from "@/components/storefront/withdrawal-form";
 export const metadata: Metadata = {
   title: "Botón de arrepentimiento",
   description: "Solicitud de revocación para compras realizadas a distancia.",
+  alternates: { canonical: "/arrepentimiento" },
 };
 
 export default function WithdrawalPage() {

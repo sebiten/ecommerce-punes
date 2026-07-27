@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { CheckCircle } from "lucide-react";
@@ -8,6 +9,11 @@ import {
   getOrderStatusLabel,
 } from "@/lib/commerce";
 import { ClearCartOnMount } from "./clear-cart-on-mount";
+
+export const metadata: Metadata = {
+  title: "Confirmación del pedido",
+  robots: { index: false, follow: false },
+};
 
 interface OrderConfirmationPageProps {
   params: Promise<{ id: string }>;
