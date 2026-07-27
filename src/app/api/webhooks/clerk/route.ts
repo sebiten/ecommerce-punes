@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { Webhook } from "svix";
 import { headers } from "next/headers";
+import { randomUUID } from "node:crypto";
 
 const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET || "";
 
@@ -35,15 +36,25 @@ export async function POST(request: Request) {
 
     if (type === "user.created" || type === "user.updated") {
       const supabase = getSupabaseAdmin();
+      const { data: existingProfile } = await supabase
+        .from("profiles")
+        .select("id, role")
+        .eq("clerk_user_id", data.id)
+        .maybeSingle();
 
-      const { error } = await supabase.from("profiles").upsert({
-        id: data.id,
-        email: data.email_addresses?.[0]?.email_address || "",
-        full_name: data.first_name && data.last_name
-          ? `${data.first_name} ${data.last_name}`
-          : data.first_name || data.last_name || "",
-        role: "client",
-      });
+      const { error } = await supabase.from("profiles").upsert(
+        {
+          id: existingProfile?.id ?? randomUUID(),
+          clerk_user_id: data.id,
+          email: data.email_addresses?.[0]?.email_address || "",
+          full_name:
+            data.first_name && data.last_name
+              ? `${data.first_name} ${data.last_name}`
+              : data.first_name || data.last_name || "",
+          role: existingProfile?.role ?? "client",
+        },
+        { onConflict: "clerk_user_id" }
+      );
 
       if (error) {
         console.error("Error creating profile:", error);

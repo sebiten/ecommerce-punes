@@ -9,16 +9,21 @@ import {
   Tags,
   FolderTree,
   Settings,
+  Star,
+  BadgeCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/brand/logo";
 
 const sidebarItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/dashboard/products", icon: Package, label: "Productos" },
   { href: "/dashboard/orders", icon: ShoppingCart, label: "Órdenes" },
   { href: "/dashboard/categories", icon: FolderTree, label: "Categorías" },
+  { href: "/dashboard/brands", icon: BadgeCheck, label: "Marcas" },
   { href: "/dashboard/coupons", icon: Tags, label: "Cupones" },
+  { href: "/dashboard/reviews", icon: Star, label: "Reseñas" },
   { href: "/dashboard/settings", icon: Settings, label: "Configuración" },
 ];
 
@@ -28,7 +33,7 @@ export function DashboardSidebar() {
   return (
     <aside className="flex h-full w-64 flex-col border-r bg-card">
       <div className="flex items-center gap-2 border-b p-4">
-        <span className="font-semibold">Panel Admin</span>
+        <Logo href="/dashboard" />
       </div>
 
       <nav className="flex-1 overflow-y-auto p-4">
@@ -60,7 +65,7 @@ export function DashboardSidebar() {
         <Button variant="outline" className="w-full justify-start gap-3" asChild>
           <Link href="/">
             <LayoutDashboard className="h-4 w-4" />
-            Ver Tienda
+            Ver tienda
           </Link>
         </Button>
       </div>

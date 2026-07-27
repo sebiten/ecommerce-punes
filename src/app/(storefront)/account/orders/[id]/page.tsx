@@ -4,26 +4,15 @@ import { getOrderById } from "@/actions/orders";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatPrice } from "@/lib/utils";
+import { formatVariantLabel } from "@/lib/variants";
+import {
+  getDeliveryMethodLabel,
+  getOrderStatusDescription,
+  getOrderStatusLabel,
+} from "@/lib/commerce";
 
 interface AccountOrderDetailPageProps {
   params: Promise<{ id: string }>;
-}
-
-function getOrderStatusLabel(status: string) {
-  switch (status) {
-    case "pending":
-      return "Pendiente";
-    case "paid":
-      return "Pagado";
-    case "shipped":
-      return "Enviado";
-    case "delivered":
-      return "Entregado";
-    case "cancelled":
-      return "Cancelado";
-    default:
-      return status;
-  }
 }
 
 export default async function AccountOrderDetailPage({
@@ -60,6 +49,21 @@ export default async function AccountOrderDetailPage({
         </Button>
       </div>
 
+      <div className="rounded-2xl border border-primary/25 bg-primary/5 p-5">
+        <p className="font-bold">
+          {getOrderStatusLabel(order.status, order.shipping_method)}
+        </p>
+        <p className="mt-1 text-sm leading-6 text-muted-foreground">
+          {getOrderStatusDescription(order.status, order.shipping_method)}
+        </p>
+        {order.status === "ready_for_pickup" &&
+        shippingAddress?.references ? (
+          <p className="mt-3 text-sm font-medium">
+            {shippingAddress.references}
+          </p>
+        ) : null}
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
@@ -67,7 +71,8 @@ export default async function AccountOrderDetailPage({
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p>
-              <strong>Estado:</strong> {getOrderStatusLabel(order.status)}
+              <strong>Estado:</strong>{" "}
+              {getOrderStatusLabel(order.status, order.shipping_method)}
             </p>
             <p>
               <strong>Total:</strong> {formatPrice(Number(order.total))}
@@ -83,7 +88,8 @@ export default async function AccountOrderDetailPage({
               <strong>Envío:</strong> {formatPrice(Number(order.shipping_cost || 0))}
             </p>
             <p>
-              <strong>Metodo:</strong> {order.shipping_method || "No informado"}
+              <strong>Método:</strong>{" "}
+              {getDeliveryMethodLabel(order.shipping_method)}
             </p>
             <p>
               <strong>Mercado Pago:</strong> {order.mercadopago_status || "Pendiente"}
@@ -93,18 +99,26 @@ export default async function AccountOrderDetailPage({
 
         <Card>
           <CardHeader>
-            <CardTitle>Direccion de entrega</CardTitle>
+            <CardTitle>
+              {order.shipping_method === "local_delivery"
+                ? "Dirección de entrega"
+                : "Datos para el retiro"}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p>{shippingAddress?.name || "Sin nombre"}</p>
             <p>{shippingAddress?.email || "Sin email"}</p>
             <p>{shippingAddress?.phone || "Sin telefono"}</p>
-            <p>{shippingAddress?.street || "Sin calle"}</p>
-            <p>
-              {[shippingAddress?.city, shippingAddress?.state, shippingAddress?.zip]
-                .filter(Boolean)
-                .join(", ")}
-            </p>
+            {order.shipping_method === "local_delivery" ? (
+              <>
+                <p>{shippingAddress?.street || "Sin calle"}</p>
+                <p>
+                  {[shippingAddress?.city, shippingAddress?.state, shippingAddress?.zip]
+                    .filter(Boolean)
+                    .join(", ")}
+                </p>
+              </>
+            ) : null}
           </CardContent>
         </Card>
       </div>
@@ -132,9 +146,7 @@ export default async function AccountOrderDetailPage({
                       <tr key={item.id} className="border-b">
                         <td className="p-4">{item.product?.name || "Producto eliminado"}</td>
                         <td className="p-4">
-                          {item.variant
-                            ? `${item.variant.width} x ${item.variant.length} cm`
-                            : "-"}
+                          {formatVariantLabel(item.variant)}
                         </td>
                         <td className="p-4">{item.quantity}</td>
                         <td className="p-4">{formatPrice(Number(item.unit_price))}</td>
@@ -155,9 +167,7 @@ export default async function AccountOrderDetailPage({
                     </p>
                     <p className="text-muted-foreground">
                       Variante:{" "}
-                      {item.variant
-                        ? `${item.variant.width} x ${item.variant.length} cm`
-                        : "-"}
+                      {formatVariantLabel(item.variant)}
                     </p>
                     <p className="text-muted-foreground">Cantidad: {item.quantity}</p>
                     <p className="text-muted-foreground">

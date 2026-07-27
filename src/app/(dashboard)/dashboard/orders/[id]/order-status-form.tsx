@@ -5,26 +5,46 @@ import { updateOrderStatus } from "@/actions/orders";
 import type { OrderStatus } from "@/types";
 import { Button } from "@/components/ui/button";
 
-const ORDER_STATUS_OPTIONS: Array<{ value: OrderStatus; label: string }> = [
-  { value: "pending", label: "Pendiente" },
-  { value: "paid", label: "Pagada" },
-  { value: "shipped", label: "Enviada" },
-  { value: "delivered", label: "Entregada" },
-  { value: "cancelled", label: "Cancelada" },
-];
-
 interface OrderStatusFormProps {
   orderId: string;
   currentStatus: OrderStatus;
+  shippingMethod: string | null;
 }
 
 export function OrderStatusForm({
   orderId,
   currentStatus,
+  shippingMethod,
 }: OrderStatusFormProps) {
   const [status, setStatus] = useState<OrderStatus>(currentStatus);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const labels: Record<OrderStatus, string> = {
+    pending: "Pendiente de pago",
+    paid: "Pagada / por preparar",
+    payment_review: "Pago en revisión",
+    ready_for_pickup: "Lista para retirar",
+    shipped: "En camino",
+    delivered: "Entregada",
+    cancelled: "Cancelada",
+  };
+  const transitions: Record<OrderStatus, OrderStatus[]> = {
+    pending: ["pending", "paid", "cancelled"],
+    paid: [
+      "paid",
+      shippingMethod === "local_delivery" ? "shipped" : "ready_for_pickup",
+      "cancelled",
+    ],
+    payment_review: ["payment_review", "cancelled"],
+    ready_for_pickup: ["ready_for_pickup", "delivered", "cancelled"],
+    shipped: ["shipped", "delivered", "cancelled"],
+    delivered: ["delivered"],
+    cancelled: ["cancelled"],
+  };
+  const statusOptions = transitions[currentStatus].map((value) => ({
+    value,
+    label: labels[value],
+  }));
 
   const handleSubmit = () => {
     setError(null);
@@ -50,7 +70,7 @@ export function OrderStatusForm({
           className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
           disabled={isPending}
         >
-          {ORDER_STATUS_OPTIONS.map((option) => (
+          {statusOptions.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>

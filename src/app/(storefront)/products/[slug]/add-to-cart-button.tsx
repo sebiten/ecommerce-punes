@@ -10,168 +10,152 @@ import { formatPrice } from "@/lib/utils";
 
 interface AddToCartButtonProps {
   product: ProductWithDetails;
+  whatsappPhone?: string | null;
+  productUrl?: string;
 }
 
-export function AddToCartButton({ product }: AddToCartButtonProps) {
+function variantKey(variant: ProductVariant) {
+  return `${variant.size.trim().toLocaleLowerCase("es-AR")}:${variant.color?.trim().toLocaleLowerCase("es-AR") ?? ""}`;
+}
+
+export function AddToCartButton({
+  product,
+  whatsappPhone,
+  productUrl: providedProductUrl,
+}: AddToCartButtonProps) {
   const variants = useMemo(() => {
-    const variantsBySize = new Map<string, ProductVariant>();
+    const unique = new Map<string, ProductVariant>();
 
     for (const variant of product.variants ?? []) {
-      const key = `${variant.width}x${variant.length}`;
-      const existing = variantsBySize.get(key);
-
-      if (!existing) {
-        variantsBySize.set(key, variant);
-        continue;
-      }
-
-      const existingStock = Number(existing.stock ?? 0);
-      const variantStock = Number(variant.stock ?? 0);
-      const shouldReplace =
-        (variant.active !== false && existing.active === false) ||
+      const key = variantKey(variant);
+      const existing = unique.get(key);
+      if (
+        !existing ||
         (variant.active !== false &&
-          existing.active !== false &&
-          variantStock > existingStock);
-
-      if (shouldReplace) {
-        variantsBySize.set(key, variant);
+          Number(variant.stock) > Number(existing.stock))
+      ) {
+        unique.set(key, variant);
       }
     }
 
-    return Array.from(variantsBySize.values()).sort(
-      (a, b) => a.width - b.width || a.length - b.length
+    return Array.from(unique.values()).sort((a, b) =>
+      `${a.size}-${a.color ?? ""}`.localeCompare(
+        `${b.size}-${b.color ?? ""}`,
+        "es"
+      )
     );
   }, [product.variants]);
-  const availableVariants = useMemo(
-    () =>
-      variants.filter(
-        (variant) => variant.active !== false && Number(variant.stock ?? 0) > 0
-      ),
-    [variants]
+  const availableVariants = variants.filter(
+    (variant) => variant.active !== false && Number(variant.stock) > 0
   );
-  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
-    availableVariants[0] || null
-  );
+  const [selectedVariant, setSelectedVariant] =
+    useState<ProductVariant | null>(availableVariants[0] || null);
   const [quantity, setQuantity] = useState(1);
   const addItem = useCartStore((state) => state.addItem);
   const selectedStock = Number(selectedVariant?.stock ?? 0);
+  const currentPrice = Number(
+    selectedVariant?.priceOverride ?? product.basePrice
+  );
   const canAddToCart = !variants.length || Boolean(selectedVariant);
-
-  const handleAddToCart = () => {
-    if (!canAddToCart) return;
-    addItem(product, selectedVariant?.id ?? null, quantity);
-  };
-
-  const currentPrice = selectedVariant?.priceOverride || product.basePrice;
-  const nextQuantity = variants.length
-    ? Math.min(quantity + 1, selectedStock)
-    : quantity + 1;
-
-  if (!variants.length) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-4">
-          <Label>Cantidad</Label>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setQuantity(Math.max(1, quantity - 1))}
-            >
-              -
-            </Button>
-            <span className="w-8 text-center">{quantity}</span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setQuantity(quantity + 1)}
-            >
-              +
-            </Button>
-          </div>
-        </div>
-      <Button
-        className="w-full rounded-xl bg-[#f6ae66] font-bold text-[#17110c] shadow-sm shadow-[#5c3514]/10 hover:bg-[#ffbd79]"
-        size="lg"
-        data-testid="add-to-cart-button"
-        onClick={handleAddToCart}
-      >
-        Agregar al carrito - {formatPrice(Number(currentPrice) * quantity)}
-      </Button>
-      </div>
-    );
-  }
+  const selectedLabel = selectedVariant
+    ? [
+        `talle ${selectedVariant.size}`,
+        selectedVariant.color ? `color ${selectedVariant.color}` : null,
+      ]
+        .filter(Boolean)
+        .join(", ")
+    : "sin variante";
+  const productUrl =
+    providedProductUrl ||
+    (typeof window === "undefined"
+      ? ""
+      : `${window.location.origin}/products/${product.slug}`);
+  const whatsappUrl = whatsappPhone
+    ? `https://wa.me/${whatsappPhone.replace(/\D/g, "")}?text=${encodeURIComponent(
+        `Hola, quiero consultar por ${product.name}, ${selectedLabel}. ${productUrl}`
+      )}`
+    : null;
 
   return (
-    <div className="space-y-4">
-      <div>
-        <Label className="mb-2 block">Medida</Label>
-        <RadioGroup
-          value={selectedVariant?.id}
-          onValueChange={(value) => {
-            const variant = variants.find((v) => v.id === value);
-            setSelectedVariant(variant || null);
-            setQuantity((current) =>
-              variant ? Math.min(current, Number(variant.stock ?? 0)) : 1
-            );
-          }}
-          className="grid grid-cols-2 gap-2"
-        >
-          {variants.map((variant) => {
-            const variantStock = Number(variant.stock ?? 0);
-            const isAvailable = variant.active !== false && variantStock > 0;
+    <div className="space-y-5">
+      {variants.length ? (
+        <div>
+          <Label className="mb-3 block">Elegí talle y color</Label>
+          <RadioGroup
+            value={selectedVariant?.id}
+            onValueChange={(value) => {
+              const variant = variants.find((item) => item.id === value) || null;
+              setSelectedVariant(variant);
+              setQuantity((current) =>
+                variant
+                  ? Math.max(1, Math.min(current, Number(variant.stock)))
+                  : 1
+              );
+            }}
+            className="grid grid-cols-2 gap-2 sm:grid-cols-3"
+          >
+            {variants.map((variant) => {
+              const stock = Number(variant.stock);
+              const available = variant.active !== false && stock > 0;
 
-            return (
-            <div key={variant.id}>
-              <RadioGroupItem
-                value={variant.id}
-                id={variant.id}
-                className="peer sr-only"
-                disabled={!isAvailable}
-              />
-              <Label
-                htmlFor={variant.id}
-                className="flex cursor-pointer flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-45 peer-data-[state=checked]:border-primary peer-data-[state=checked]:text-primary [&:has([data-state=checked])]:border-primary"
-              >
-                <span className="text-sm font-medium">
-                  {variant.width} x {variant.length} cm
-                </span>
-                {variant.priceOverride && (
-                  <span className="text-sm font-semibold">
-                    {formatPrice(Number(variant.priceOverride))}
-                  </span>
-                )}
-                <span className="text-xs text-muted-foreground">
-                  {isAvailable ? `Stock: ${variantStock}` : "Sin stock"}
-                </span>
-              </Label>
-            </div>
-            );
-          })}
-        </RadioGroup>
-        {!availableVariants.length ? (
-          <p className="mt-2 text-sm text-destructive">
-            No hay medidas con stock disponible.
-          </p>
-        ) : null}
-      </div>
+              return (
+                <div key={variant.id}>
+                  <RadioGroupItem
+                    value={variant.id}
+                    id={variant.id}
+                    className="peer sr-only"
+                    disabled={!available}
+                  />
+                  <Label
+                    htmlFor={variant.id}
+                    className="flex min-h-20 cursor-pointer flex-col justify-center rounded-xl border bg-card px-3 py-3 text-center peer-disabled:cursor-not-allowed peer-disabled:opacity-45 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5"
+                  >
+                    <span className="font-bold">{variant.size}</span>
+                    {variant.color ? (
+                      <span className="mt-1 text-xs text-muted-foreground">
+                        {variant.color}
+                      </span>
+                    ) : null}
+                    <span className="mt-1 text-xs text-muted-foreground">
+                      {available ? `${stock} disponibles` : "Sin stock"}
+                    </span>
+                  </Label>
+                </div>
+              );
+            })}
+          </RadioGroup>
+          {!availableVariants.length ? (
+            <p className="mt-2 text-sm text-destructive">
+              No hay variantes con stock disponible.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="flex items-center gap-4">
         <Label>Cantidad</Label>
         <div className="flex items-center gap-2">
           <Button
+            type="button"
             variant="outline"
             size="sm"
-            onClick={() => setQuantity(Math.max(1, quantity - 1))}
+            onClick={() => setQuantity((current) => Math.max(1, current - 1))}
             disabled={quantity <= 1}
           >
             -
           </Button>
           <span className="w-8 text-center">{quantity}</span>
           <Button
+            type="button"
             variant="outline"
             size="sm"
-            onClick={() => setQuantity(nextQuantity)}
+            onClick={() =>
+              setQuantity((current) =>
+                variants.length
+                  ? Math.min(current + 1, selectedStock)
+                  : current + 1
+              )
+            }
             disabled={variants.length > 0 && quantity >= selectedStock}
           >
             +
@@ -180,14 +164,25 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
       </div>
 
       <Button
-        className="w-full rounded-xl bg-[#f6ae66] font-bold text-[#17110c] shadow-sm shadow-[#5c3514]/10 hover:bg-[#ffbd79]"
+        className="min-h-12 w-full"
         size="lg"
         data-testid="add-to-cart-button"
-        onClick={handleAddToCart}
+        onClick={() =>
+          canAddToCart &&
+          addItem(product, selectedVariant?.id ?? null, quantity)
+        }
         disabled={!canAddToCart}
       >
-        Agregar al carrito - {formatPrice(Number(currentPrice) * quantity)}
+        Agregar al carrito - {formatPrice(currentPrice * quantity)}
       </Button>
+
+      {whatsappUrl ? (
+        <Button variant="outline" className="min-h-11 w-full" asChild>
+          <a href={whatsappUrl} target="_blank" rel="noreferrer">
+            Consultar esta prenda por WhatsApp
+          </a>
+        </Button>
+      ) : null}
     </div>
   );
 }

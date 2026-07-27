@@ -26,7 +26,7 @@ export async function ProductReviewSummary({ productId }: { productId: string })
   const stats = await getProductReviewStats(productId);
 
   return (
-    <div className="mb-6 flex items-center gap-2">
+    <div className="flex items-center gap-2">
       <RatingStars rating={stats.average} />
       <span className="text-sm text-muted-foreground">
         {stats.count > 0
@@ -52,7 +52,7 @@ export async function ProductReviews({
     <section className="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_380px]">
       <div className="space-y-4">
         <div>
-          <h2 className="text-2xl font-bold">Reseñas de clientes</h2>
+          <h2 className="font-display text-3xl text-gloria-950">Reseñas de clientes</h2>
           <p className="text-sm text-muted-foreground">
             Opiniones verificadas de clientes que compraron este producto.
           </p>

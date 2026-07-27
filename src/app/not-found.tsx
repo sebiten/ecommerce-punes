@@ -4,12 +4,14 @@ import { Button } from "@/components/ui/button";
 export default function NotFound() {
   return (
     <div className="container mx-auto flex min-h-[60vh] max-w-2xl flex-col items-center justify-center px-4 text-center">
-      <p className="mb-3 text-sm font-medium uppercase tracking-[0.2em] text-[#9a5b19]">
+      <p className="mb-3 text-sm font-bold uppercase tracking-[0.2em] text-gloria-700">
         404
       </p>
-      <h1 className="mb-3 text-4xl font-bold">Pagina no encontrada</h1>
+      <h1 className="mb-3 font-display text-4xl text-gloria-950">
+        Página no encontrada
+      </h1>
       <p className="mb-8 text-muted-foreground">
-        La ruta que buscaste no existe o ya no esta disponible.
+        La ruta que buscaste no existe o ya no está disponible.
       </p>
       <div className="flex gap-3">
         <Button asChild>

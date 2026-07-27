@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { formatPrice } from "@/lib/utils";
+import { getOrderStatusLabel } from "@/lib/commerce";
 
 export default async function OrdersPage() {
   const supabase = getSupabaseAdmin();
@@ -19,6 +20,8 @@ export default async function OrdersPage() {
   const statusColors: Record<string, string> = {
     pending: "bg-yellow-100 text-yellow-800",
     paid: "bg-blue-100 text-blue-800",
+    payment_review: "bg-orange-100 text-orange-900",
+    ready_for_pickup: "bg-lime-100 text-lime-900",
     shipped: "bg-purple-100 text-purple-800",
     delivered: "bg-green-100 text-green-800",
     cancelled: "bg-red-100 text-red-800",
@@ -67,7 +70,10 @@ export default async function OrdersPage() {
                     </td>
                     <td className="p-4">
                       <Badge className={statusColors[order.status] || ""}>
-                        {order.status}
+                        {getOrderStatusLabel(
+                          order.status,
+                          order.shipping_method
+                        )}
                       </Badge>
                     </td>
                     <td className="p-4">{formatPrice(Number(order.total))}</td>

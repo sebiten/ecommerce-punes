@@ -41,6 +41,12 @@ export interface MPPreference {
     failure: string;
     pending: string;
   };
+  expires?: boolean;
+  expiration_date_from?: string;
+  expiration_date_to?: string;
+  payment_methods?: {
+    excluded_payment_types?: Array<{ id: string }>;
+  };
 }
 
 export async function createPreference(preference: MPPreference) {
@@ -86,6 +92,10 @@ export async function getPreference(preferenceId: string) {
 }
 
 export async function searchPaymentsByExternalReference(externalReference: string) {
+  if (process.env.E2E_MERCADOPAGO_FAKE === "1") {
+    return { results: [] };
+  }
+
   const accessToken = getMercadoPagoAccessToken();
   const url = new URL("https://api.mercadopago.com/v1/payments/search");
   url.searchParams.set("external_reference", externalReference);
@@ -99,6 +109,26 @@ export async function searchPaymentsByExternalReference(externalReference: strin
   if (!response.ok) {
     const errorBody = await response.text();
     throw new Error(`Error searching MercadoPago payments: ${errorBody}`);
+  }
+
+  return response.json();
+}
+
+export async function getPayment(paymentId: string) {
+  const accessToken = getMercadoPagoAccessToken();
+  const response = await fetch(
+    `https://api.mercadopago.com/v1/payments/${paymentId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`Error fetching MercadoPago payment: ${errorBody}`);
   }
 
   return response.json();

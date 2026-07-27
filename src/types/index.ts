@@ -1,6 +1,13 @@
 export type Role = "client" | "admin";
 
-export type OrderStatus = "pending" | "paid" | "shipped" | "delivered" | "cancelled";
+export type OrderStatus =
+  | "pending"
+  | "paid"
+  | "payment_review"
+  | "ready_for_pickup"
+  | "shipped"
+  | "delivered"
+  | "cancelled";
 
 export type CouponType = "percentage" | "fixed";
 
@@ -22,6 +29,7 @@ export interface Category {
   image_url: string | null;
   parent_id: string | null;
   sort_order: number;
+  active: boolean;
   created_at: string;
 }
 
@@ -30,7 +38,10 @@ export interface Product {
   name: string;
   slug: string;
   description: string | null;
+  sizeGuide: string | null;
   basePrice: number;
+  compareAtPrice: number | null;
+  brand: string | null;
   categoryId: string | null;
   featured: boolean;
   active: boolean;
@@ -48,8 +59,9 @@ export interface ProductImage {
 export interface ProductVariant {
   id: string;
   product_id: string;
-  width: number;
-  length: number;
+  size: string;
+  color: string | null;
+  sku: string | null;
   priceOverride: number | null;
   stock: number;
   active: boolean;
@@ -97,10 +109,11 @@ export interface ShippingAddress {
   name: string;
   email?: string | null;
   phone?: string | null;
-  street: string;
-  city: string;
-  state: string;
+  street?: string | null;
+  city?: string | null;
+  state?: string | null;
   zip?: string | null;
+  references?: string | null;
 }
 
 export interface Order {
@@ -116,6 +129,9 @@ export interface Order {
   coupon_code?: string | null;
   discount_total?: number | null;
   stock_restored?: boolean;
+  stock_reserved?: boolean;
+  reservation_expires_at?: string | null;
+  cancel_reason?: string | null;
   mercadopago_id: string | null;
   mercadopago_status: string | null;
   created_at: string;
@@ -181,7 +197,11 @@ export interface StoreSettings {
   instagram_url: string | null;
   facebook_url: string | null;
   footer_text: string;
-  standard_shipping_cost: number;
-  express_shipping_cost: number;
-  free_shipping_threshold: number;
+  pickup_enabled: boolean;
+  local_delivery_enabled: boolean;
+  local_delivery_cost: number;
+  pickup_instructions: string;
+  legal_name: string | null;
+  tax_id: string | null;
+  legal_address: string | null;
 }

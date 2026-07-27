@@ -1,10 +1,7 @@
 import { ImageResponse } from "next/og";
+import { GloriaIconArt } from "@/components/brand/gloria-icon-art";
 
-export const size = {
-  width: 180,
-  height: 180,
-};
-
+export const size = { width: 180, height: 180 };
 export const contentType = "image/png";
 
 export default function AppleIcon() {
@@ -12,25 +9,16 @@ export default function AppleIcon() {
     (
       <div
         style={{
-          alignItems: "center",
-          background: "#f6ae66",
-          color: "#fffdf9",
-          display: "flex",
-          height: "100%",
-          justifyContent: "center",
           width: "100%",
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#a8d829",
+          borderRadius: 36,
         }}
       >
-        <span
-          style={{
-            fontSize: 43,
-            fontWeight: 900,
-            letterSpacing: -4,
-            lineHeight: 1,
-          }}
-        >
-          Punes
-        </span>
+        <GloriaIconArt size={126} />
       </div>
     ),
     size

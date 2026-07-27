@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/utils";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { getOrderStatusLabel } from "@/lib/commerce";
 
 export default async function DashboardPage() {
   const supabase = getSupabaseAdmin();
@@ -23,14 +24,16 @@ export default async function DashboardPage() {
 
   const totalSales = orders?.reduce((sum, o) => sum + Number(o.total), 0) || 0;
   const pendingOrders =
-    orders?.filter((o) => o.status === "pending" || o.status === "paid").length || 0;
+    orders?.filter((order) =>
+      ["pending", "paid", "payment_review", "ready_for_pickup", "shipped"].includes(order.status)
+    ).length || 0;
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <p className="text-muted-foreground">
-          Bienvenido al panel de administración de Pune
+          Gestión de Pilchería Gloria
         </p>
       </div>
 
@@ -95,7 +98,10 @@ export default async function DashboardPage() {
                             : "outline"
                         }
                       >
-                        {order.status}
+                        {getOrderStatusLabel(
+                          order.status,
+                          order.shipping_method
+                        )}
                       </Badge>
                     </div>
                   </div>

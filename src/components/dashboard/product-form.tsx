@@ -1,20 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
+import { ImageIcon, Plus, Trash2, Upload } from "lucide-react";
 import type { Category, ProductWithDetails } from "@/types";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash2, ImageIcon, Upload } from "lucide-react";
-import { createProduct, updateProduct, uploadProductImage } from "@/actions/products";
+import {
+  createProduct,
+  updateProduct,
+  uploadProductImage,
+} from "@/actions/products";
 import { slugify } from "@/lib/utils";
 
 interface VariantFormValue {
-  width: number;
-  length: number;
+  size: string;
+  color: string;
+  sku: string;
   priceOverride: number | null;
   stock: number;
   active: boolean;
@@ -32,45 +37,55 @@ interface ProductFormProps {
 }
 
 const defaultVariants: VariantFormValue[] = [
-  { width: 140, length: 190, priceOverride: null, stock: 0, active: true },
-  { width: 160, length: 190, priceOverride: null, stock: 0, active: true },
+  {
+    size: "S",
+    color: "",
+    sku: "",
+    priceOverride: null,
+    stock: 0,
+    active: true,
+  },
 ];
 
+const MAX_IMAGE_DIMENSION = 1800;
+const WEBP_QUALITY = 0.84;
+
 function normalizeVariantValues(variants: VariantFormValue[]) {
-  const variantsBySize = new Map<string, VariantFormValue>();
+  const normalized = new Map<string, VariantFormValue>();
 
   for (const variant of variants) {
-    if (variant.width <= 0 || variant.length <= 0) {
-      continue;
-    }
+    const size = variant.size.trim();
+    const color = variant.color.trim();
+    if (!size) continue;
 
-    const key = `${variant.width}x${variant.length}`;
-    const existing = variantsBySize.get(key);
+    const key = `${size.toLocaleLowerCase("es-AR")}:${color.toLocaleLowerCase("es-AR")}`;
+    const existing = normalized.get(key);
 
     if (!existing) {
-      variantsBySize.set(key, { ...variant });
+      normalized.set(key, {
+        ...variant,
+        size,
+        color,
+        sku: variant.sku.trim(),
+      });
       continue;
     }
 
-    variantsBySize.set(key, {
+    normalized.set(key, {
       ...existing,
-      priceOverride: existing.priceOverride ?? variant.priceOverride ?? null,
-      stock: Number(existing.stock || 0) + Number(variant.stock || 0),
+      sku: existing.sku || variant.sku.trim(),
+      priceOverride: existing.priceOverride ?? variant.priceOverride,
+      stock: existing.stock + variant.stock,
       active: existing.active || variant.active,
     });
   }
 
-  return Array.from(variantsBySize.values()).sort(
-    (a, b) => a.width - b.width || a.length - b.length
-  );
+  return Array.from(normalized.values());
 }
-
-const MAX_IMAGE_DIMENSION = 1600;
-const WEBP_QUALITY = 0.84;
 
 async function convertImageToWebp(file: File): Promise<File> {
   if (!file.type.startsWith("image/")) {
-    throw new Error("Selecciona un archivo de imagen valido");
+    throw new Error("Seleccioná un archivo de imagen válido");
   }
 
   const imageBitmap = await createImageBitmap(file);
@@ -102,58 +117,67 @@ async function convertImageToWebp(file: File): Promise<File> {
   }
 
   const baseName = file.name.replace(/\.[^.]+$/, "") || "producto";
-  return new File([blob], `${slugify(baseName)}.webp`, { type: "image/webp" });
+  return new File([blob], `${slugify(baseName)}.webp`, {
+    type: "image/webp",
+  });
 }
 
-export function ProductForm({ categories, mode, product }: ProductFormProps) {
+export function ProductForm({
+  categories,
+  mode,
+  product,
+}: ProductFormProps) {
   const [name, setName] = useState(product?.name ?? "");
   const [slug, setSlug] = useState(product?.slug ?? "");
   const [description, setDescription] = useState(product?.description ?? "");
+  const [sizeGuide, setSizeGuide] = useState(product?.sizeGuide ?? "");
+  const [brand, setBrand] = useState(product?.brand ?? "");
   const [basePrice, setBasePrice] = useState(String(product?.basePrice ?? ""));
+  const [compareAtPrice, setCompareAtPrice] = useState(
+    product?.compareAtPrice ? String(product.compareAtPrice) : ""
+  );
   const [categoryId, setCategoryId] = useState(product?.categoryId ?? "");
   const [featured, setFeatured] = useState(product?.featured ?? false);
   const [active, setActive] = useState(product?.active ?? true);
   const [variants, setVariants] = useState<VariantFormValue[]>(
     product?.variants?.length
-      ? normalizeVariantValues(
-          product.variants.map((variant) => ({
-            width: variant.width,
-            length: variant.length,
-            priceOverride: variant.priceOverride,
-            stock: variant.stock,
-            active: variant.active,
-          }))
-        )
+      ? product.variants.map((variant) => ({
+          size: variant.size,
+          color: variant.color ?? "",
+          sku: variant.sku ?? "",
+          priceOverride: variant.priceOverride,
+          stock: variant.stock,
+          active: variant.active,
+        }))
       : defaultVariants
   );
   const [images, setImages] = useState<ImageFormValue[]>(
-    product?.images?.length
-      ? product.images.map((image) => ({
-          url: image.url,
-          alt: image.alt ?? "",
-        }))
-      : []
+    product?.images?.map((image) => ({
+      url: image.url,
+      alt: image.alt ?? "",
+    })) ?? []
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const parentCategories = new Map(
+    categories.map((category) => [category.id, category])
+  );
+  const sortedCategories = [...categories].sort((a, b) => {
+    if (a.parent_id === b.id) return 1;
+    if (b.parent_id === a.id) return -1;
+    return a.sort_order - b.sort_order;
+  });
+
   const updateVariant = (
     index: number,
     field: keyof VariantFormValue,
-    value: number | boolean | null
+    value: string | number | boolean | null
   ) => {
     setVariants((current) =>
       current.map((variant, currentIndex) =>
         currentIndex === index ? { ...variant, [field]: value } : variant
-      )
-    );
-  };
-
-  const updateImage = (index: number, field: keyof ImageFormValue, value: string) => {
-    setImages((current) =>
-      current.map((image, currentIndex) =>
-        currentIndex === index ? { ...image, [field]: value } : image
       )
     );
   };
@@ -172,7 +196,6 @@ export function ProductForm({ categories, mode, product }: ProductFormProps) {
         const webpFile = await convertImageToWebp(file);
         const formData = new FormData();
         formData.append("file", webpFile);
-
         const uploaded = await uploadProductImage(formData);
         uploadedImages.push({
           url: uploaded.url,
@@ -202,18 +225,19 @@ export function ProductForm({ categories, mode, product }: ProductFormProps) {
         name,
         slug,
         description,
+        sizeGuide,
+        brand: brand || null,
         basePrice: Number(basePrice),
+        compareAtPrice: compareAtPrice ? Number(compareAtPrice) : null,
         categoryId: categoryId || null,
         featured,
         active,
         images: images.filter((image) => image.url.trim()),
         variants: normalizeVariantValues(variants).map((variant) => ({
-            ...variant,
-            priceOverride:
-              variant.priceOverride === null || Number.isNaN(variant.priceOverride)
-                ? null
-                : variant.priceOverride,
-          })),
+          ...variant,
+          color: variant.color || null,
+          sku: variant.sku || null,
+        })),
       };
 
       if (mode === "create") {
@@ -237,108 +261,116 @@ export function ProductForm({ categories, mode, product }: ProductFormProps) {
     <form onSubmit={handleSubmit} className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Informacion basica</CardTitle>
+          <CardTitle>Información de la prenda</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="name">Nombre del producto</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(event) => {
-                const nextName = event.target.value;
-                setName(nextName);
-                if (!product?.slug || slug === product.slug || slug === slugify(name)) {
-                  setSlug(slugify(nextName));
-                }
-              }}
-              required
-            />
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Nombre del producto" htmlFor="name">
+              <Input
+                id="name"
+                value={name}
+                onChange={(event) => {
+                  const nextName = event.target.value;
+                  setName(nextName);
+                  if (!product?.slug || slug === product.slug || slug === slugify(name)) {
+                    setSlug(slugify(nextName));
+                  }
+                }}
+                required
+              />
+            </Field>
+            <Field label="Marca" htmlFor="brand">
+              <Input
+                id="brand"
+                value={brand}
+                onChange={(event) => setBrand(event.target.value)}
+                placeholder="M51, Taverniti..."
+              />
+            </Field>
           </div>
 
-          <div>
-            <Label htmlFor="slug">Slug</Label>
+          <Field label="Slug" htmlFor="slug">
             <Input
               id="slug"
               value={slug}
               onChange={(event) => setSlug(slugify(event.target.value))}
               required
             />
-          </div>
+          </Field>
 
-          <div>
-            <Label htmlFor="description">Descripcion</Label>
+          <Field label="Descripción" htmlFor="description">
             <textarea
               id="description"
               value={description}
               onChange={(event) => setDescription(event.target.value)}
-              className="flex min-h-32 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="min-h-32 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
-          </div>
+          </Field>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div>
-              <Label htmlFor="basePrice">Precio base</Label>
-              <Input
-                id="basePrice"
-                type="number"
-                min="0"
-                step="0.01"
-                value={basePrice}
-                onChange={(event) => setBasePrice(event.target.value)}
-                required
-              />
-            </div>
+          <Field label="Guía de talles del producto" htmlFor="sizeGuide">
+            <textarea
+              id="sizeGuide"
+              value={sizeGuide}
+              onChange={(event) => setSizeGuide(event.target.value)}
+              placeholder={"Ejemplo:\nS: contorno de pecho 86-92 cm\nM: contorno de pecho 93-99 cm"}
+              className="min-h-28 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+            <p className="mt-2 text-xs text-muted-foreground">
+              Usá medidas reales del fabricante. No copies una tabla genérica si la prenda tiene otro calce.
+            </p>
+          </Field>
 
-            <div>
-              <Label htmlFor="categoryId">Categoría</Label>
+          <div className="grid gap-4 md:grid-cols-3">
+            <Field label="Precio" htmlFor="basePrice">
+              <Input id="basePrice" type="number" min="0" step="0.01" value={basePrice} onChange={(event) => setBasePrice(event.target.value)} required />
+            </Field>
+            <Field label="Precio anterior" htmlFor="compareAtPrice">
+              <Input id="compareAtPrice" type="number" min="0" step="0.01" value={compareAtPrice} onChange={(event) => setCompareAtPrice(event.target.value)} />
+            </Field>
+            <Field label="Categoría" htmlFor="categoryId">
               <select
                 id="categoryId"
                 value={categoryId}
                 onChange={(event) => setCategoryId(event.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
                 <option value="">Sin categoría</option>
-                {categories.map((category) => (
+                {sortedCategories.map((category) => (
                   <option key={category.id} value={category.id}>
+                    {category.parent_id
+                      ? `${parentCategories.get(category.parent_id)?.name ?? ""} / `
+                      : ""}
                     {category.name}
                   </option>
                 ))}
               </select>
-            </div>
+            </Field>
           </div>
 
           <div className="flex flex-wrap gap-6">
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={featured}
-                onChange={(event) => setFeatured(event.target.checked)}
-              />
-              Destacado
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={active}
-                onChange={(event) => setActive(event.target.checked)}
-              />
-              Activo
-            </label>
+            <Check label="Destacado" checked={featured} onChange={setFeatured} />
+            <Check label="Activo" checked={active} onChange={setActive} />
           </div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Variantes</CardTitle>
+        <CardHeader className="flex-row items-center justify-between">
+          <CardTitle>Talles, colores y stock</CardTitle>
           <Button
             type="button"
             size="sm"
             onClick={() =>
               setVariants((current) => [
                 ...current,
-                { width: 0, length: 0, priceOverride: null, stock: 0, active: true },
+                {
+                  size: "",
+                  color: "",
+                  sku: "",
+                  priceOverride: null,
+                  stock: 0,
+                  active: true,
+                },
               ])
             }
           >
@@ -349,79 +381,27 @@ export function ProductForm({ categories, mode, product }: ProductFormProps) {
         <CardContent className="space-y-4">
           {variants.map((variant, index) => (
             <div
-              key={`${variant.width}-${variant.length}-${index}`}
-              className="grid grid-cols-1 gap-4 rounded-lg border p-4 md:grid-cols-6"
+              key={`${variant.size}-${variant.color}-${index}`}
+              className="grid gap-4 rounded-xl border p-4 md:grid-cols-[0.75fr_1fr_1fr_1fr_0.75fr_auto]"
             >
-              <div>
-                <Label>Ancho</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  value={variant.width}
-                  onChange={(event) =>
-                    updateVariant(index, "width", Number(event.target.value))
-                  }
-                />
-              </div>
-              <div>
-                <Label>Largo</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  value={variant.length}
-                  onChange={(event) =>
-                    updateVariant(index, "length", Number(event.target.value))
-                  }
-                />
-              </div>
-              <div>
-                <Label>Precio override</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={variant.priceOverride ?? ""}
-                  onChange={(event) =>
-                    updateVariant(
-                      index,
-                      "priceOverride",
-                      event.target.value ? Number(event.target.value) : null
-                    )
-                  }
-                />
-              </div>
-              <div>
-                <Label>Stock</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  value={variant.stock}
-                  onChange={(event) =>
-                    updateVariant(index, "stock", Number(event.target.value))
-                  }
-                />
-              </div>
-              <label className="flex items-end gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={variant.active}
-                  onChange={(event) =>
-                    updateVariant(index, "active", event.target.checked)
-                  }
-                />
-                Activa
-              </label>
-              <div className="flex items-end justify-end">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() =>
-                    setVariants((current) =>
-                      current.filter((_, currentIndex) => currentIndex !== index)
-                    )
-                  }
-                >
+              <Field label="Talle">
+                <Input value={variant.size} onChange={(event) => updateVariant(index, "size", event.target.value)} placeholder="S, M, 42..." />
+              </Field>
+              <Field label="Color">
+                <Input value={variant.color} onChange={(event) => updateVariant(index, "color", event.target.value)} placeholder="Azul" />
+              </Field>
+              <Field label="SKU">
+                <Input value={variant.sku} onChange={(event) => updateVariant(index, "sku", event.target.value)} placeholder="Opcional" />
+              </Field>
+              <Field label="Precio especial">
+                <Input type="number" min="0" step="0.01" value={variant.priceOverride ?? ""} onChange={(event) => updateVariant(index, "priceOverride", event.target.value ? Number(event.target.value) : null)} />
+              </Field>
+              <Field label="Stock">
+                <Input type="number" min="0" value={variant.stock} onChange={(event) => updateVariant(index, "stock", Number(event.target.value))} />
+              </Field>
+              <div className="flex items-end gap-2">
+                <Check label="Activa" checked={variant.active} onChange={(value) => updateVariant(index, "active", value)} />
+                <Button type="button" variant="ghost" size="icon" aria-label="Eliminar variante" onClick={() => setVariants((current) => current.filter((_, currentIndex) => currentIndex !== index))}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
@@ -431,8 +411,8 @@ export function ProductForm({ categories, mode, product }: ProductFormProps) {
       </Card>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Imagenes</CardTitle>
+        <CardHeader className="flex-row items-center justify-between">
+          <CardTitle>Imágenes</CardTitle>
           <div>
             <Input
               id="productImages"
@@ -446,63 +426,42 @@ export function ProductForm({ categories, mode, product }: ProductFormProps) {
                 event.target.value = "";
               }}
             />
-            <Button
-              type="button"
-              size="sm"
-              disabled={isUploadingImage || isSubmitting}
-              onClick={() => document.getElementById("productImages")?.click()}
-            >
+            <Button type="button" size="sm" disabled={isUploadingImage || isSubmitting} onClick={() => document.getElementById("productImages")?.click()}>
               <Upload className="mr-2 h-4 w-4" />
-              {isUploadingImage ? "Subiendo..." : "Subir imagen"}
+              {isUploadingImage ? "Subiendo..." : "Subir imágenes"}
             </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {!images.length ? (
-            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-muted-foreground">
-              <ImageIcon className="mb-4 h-12 w-12" />
-              <p>No hay imagenes cargadas.</p>
-              <p className="mt-1 text-xs">
-                Se convierten a WebP antes de subirlas a Supabase Storage.
-              </p>
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed p-8 text-muted-foreground">
+              <ImageIcon className="mb-3 h-10 w-10" />
+              <p>No hay imágenes cargadas.</p>
+              <p className="mt-1 text-xs">Se convierten a WebP antes de subirlas a Supabase Storage.</p>
             </div>
           ) : null}
 
           {images.map((image, index) => (
-            <div
-              key={`${image.url}-${index}`}
-              className="grid grid-cols-1 gap-4 rounded-lg border p-4 md:grid-cols-[8rem_1fr_auto]"
-            >
-              <div className="relative aspect-square overflow-hidden rounded-md border bg-muted">
-                <Image
-                  src={image.url}
-                  alt={image.alt || name || "Producto"}
-                  fill
-                  className="object-cover"
-                  sizes="8rem"
-                />
+            <div key={`${image.url}-${index}`} className="grid gap-4 rounded-xl border p-4 md:grid-cols-[8rem_1fr_auto]">
+              <div className="relative aspect-[4/5] overflow-hidden rounded-lg border bg-muted">
+                <Image src={image.url} alt={image.alt || name || "Producto"} fill className="object-cover" sizes="8rem" />
               </div>
-              <div>
-                <Label>Alt</Label>
+              <Field label="Texto alternativo">
                 <Input
                   value={image.alt}
-                  onChange={(event) => updateImage(index, "alt", event.target.value)}
-                />
-                <p className="mt-2 break-all text-xs text-muted-foreground">
-                  {image.url}
-                </p>
-              </div>
-              <div className="flex items-end">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() =>
+                  onChange={(event) =>
                     setImages((current) =>
-                      current.filter((_, currentIndex) => currentIndex !== index)
+                      current.map((item, currentIndex) =>
+                        currentIndex === index
+                          ? { ...item, alt: event.target.value }
+                          : item
+                      )
                     )
                   }
-                >
+                />
+              </Field>
+              <div className="flex items-end">
+                <Button type="button" variant="ghost" size="icon" aria-label="Eliminar imagen" onClick={() => setImages((current) => current.filter((_, currentIndex) => currentIndex !== index))}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
@@ -511,20 +470,50 @@ export function ProductForm({ categories, mode, product }: ProductFormProps) {
         </CardContent>
       </Card>
 
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-      <div className="flex gap-4">
-        <Button type="submit" size="lg" disabled={isSubmitting}>
-          {isSubmitting
-            ? "Guardando..."
-            : mode === "create"
-              ? "Crear producto"
-              : "Guardar cambios"}
+      <div className="flex gap-3">
+        <Button type="submit" disabled={isSubmitting || isUploadingImage}>
+          {isSubmitting ? "Guardando..." : "Guardar producto"}
         </Button>
-        <Button type="button" variant="outline" size="lg" asChild>
+        <Button variant="outline" asChild>
           <Link href="/dashboard/products">Cancelar</Link>
         </Button>
       </div>
     </form>
+  );
+}
+
+function Field({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  htmlFor?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={htmlFor}>{label}</Label>
+      {children}
+    </div>
+  );
+}
+
+function Check({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <label className="flex min-h-10 items-center gap-2 text-sm">
+      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
+      {label}
+    </label>
   );
 }

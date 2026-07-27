@@ -5,13 +5,16 @@ import { revalidatePath, unstable_cache, updateTag } from "next/cache";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/actions/auth";
 import type { Category } from "@/types";
+import { reportDataFallback } from "@/lib/logging";
 
 const categoryPayloadSchema = z.object({
   name: z.string().trim().min(2),
   slug: z.string().trim().min(2),
   description: z.string().trim().nullable().optional(),
   imageUrl: z.string().trim().url().nullable().optional(),
+  parentId: z.string().uuid().nullable().optional(),
   sortOrder: z.number().int().nonnegative().optional(),
+  active: z.boolean().optional(),
 });
 
 type CategoryPayload = z.infer<typeof categoryPayloadSchema>;
@@ -21,6 +24,12 @@ export interface CategoryWithCount extends Category {
 }
 
 const CATEGORIES_CACHE_TAG = "categories";
+const LEGACY_CATEGORY_SLUGS = new Set([
+  "colchones",
+  "sommiers",
+  "almohadas",
+  "accesorios",
+]);
 
 function getErrorMessage(error: unknown, fallback: string) {
   if (error instanceof Error) return error.message;
@@ -44,7 +53,12 @@ function revalidateCategoryPaths() {
 }
 
 export async function getCategoriesPublic(): Promise<Category[]> {
-  return getCategoriesPublicCached();
+  try {
+    return await getCategoriesPublicCached();
+  } catch (error) {
+    reportDataFallback("categories", error);
+    return [];
+  }
 }
 
 const getCategoriesPublicCached = unstable_cache(
@@ -53,17 +67,15 @@ const getCategoriesPublicCached = unstable_cache(
     const { data, error } = await supabase
       .from("categories")
       .select("*")
+      .eq("active", true)
       .order("sort_order", { ascending: true })
       .order("name", { ascending: true });
 
-    if (error) {
-      console.error("Error fetching categories:", error);
-      return [];
-    }
+    if (error) throw error;
 
     return (data || []) as Category[];
   },
-  ["categories-public"],
+  ["categories-public-v2"],
   {
     tags: [CATEGORIES_CACHE_TAG],
     revalidate: 3600,
@@ -91,7 +103,7 @@ export async function getCategoriesAdmin(): Promise<CategoryWithCount[]> {
   }
 
   if (productsError) {
-    console.error("Error fetching category product counts:", productsError);
+    reportDataFallback("category-product-counts", productsError);
   }
 
   const counts = new Map<string, number>();
@@ -100,10 +112,12 @@ export async function getCategoriesAdmin(): Promise<CategoryWithCount[]> {
     counts.set(product.category_id, (counts.get(product.category_id) || 0) + 1);
   }
 
-  return ((categories || []) as Category[]).map((category) => ({
-    ...category,
-    productCount: counts.get(category.id) || 0,
-  }));
+  return ((categories || []) as Category[])
+    .filter((category) => !LEGACY_CATEGORY_SLUGS.has(category.slug))
+    .map((category) => ({
+      ...category,
+      productCount: counts.get(category.id) || 0,
+    }));
 }
 
 export async function createCategory(input: CategoryPayload) {
@@ -118,7 +132,9 @@ export async function createCategory(input: CategoryPayload) {
       slug: payload.slug,
       description: payload.description || null,
       image_url: payload.imageUrl || null,
+      parent_id: payload.parentId || null,
       sort_order: payload.sortOrder ?? 0,
+      active: payload.active ?? true,
     })
     .select()
     .single();
@@ -143,7 +159,9 @@ export async function updateCategory(id: string, input: CategoryPayload) {
       slug: payload.slug,
       description: payload.description || null,
       image_url: payload.imageUrl || null,
+      parent_id: payload.parentId || null,
       sort_order: payload.sortOrder ?? 0,
+      active: payload.active ?? true,
     })
     .eq("id", id);
 

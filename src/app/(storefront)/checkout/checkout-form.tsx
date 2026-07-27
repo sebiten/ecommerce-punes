@@ -1,19 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { MapPin, Store, Truck } from "lucide-react";
 import { addAddress, updateProfileContact } from "@/actions/auth";
 import { useCartStore } from "@/hooks/use-cart";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import {
-  getCartItemLineTotal,
-  getShippingCost,
-} from "@/lib/commerce";
+import { getCartItemLineTotal, getShippingCost } from "@/lib/commerce";
 import { formatPrice } from "@/lib/utils";
-import { useRouter } from "next/navigation";
 import type { Address, Profile, StoreSettings } from "@/types";
 
 interface CheckoutFormProps {
@@ -22,9 +21,10 @@ interface CheckoutFormProps {
   settings: StoreSettings;
 }
 
+type DeliveryMethod = "pickup" | "local_delivery";
+
 function splitFullName(fullName: string | null | undefined) {
   const parts = (fullName || "").trim().split(/\s+/).filter(Boolean);
-
   return {
     name: parts[0] || "",
     lastName: parts.slice(1).join(" "),
@@ -35,41 +35,54 @@ function getDefaultAddress(addresses: Address[]) {
   return addresses.find((address) => address.is_default) || addresses[0] || null;
 }
 
-export function CheckoutForm({ addresses, profile, settings }: CheckoutFormProps) {
+export function CheckoutForm({
+  addresses,
+  profile,
+  settings,
+}: CheckoutFormProps) {
   const formId = "checkout-form";
   const router = useRouter();
   const { items, getTotal } = useCartStore();
-  const isSignedIn = Boolean(profile);
+  const [isMounted, setIsMounted] = useState(false);
   const defaultAddress = getDefaultAddress(addresses);
   const defaultName = splitFullName(defaultAddress?.name || profile?.full_name);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedAddressId, setSelectedAddressId] = useState<string>(
+  const [selectedAddressId, setSelectedAddressId] = useState(
     defaultAddress?.id || "manual"
   );
   const [saveAddress, setSaveAddress] = useState(addresses.length === 0);
-  const [saveAsDefault, setSaveAsDefault] = useState(addresses.length === 0);
   const [formData, setFormData] = useState({
     name: defaultName.name,
     lastName: defaultName.lastName,
     email: profile?.email || "",
     phone: profile?.phone || "",
     street: defaultAddress?.street || "",
-    city: defaultAddress?.city || "",
-    state: defaultAddress?.state || "",
+    city: defaultAddress?.city || settings.city,
+    state: defaultAddress?.state || settings.state,
     zip: defaultAddress?.zip || "",
-    shippingMethod: "standard",
+    references: "",
+    shippingMethod: (
+      settings.pickup_enabled ? "pickup" : "local_delivery"
+    ) as DeliveryMethod,
     couponCode: "",
   });
 
+  useEffect(() => setIsMounted(true), []);
+
   const subtotal = getTotal();
-  const shippingCost = getShippingCost(subtotal, formData.shippingMethod, {
-    standardShippingCost: settings.standard_shipping_cost,
-    expressShippingCost: settings.express_shipping_cost,
-    freeShippingThreshold: settings.free_shipping_threshold,
+  const shippingCost = getShippingCost(formData.shippingMethod, {
+    localDeliveryCost: settings.local_delivery_cost,
   });
   const total = subtotal + shippingCost;
-  const shouldOfferSaveAddress = isSignedIn && selectedAddressId === "manual";
+  const needsAddress = formData.shippingMethod === "local_delivery";
+  const shouldOfferSaveAddress =
+    Boolean(profile) && needsAddress && selectedAddressId === "manual";
+  const pickupLocation = /completar|confirmar|industrial 1234/i.test(
+    settings.address_line
+  )
+    ? "Ubicación a confirmar por WhatsApp"
+    : settings.address_line;
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((current) => ({
@@ -82,14 +95,8 @@ export function CheckoutForm({ addresses, profile, settings }: CheckoutFormProps
     setSelectedAddressId(value);
     setError(null);
 
-    if (value === "manual") {
-      return;
-    }
-
     const address = addresses.find((item) => item.id === value);
-    if (!address) {
-      return;
-    }
+    if (!address) return;
 
     const recipient = splitFullName(address.name || profile?.full_name);
     setFormData((current) => ({
@@ -100,7 +107,6 @@ export function CheckoutForm({ addresses, profile, settings }: CheckoutFormProps
       city: address.city,
       state: address.state,
       zip: address.zip || "",
-      email: current.email || profile?.email || "",
     }));
   };
 
@@ -113,9 +119,9 @@ export function CheckoutForm({ addresses, profile, settings }: CheckoutFormProps
       const fullName = `${formData.name} ${formData.lastName}`.trim();
 
       if (
-        isSignedIn &&
-        (formData.phone.trim() !== (profile?.phone || "") ||
-          fullName !== (profile?.full_name || "").trim())
+        profile &&
+        (formData.phone.trim() !== (profile.phone || "") ||
+          fullName !== (profile.full_name || "").trim())
       ) {
         await updateProfileContact({
           fullName,
@@ -130,7 +136,7 @@ export function CheckoutForm({ addresses, profile, settings }: CheckoutFormProps
           city: formData.city.trim(),
           state: formData.state.trim(),
           zip: formData.zip.trim() || undefined,
-          isDefault: saveAsDefault || addresses.length === 0,
+          isDefault: addresses.length === 0,
         });
       }
 
@@ -139,18 +145,19 @@ export function CheckoutForm({ addresses, profile, settings }: CheckoutFormProps
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           items,
-          total,
-          shippingCost,
           shippingMethod: formData.shippingMethod,
           couponCode: formData.couponCode.trim() || undefined,
           shippingAddress: {
             name: fullName,
-            email: formData.email,
-            phone: formData.phone,
-            street: formData.street,
-            city: formData.city,
-            state: formData.state,
-            zip: formData.zip,
+            email: formData.email.trim(),
+            phone: formData.phone.trim(),
+            street: needsAddress ? formData.street.trim() : null,
+            city: needsAddress ? formData.city.trim() : null,
+            state: needsAddress ? formData.state.trim() : null,
+            zip: needsAddress ? formData.zip.trim() || null : null,
+            references: needsAddress
+              ? formData.references.trim() || null
+              : settings.pickup_instructions,
           },
         }),
       });
@@ -160,14 +167,12 @@ export function CheckoutForm({ addresses, profile, settings }: CheckoutFormProps
         throw new Error(data.error || "No se pudo iniciar el checkout");
       }
 
-      if (data.preference?.init_point) {
-        window.location.href = data.preference.init_point;
-        return;
+      if (!data.preference?.init_point) {
+        throw new Error("Mercado Pago no devolvió un enlace de pago");
       }
 
-      throw new Error("No se pudo generar la preferencia de pago");
+      window.location.assign(data.preference.init_point);
     } catch (submitError) {
-      console.error("Checkout error:", submitError);
       setError(
         submitError instanceof Error
           ? submitError.message
@@ -177,319 +182,263 @@ export function CheckoutForm({ addresses, profile, settings }: CheckoutFormProps
     }
   };
 
+  if (!isMounted) {
+    return (
+      <div className="mx-auto max-w-6xl px-4 py-10">
+        <div className="h-10 w-56 animate-pulse rounded-lg bg-muted" />
+        <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_22rem]">
+          <div className="h-[32rem] animate-pulse rounded-2xl bg-muted" />
+          <div className="h-80 animate-pulse rounded-2xl bg-muted" />
+        </div>
+      </div>
+    );
+  }
+
   if (items.length === 0) {
     return (
-      <div className="container mx-auto px-4 py-16 text-center">
-        <h1 className="mb-4 text-2xl font-bold">Tu carrito esta vacio</h1>
-        <Button onClick={() => router.push("/products")}>Ver productos</Button>
+      <div className="mx-auto max-w-2xl px-4 py-20 text-center">
+        <h1 className="text-3xl font-extrabold">Tu carrito está vacío</h1>
+        <p className="mt-3 text-muted-foreground">
+          Elegí una prenda para continuar con la compra.
+        </p>
+        <Button className="mt-6" onClick={() => router.push("/products")}>
+          Ver productos
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="mb-8 text-3xl font-bold">Finalizar compra</h1>
+    <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:py-12">
+      <div className="mb-8">
+        <p className="text-sm font-semibold text-primary">Compra segura</p>
+        <h1 className="mt-1 text-3xl font-extrabold tracking-tight sm:text-4xl">
+          Finalizar compra
+        </h1>
+      </div>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <form id={formId} data-testid="checkout-form" onSubmit={handleSubmit}>
-            {addresses.length > 0 ? (
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle>Direccion guardada</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <RadioGroup
-                    value={selectedAddressId}
-                    onValueChange={handleAddressSelect}
-                    className="space-y-3"
-                  >
-                    {addresses.map((address) => (
-                      <div key={address.id}>
-                        <RadioGroupItem
-                          value={address.id}
-                          id={`address-${address.id}`}
-                          className="peer sr-only"
-                        />
-                        <Label
-                          htmlFor={`address-${address.id}`}
-                          className="flex cursor-pointer flex-col rounded-lg border p-4 peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                        >
-                          <span className="font-medium">{address.name}</span>
-                          <span className="text-sm text-muted-foreground">
-                            {address.street}
-                          </span>
-                          <span className="text-sm text-muted-foreground">
-                            {address.city}, {address.state}
-                            {address.zip ? `, ${address.zip}` : ""}
-                          </span>
-                        </Label>
-                      </div>
-                    ))}
-
-                    <div>
-                      <RadioGroupItem
-                        value="manual"
-                        id="address-manual"
-                        className="peer sr-only"
-                      />
-                      <Label
-                        htmlFor="address-manual"
-                        className="flex cursor-pointer rounded-lg border border-dashed p-4 text-sm peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                      >
-                        Cargar una direccion manualmente
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                </CardContent>
-              </Card>
-            ) : null}
-
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle>Datos de contacto</CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="name">Nombre</Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="lastName">Apellido</Label>
-                  <Input
-                    id="lastName"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="phone">Telefono</Label>
-                  <Input
-                    id="phone"
-                    name="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle>Direccion de envio</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="street">Calle y numero</Label>
-                  <Input
-                    id="street"
-                    name="street"
-                    value={formData.street}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="city">Ciudad</Label>
-                    <Input
-                      id="city"
-                      name="city"
-                      value={formData.city}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="state">Provincia</Label>
-                    <Input
-                      id="state"
-                      name="state"
-                      value={formData.state}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="zip">Codigo postal</Label>
-                  <Input
-                    id="zip"
-                    name="zip"
-                    value={formData.zip}
-                    onChange={handleInputChange}
-                  />
-                </div>
-
-                {shouldOfferSaveAddress ? (
-                  <div className="space-y-3 rounded-lg border border-dashed p-4">
-                    <label className="flex items-center gap-3 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={saveAddress}
-                        onChange={(event) => setSaveAddress(event.target.checked)}
-                      />
-                      Guardar esta direccion para futuras compras
-                    </label>
-
-                    {saveAddress ? (
-                      <label className="flex items-center gap-3 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={saveAsDefault}
-                          onChange={(event) => setSaveAsDefault(event.target.checked)}
-                        />
-                        Marcar como direccion predeterminada
-                      </label>
-                    ) : null}
-                  </div>
-                ) : null}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Metodo de envio</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <label className="flex cursor-pointer items-center justify-between rounded-lg border p-4 hover:bg-accent">
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      name="shippingMethod"
-                      value="standard"
-                      checked={formData.shippingMethod === "standard"}
-                      onChange={handleInputChange}
-                    />
-                    <div>
-                      <p className="font-medium">Envío estándar</p>
-                      <p className="text-sm text-muted-foreground">
-                        Entrega en 5-7 días hábiles
-                      </p>
-                    </div>
-                  </div>
-                  <span className="font-semibold">
-                    {subtotal >= settings.free_shipping_threshold
-                      ? "Gratis"
-                      : formatPrice(settings.standard_shipping_cost)}
-                  </span>
-                </label>
-
-                <label className="flex cursor-pointer items-center justify-between rounded-lg border p-4 hover:bg-accent">
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      name="shippingMethod"
-                      value="express"
-                      checked={formData.shippingMethod === "express"}
-                      onChange={handleInputChange}
-                    />
-                    <div>
-                      <p className="font-medium">Envío express</p>
-                      <p className="text-sm text-muted-foreground">
-                        Entrega en 24-48 horas
-                      </p>
-                    </div>
-                  </div>
-                  <span className="font-semibold">
-                    {formatPrice(settings.express_shipping_cost)}
-                  </span>
-                </label>
-              </CardContent>
-            </Card>
-
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle>Cupon de descuento</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Label htmlFor="couponCode">Codigo</Label>
-                <Input
-                  id="couponCode"
-                  name="couponCode"
-                  value={formData.couponCode}
-                  onChange={handleInputChange}
-                  placeholder="BIENVENIDO10"
-                />
-              </CardContent>
-            </Card>
-
-            {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
-          </form>
-        </div>
-
-        <div>
-          <Card className="sticky top-20">
+      <div className="grid gap-8 lg:grid-cols-[1fr_22rem]">
+        <form
+          id={formId}
+          data-testid="checkout-form"
+          onSubmit={handleSubmit}
+          className="space-y-6"
+        >
+          <Card>
             <CardHeader>
-              <CardTitle>Resumen del pedido</CardTitle>
+              <CardTitle>¿Cómo querés recibir tu compra?</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                {items.map((item) => (
-                  <div
-                    key={`${item.product_id}-${item.variant_id}`}
-                    className="flex justify-between text-sm"
-                  >
-                    <span>
-                      {item.product?.name} x {item.quantity}
-                    </span>
-                    <span>{formatPrice(getCartItemLineTotal(item))}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="space-y-2 border-t pt-4">
-                <div className="flex justify-between text-sm">
-                  <span>Subtotal</span>
-                  <span>{formatPrice(subtotal)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Envío</span>
-                  <span>
-                    {shippingCost === 0 ? "Gratis" : formatPrice(shippingCost)}
-                  </span>
-                </div>
-                <div className="flex justify-between border-t pt-2 text-lg font-semibold">
-                  <span>Total</span>
-                  <span>{formatPrice(total)}</span>
-                </div>
-              </div>
-
-              <Button
-                className="w-full"
-                size="lg"
-                type="submit"
-                form={formId}
-                data-testid="checkout-submit"
-                disabled={isProcessing}
+            <CardContent>
+              <RadioGroup
+                value={formData.shippingMethod}
+                onValueChange={(value) =>
+                  setFormData((current) => ({
+                    ...current,
+                    shippingMethod: value as DeliveryMethod,
+                  }))
+                }
+                className="grid gap-3 sm:grid-cols-2"
               >
-                {isProcessing ? "Procesando..." : "Confirmar y pagar"}
-              </Button>
+                {settings.pickup_enabled ? (
+                  <DeliveryOption
+                    id="pickup"
+                    icon={Store}
+                    title="Retiro en el local"
+                    description={pickupLocation}
+                    price="Sin costo"
+                  />
+                ) : null}
+                {settings.local_delivery_enabled ? (
+                  <DeliveryOption
+                    id="local_delivery"
+                    icon={Truck}
+                    title="Entrega local"
+                    description="Libertador y localidades cercanas"
+                    price={
+                      shippingCost > 0 ? formatPrice(shippingCost) : "Sin costo"
+                    }
+                  />
+                ) : null}
+              </RadioGroup>
             </CardContent>
           </Card>
-        </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Datos de contacto</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+              <FormField label="Nombre" name="name" value={formData.name} onChange={handleInputChange} required />
+              <FormField label="Apellido" name="lastName" value={formData.lastName} onChange={handleInputChange} required />
+              <FormField label="Email" name="email" type="email" value={formData.email} onChange={handleInputChange} required />
+              <FormField label="Teléfono" name="phone" type="tel" value={formData.phone} onChange={handleInputChange} required />
+            </CardContent>
+          </Card>
+
+          {needsAddress ? (
+            <>
+              {addresses.length > 0 ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Dirección guardada</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <RadioGroup
+                      value={selectedAddressId}
+                      onValueChange={handleAddressSelect}
+                      className="grid gap-3 sm:grid-cols-2"
+                    >
+                      {addresses.map((address) => (
+                        <div key={address.id}>
+                          <RadioGroupItem value={address.id} id={`address-${address.id}`} className="peer sr-only" />
+                          <Label htmlFor={`address-${address.id}`} className="flex min-h-24 cursor-pointer flex-col rounded-xl border p-4 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5">
+                            <span className="font-semibold">{address.name}</span>
+                            <span className="mt-1 text-sm text-muted-foreground">{address.street}</span>
+                            <span className="text-sm text-muted-foreground">{address.city}</span>
+                          </Label>
+                        </div>
+                      ))}
+                      <div>
+                        <RadioGroupItem value="manual" id="address-manual" className="peer sr-only" />
+                        <Label htmlFor="address-manual" className="flex min-h-24 cursor-pointer items-center gap-3 rounded-xl border border-dashed p-4 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5">
+                          <MapPin className="h-5 w-5" />
+                          Cargar otra dirección
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                  </CardContent>
+                </Card>
+              ) : null}
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Dirección de entrega</CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-4 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <FormField label="Calle y número" name="street" value={formData.street} onChange={handleInputChange} required />
+                  </div>
+                  <FormField label="Localidad" name="city" value={formData.city} onChange={handleInputChange} required />
+                  <FormField label="Provincia" name="state" value={formData.state} onChange={handleInputChange} required />
+                  <FormField label="Código postal" name="zip" value={formData.zip} onChange={handleInputChange} />
+                  <FormField label="Referencias" name="references" value={formData.references} onChange={handleInputChange} placeholder="Barrio, entre calles..." />
+                  {shouldOfferSaveAddress ? (
+                    <label className="flex min-h-11 items-center gap-3 text-sm sm:col-span-2">
+                      <input type="checkbox" checked={saveAddress} onChange={(event) => setSaveAddress(event.target.checked)} />
+                      Guardar esta dirección para futuras compras
+                    </label>
+                  ) : null}
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5">
+              <p className="font-semibold">{pickupLocation}</p>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                {settings.pickup_instructions}
+              </p>
+            </div>
+          )}
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Cupón de descuento</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FormField label="Código" name="couponCode" value={formData.couponCode} onChange={handleInputChange} placeholder="Ingresá tu código" />
+            </CardContent>
+          </Card>
+
+          {error ? (
+            <p role="alert" className="rounded-xl bg-destructive/10 p-4 text-sm text-destructive">
+              {error}
+            </p>
+          ) : null}
+        </form>
+
+        <Card className="h-fit lg:sticky lg:top-24">
+          <CardHeader>
+            <CardTitle>Resumen</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              {items.map((item) => (
+                <div key={`${item.product_id}-${item.variant_id}`} className="flex justify-between gap-4 text-sm">
+                  <span>{item.product?.name} × {item.quantity}</span>
+                  <span className="font-semibold">{formatPrice(getCartItemLineTotal(item))}</span>
+                </div>
+              ))}
+            </div>
+            <div className="space-y-2 border-t pt-4 text-sm">
+              <div className="flex justify-between">
+                <span>Subtotal</span>
+                <span>{formatPrice(subtotal)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>{needsAddress ? "Entrega local" : "Retiro"}</span>
+                <span>{shippingCost === 0 ? "Sin costo" : formatPrice(shippingCost)}</span>
+              </div>
+              <div className="flex justify-between border-t pt-3 text-lg font-extrabold">
+                <span>Total</span>
+                <span>{formatPrice(total)}</span>
+              </div>
+            </div>
+            <Button className="min-h-12 w-full" size="lg" type="submit" form={formId} data-testid="checkout-submit" disabled={isProcessing}>
+              {isProcessing ? "Abriendo Mercado Pago..." : "Pagar con Mercado Pago"}
+            </Button>
+            <p className="text-xs leading-5 text-muted-foreground">
+              El stock se reserva durante 30 minutos. Al continuar aceptás los{" "}
+              <Link href="/terminos" className="font-semibold underline">
+                términos de compra
+              </Link>{" "}
+              y la{" "}
+              <Link href="/privacidad" className="font-semibold underline">
+                política de privacidad
+              </Link>
+              .
+            </p>
+          </CardContent>
+        </Card>
       </div>
+    </main>
+  );
+}
+
+function DeliveryOption({
+  id,
+  icon: Icon,
+  title,
+  description,
+  price,
+}: {
+  id: DeliveryMethod;
+  icon: typeof Store;
+  title: string;
+  description: string;
+  price: string;
+}) {
+  return (
+    <div>
+      <RadioGroupItem value={id} id={id} className="peer sr-only" />
+      <Label htmlFor={id} className="flex min-h-32 cursor-pointer flex-col rounded-xl border p-4 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5">
+        <Icon className="h-5 w-5 text-primary" />
+        <span className="mt-4 font-semibold">{title}</span>
+        <span className="mt-1 text-sm text-muted-foreground">{description}</span>
+        <span className="mt-auto pt-3 text-sm font-bold">{price}</span>
+      </Label>
+    </div>
+  );
+}
+
+function FormField({
+  label,
+  name,
+  ...props
+}: React.ComponentProps<typeof Input> & { label: string; name: string }) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={name}>{label}</Label>
+      <Input id={name} name={name} className="min-h-11" {...props} />
     </div>
   );
 }

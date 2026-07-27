@@ -130,7 +130,7 @@ export function hydrateCartStore() {
     return;
   }
 
-  const stored = localStorage.getItem("pune-cart");
+  const stored = localStorage.getItem("pilcheria-gloria-cart");
   if (stored) {
     try {
       const parsed = JSON.parse(stored);
@@ -149,6 +149,9 @@ export function subscribeCartStorePersistence() {
   }
 
   return useCartStore.subscribe((state) => {
-    localStorage.setItem("pune-cart", JSON.stringify({ state: { items: state.items } }));
+    localStorage.setItem(
+      "pilcheria-gloria-cart",
+      JSON.stringify({ state: { items: state.items } })
+    );
   });
 }

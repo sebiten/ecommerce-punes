@@ -12,7 +12,10 @@ export function StorefrontShell({ children, settings }: StorefrontShellProps) {
   return (
     <>
       <StorefrontClientShell>{children}</StorefrontClientShell>
-      <WhatsAppFloatingButton />
+      <WhatsAppFloatingButton
+        phone={settings.whatsapp_phone}
+        storeName={settings.store_name}
+      />
       <Footer settings={settings} />
     </>
   );

@@ -3,6 +3,8 @@ import { getCategoriesAdmin } from "@/actions/categories";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
+export const dynamic = "force-dynamic";
+
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
   if (

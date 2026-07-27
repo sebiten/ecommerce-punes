@@ -2,14 +2,30 @@
 
 import * as React from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { useCartStore } from "@/hooks/use-cart";
-import { isAdmin } from "@/actions/auth";
-import { LayoutDashboard, Menu, ReceiptText, Search, ShoppingBag, User } from "lucide-react";
+import {
+  LayoutDashboard,
+  Menu,
+  ReceiptText,
+  Search,
+  ShoppingBag,
+  User,
+  X,
+} from "lucide-react";
+import { UserButton, useUser } from "@clerk/nextjs";
+import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { UserButton } from "@clerk/nextjs";
-import { useUser } from "@clerk/nextjs";
+import { useCartStore } from "@/hooks/use-cart";
+import { isAdmin } from "@/actions/auth";
+
+const NAV_ITEMS = [
+  { href: "/products", label: "Todo" },
+  { href: "/categories/mujer", label: "Mujer" },
+  { href: "/categories/hombre", label: "Hombre" },
+  { href: "/categories/uniformes-escolares", label: "Uniformes" },
+  { href: "/products?q=remera", label: "Remeras" },
+  { href: "/products?q=jean", label: "Jeans" },
+];
 
 export function Header() {
   const { toggleCart, getItemCount } = useCartStore();
@@ -20,23 +36,14 @@ export function Header() {
 
   React.useEffect(() => {
     let cancelled = false;
-
     if (!isLoaded || !isSignedIn) {
       setIsUserAdmin(false);
       return;
     }
 
     void isAdmin()
-      .then((admin) => {
-        if (!cancelled) {
-          setIsUserAdmin(admin);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setIsUserAdmin(false);
-        }
-      });
+      .then((admin) => !cancelled && setIsUserAdmin(admin))
+      .catch(() => !cancelled && setIsUserAdmin(false));
 
     return () => {
       cancelled = true;
@@ -44,63 +51,37 @@ export function Header() {
   }, [isLoaded, isSignedIn]);
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-white">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2">
-            <Image
-              src="/logo-punes.jpg"
-              alt="Pune"
-              width={40}
-              height={40}
-              className="h-10 w-10 object-contain"
-            />
-          </Link>
-
-          <nav className="hidden md:flex items-center gap-6">
-            <Link
-              href="/products"
-              className="text-sm font-medium transition-colors hover:text-[#9a5b19]"
-            >
-              Productos
-            </Link>
-            <Link
-              href="/products?category=colchones"
-              className="text-sm font-medium transition-colors hover:text-[#9a5b19]"
-            >
-              Colchones
-            </Link>
-            <Link
-              href="/products?category=sommiers"
-              className="text-sm font-medium transition-colors hover:text-[#9a5b19]"
-            >
-              Sommiers
-            </Link>
-            <Link
-              href="/products?category=accesorios"
-              className="text-sm font-medium transition-colors hover:text-[#9a5b19]"
-            >
-              Accesorios
-            </Link>
+    <header className="sticky top-0 z-40 border-b border-border/80 bg-background/95 backdrop-blur-md">
+      <div className="mx-auto flex h-[4.5rem] max-w-[1440px] items-center justify-between gap-4 px-4 sm:px-6">
+        <div className="flex min-w-0 items-center gap-8">
+          <Logo />
+          <nav className="hidden items-center gap-5 lg:flex">
+            {NAV_ITEMS.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="text-sm font-semibold transition-colors hover:text-primary"
+              >
+                {item.label}
+              </Link>
+            ))}
           </nav>
         </div>
 
-        <div className="flex items-center gap-4">
-          <form action="/products" className="relative hidden lg:flex">
+        <div className="flex items-center gap-2">
+          <form action="/products" className="relative hidden xl:block">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
               name="q"
-              placeholder="Buscar productos..."
-              className="w-56 pl-9 bg-[#f8f4f0] border-0"
+              placeholder="Buscar prendas..."
+              className="w-56 border-transparent bg-muted pl-9 focus-visible:border-primary"
             />
           </form>
 
-          {!isLoaded ? (
-            <div className="h-9 w-9 animate-pulse rounded-md bg-muted" />
-          ) : isSignedIn ? (
+          {isLoaded && isSignedIn ? (
             <>
-              <div className="hidden items-center gap-2 md:flex">
+              <div className="hidden items-center gap-1 md:flex">
                 <Button variant="ghost" size="sm" asChild>
                   <Link href="/account/profile">
                     <User className="mr-2 h-4 w-4" />
@@ -114,11 +95,7 @@ export function Header() {
                   </Link>
                 </Button>
                 {isUserAdmin ? (
-                  <Button
-                    size="sm"
-                    className="bg-[#f6ae66] text-black hover:bg-[#f6ae66]/90"
-                    asChild
-                  >
+                  <Button size="sm" asChild>
                     <Link href="/dashboard">
                       <LayoutDashboard className="mr-2 h-4 w-4" />
                       Dashboard
@@ -128,117 +105,80 @@ export function Header() {
               </div>
               <UserButton />
             </>
-          ) : (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-[#9a5b19] hover:bg-[#f6ae66]/10 hover:text-[#9a5b19]"
-              asChild
-            >
-              <Link href="/login">
-                <User className="h-4 w-4 mr-2" />
-                Ingresar
-              </Link>
+          ) : isLoaded ? (
+            <Button variant="ghost" size="sm" className="hidden sm:inline-flex" asChild>
+              <Link href="/login">Ingresar</Link>
             </Button>
-          )}
+          ) : null}
 
           <Button
             variant="outline"
             size="icon"
-            className="relative border-[#f6ae66] hover:bg-[#f6ae66]/10"
+            className="relative min-h-11 min-w-11 border-primary/30"
             onClick={toggleCart}
+            aria-label={`Abrir carrito con ${itemCount} productos`}
           >
-            <ShoppingBag className="h-5 w-5 text-[#9a5b19]" />
-            {itemCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#f6ae66] text-xs text-black font-bold">
+            <ShoppingBag className="h-5 w-5" />
+            {itemCount > 0 ? (
+              <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1 text-[0.65rem] font-bold text-primary-foreground">
                 {itemCount}
               </span>
-            )}
+            ) : null}
           </Button>
 
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="min-h-11 min-w-11 lg:hidden"
+            onClick={() => setIsMenuOpen((open) => !open)}
+            aria-label={isMenuOpen ? "Cerrar menú" : "Abrir menú"}
           >
-            <Menu className="h-5 w-5" />
+            {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
         </div>
       </div>
 
-      {isMenuOpen && (
-        <div className="border-t bg-white md:hidden">
-          <div className="container mx-auto px-4 py-4">
-            <form action="/products" className="relative mb-4">
+      {isMenuOpen ? (
+        <div className="border-t bg-background lg:hidden">
+          <div className="mx-auto max-w-[1440px] px-4 py-5">
+            <form action="/products" className="relative mb-5">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                type="search"
-                name="q"
-                placeholder="Buscar productos..."
-                className="pl-9"
-              />
+              <Input type="search" name="q" placeholder="Buscar prendas..." className="min-h-11 pl-9" />
             </form>
-            <nav className="flex flex-col gap-4">
+            <nav className="grid grid-cols-2 gap-2">
+              {NAV_ITEMS.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold hover:bg-muted"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              ))}
               {isSignedIn ? (
                 <>
-                  <Link
-                    href="/account/profile"
-                    className="text-sm font-medium py-2"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
+                  <Link href="/account/profile" className="flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold hover:bg-muted" onClick={() => setIsMenuOpen(false)}>
                     Perfil
                   </Link>
-                  <Link
-                    href="/account/orders"
-                    className="text-sm font-medium py-2"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
+                  <Link href="/account/orders" className="flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold hover:bg-muted" onClick={() => setIsMenuOpen(false)}>
                     Mis pedidos
                   </Link>
                   {isUserAdmin ? (
-                    <Link
-                      href="/dashboard"
-                      className="rounded-md bg-[#f6ae66] px-3 py-2 text-sm font-semibold text-black"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
+                    <Link href="/dashboard" className="col-span-2 flex min-h-11 items-center justify-center rounded-lg bg-primary px-3 text-sm font-bold text-primary-foreground" onClick={() => setIsMenuOpen(false)}>
                       Dashboard
                     </Link>
                   ) : null}
                 </>
-              ) : null}
-              <Link
-                href="/products"
-                className="text-sm font-medium py-2"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Productos
-              </Link>
-              <Link
-                href="/products?category=colchones"
-                className="text-sm font-medium py-2"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Colchones
-              </Link>
-              <Link
-                href="/products?category=sommiers"
-                className="text-sm font-medium py-2"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Sommiers
-              </Link>
-              <Link
-                href="/products?category=accesorios"
-                className="text-sm font-medium py-2"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Accesorios
-              </Link>
+              ) : (
+                <Link href="/login" className="flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold hover:bg-muted" onClick={() => setIsMenuOpen(false)}>
+                  Ingresar
+                </Link>
+              )}
             </nav>
           </div>
         </div>
-      )}
+      ) : null}
     </header>
   );
 }

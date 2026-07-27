@@ -1,5 +1,6 @@
 import Link from "next/link";
-import Image from "next/image";
+import { Logo } from "@/components/brand/logo";
+import { SITE_NAME } from "@/lib/site";
 import type { StoreSettings } from "@/types";
 
 interface FooterProps {
@@ -7,90 +8,100 @@ interface FooterProps {
 }
 
 export function Footer({ settings }: FooterProps) {
+  const hasAddress =
+    !/completar|confirmar|industrial 1234/i.test(settings.address_line);
+  const hasHours =
+    !/completar|confirmar/i.test(settings.business_hours);
+  const hasPhone = settings.contact_phone.toLowerCase() !== "completar";
+  const hasEmail = !settings.contact_email.endsWith("@ejemplo.com");
+  const footerText =
+    /\bpunes?\b|colch[oó]n|sommier|descanso|m[aá]s de \d+ a[nñ]os/i.test(
+      settings.footer_text
+    )
+      ? "Ropa para mujer y hombre en Libertador General San Martín. Retiro coordinado y atención por WhatsApp."
+      : settings.footer_text;
+
   return (
-    <footer className="bg-[#1a1a1a] text-white">
-      <div className="container mx-auto px-4 py-16">
-        <div className="grid grid-cols-1 gap-12 md:grid-cols-4">
-          <div>
-            <Image
-              src="/logo-punes.jpg"
-              alt={settings.store_name}
-              width={40}
-              height={40}
-              className="mb-6 h-10 w-10 object-contain brightness-0 invert"
-            />
-            <p className="text-sm leading-relaxed text-white/60">
-              {settings.footer_text}
+    <footer className="border-t bg-foreground text-background">
+      <div className="mx-auto max-w-[1440px] px-4 py-14 sm:px-6">
+        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-[1.25fr_0.75fr_0.9fr_0.9fr_1fr]">
+          <div className="max-w-sm">
+            <Logo inverted />
+            <p className="mt-5 text-sm leading-6 text-background/70">
+              {footerText}
             </p>
           </div>
-
+          <FooterLinks
+            title="Colecciones"
+            links={[
+              ["/categories/mujer", "Mujer"],
+              ["/categories/hombre", "Hombre"],
+              ["/categories/uniformes-escolares", "Uniformes escolares"],
+              ["/products?q=remera", "Remeras"],
+              ["/products?q=jean", "Jeans"],
+            ]}
+          />
+          <FooterLinks
+            title="Ayuda"
+            links={[
+              ["/guia-de-talles", "Guía de talles"],
+              ["/cambios-y-devoluciones", "Cambios y devoluciones"],
+              ["/terminos", "Términos de compra"],
+              ["/privacidad", "Privacidad"],
+            ]}
+          />
           <div>
-            <h4 className="mb-4 text-sm font-semibold text-[#f6ae66]">Productos</h4>
-            <ul className="space-y-3 text-sm text-white/60">
-              <li>
-                <Link href="/products?category=colchones" className="transition-colors hover:text-[#f6ae66]">
-                  Colchones
-                </Link>
-              </li>
-              <li>
-                <Link href="/products?category=sommiers" className="transition-colors hover:text-[#f6ae66]">
-                  Sommiers
-                </Link>
-              </li>
-              <li>
-                <Link href="/products?category=accesorios" className="transition-colors hover:text-[#f6ae66]">
-                  Accesorios
-                </Link>
-              </li>
-              <li>
-                <Link href="/products" className="transition-colors hover:text-[#f6ae66]">
-                  Ver todos
-                </Link>
-              </li>
-            </ul>
+            <h2 className="font-bold">Local</h2>
+            <div className="mt-4 space-y-2 text-sm leading-6 text-background/70">
+              {hasAddress ? <p>{settings.address_line}</p> : null}
+              <p>{settings.city}, {settings.state}</p>
+              {hasHours ? <p>{settings.business_hours}</p> : null}
+            </div>
           </div>
-
           <div>
-            <h4 className="mb-4 text-sm font-semibold text-[#f6ae66]">Contacto</h4>
-            <ul className="space-y-3 text-sm text-white/60">
-              <li>{settings.address_line}</li>
-              <li>
-                {settings.city}, {settings.state}
-              </li>
-              <li>{settings.contact_phone}</li>
-              {settings.whatsapp_phone ? <li>WhatsApp: {settings.whatsapp_phone}</li> : null}
-              <li>{settings.contact_email}</li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="mb-4 text-sm font-semibold text-[#f6ae66]">Info</h4>
-            <ul className="space-y-3 text-sm text-white/60">
-              <li>{settings.business_hours}</li>
-              {settings.instagram_url ? (
-                <li>
-                  <Link href={settings.instagram_url} className="transition-colors hover:text-[#f6ae66]">
-                    Instagram
-                  </Link>
-                </li>
+            <h2 className="font-bold">Contacto</h2>
+            <div className="mt-4 space-y-2 text-sm leading-6 text-background/70">
+              {hasPhone ? <p>{settings.contact_phone}</p> : null}
+              {hasEmail ? <p>{settings.contact_email}</p> : null}
+              {!hasPhone && !hasEmail ? (
+                <p>Completá los datos de contacto desde el panel.</p>
               ) : null}
-              {settings.facebook_url ? (
-                <li>
-                  <Link href={settings.facebook_url} className="transition-colors hover:text-[#f6ae66]">
-                    Facebook
-                  </Link>
-                </li>
-              ) : null}
-            </ul>
+              {settings.instagram_url ? <Link className="block hover:text-white" href={settings.instagram_url}>Instagram</Link> : null}
+              {settings.facebook_url ? <Link className="block hover:text-white" href={settings.facebook_url}>Facebook</Link> : null}
+            </div>
+            <Link
+              href="/arrepentimiento"
+              className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full border border-gloria-400 bg-white px-4 text-center text-sm font-bold text-gloria-950 hover:bg-gloria-100"
+            >
+              Botón de arrepentimiento
+            </Link>
           </div>
         </div>
-
-        <div className="mt-12 border-t border-white/10 pt-8 text-center">
-          <p className="text-sm text-white/40">
-            © {new Date().getFullYear()} {settings.store_name}. Todos los derechos reservados.
-          </p>
+        <div className="mt-12 border-t border-background/15 pt-6 text-xs text-background/55">
+          © {new Date().getFullYear()} {SITE_NAME}. Todos los derechos reservados.
         </div>
       </div>
     </footer>
+  );
+}
+
+function FooterLinks({
+  title,
+  links,
+}: {
+  title: string;
+  links: Array<[string, string]>;
+}) {
+  return (
+    <div>
+      <h2 className="font-bold">{title}</h2>
+      <ul className="mt-4 space-y-2 text-sm text-background/70">
+        {links.map(([href, label]) => (
+          <li key={href}>
+            <Link href={href} className="hover:text-white">{label}</Link>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

@@ -5,11 +5,12 @@ import { revalidatePath, unstable_cache, updateTag } from "next/cache";
 import { requireAdmin } from "@/actions/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import type { StoreSettings } from "@/types";
+import { reportDataFallback } from "@/lib/logging";
 
 const storeSettingsSchema = z.object({
   storeName: z.string().trim().min(2),
   contactEmail: z.string().trim().email(),
-  contactPhone: z.string().trim().min(6),
+  contactPhone: z.string().trim().min(3),
   whatsappPhone: z.string().trim().optional(),
   addressLine: z.string().trim().min(4),
   city: z.string().trim().min(2),
@@ -18,55 +19,83 @@ const storeSettingsSchema = z.object({
   instagramUrl: z.union([z.literal(""), z.string().trim().url()]).optional(),
   facebookUrl: z.union([z.literal(""), z.string().trim().url()]).optional(),
   footerText: z.string().trim().min(10),
-  standardShippingCost: z.number().nonnegative(),
-  expressShippingCost: z.number().nonnegative(),
-  freeShippingThreshold: z.number().nonnegative(),
+  pickupEnabled: z.boolean(),
+  localDeliveryEnabled: z.boolean(),
+  localDeliveryCost: z.number().nonnegative(),
+  pickupInstructions: z.string().trim().min(10),
+  legalName: z.string().trim().max(160).optional(),
+  taxId: z.string().trim().max(32).optional(),
+  legalAddress: z.string().trim().max(240).optional(),
+}).refine((settings) => settings.pickupEnabled || settings.localDeliveryEnabled, {
+  message: "Activá al menos una modalidad de entrega",
+  path: ["pickupEnabled"],
 });
 
 const defaultStoreSettings: StoreSettings = {
-  store_name: "Pune Colchones",
-  contact_email: "info@pune.com.ar",
-  contact_phone: "+54 11 1234-5678",
+  store_name: "Pilchería Gloria",
+  contact_email: "completar@ejemplo.com",
+  contact_phone: "Completar",
   whatsapp_phone: null,
-  address_line: "Av. Industrial 1234",
-  city: "Buenos Aires",
-  state: "Argentina",
-  business_hours: "Lunes a Viernes: 9:00 - 18:00 | Sabados: 9:00 - 13:00",
+  address_line: "Dirección a completar",
+  city: "Libertador General San Martín",
+  state: "Jujuy, Argentina",
+  business_hours: "Horarios a completar",
   instagram_url: null,
   facebook_url: null,
   footer_text:
-    "Más de 30 años fabricando colchones y sommiers con los mejores materiales. El descanso que tu familia merece.",
-  standard_shipping_cost: 5000,
-  express_shipping_cost: 10000,
-  free_shipping_threshold: 50000,
+    "Ropa para mujer y hombre en Libertador General San Martín. Retiro coordinado y atención por WhatsApp.",
+  pickup_enabled: true,
+  local_delivery_enabled: false,
+  local_delivery_cost: 0,
+  pickup_instructions:
+    "Esperá nuestra confirmación por WhatsApp. Cuando esté listo, retiralo mostrando el código del pedido.",
+  legal_name: null,
+  tax_id: null,
+  legal_address: null,
 };
 
 const STORE_SETTINGS_CACHE_TAG = "store-settings";
 
-function mapStoreSettings(row: any): StoreSettings {
+function mapStoreSettings(row: Record<string, unknown>): StoreSettings {
   return {
-    store_name: row.store_name ?? defaultStoreSettings.store_name,
-    contact_email: row.contact_email ?? defaultStoreSettings.contact_email,
-    contact_phone: row.contact_phone ?? defaultStoreSettings.contact_phone,
-    whatsapp_phone: row.whatsapp_phone ?? null,
-    address_line: row.address_line ?? defaultStoreSettings.address_line,
-    city: row.city ?? defaultStoreSettings.city,
-    state: row.state ?? defaultStoreSettings.state,
-    business_hours: row.business_hours ?? defaultStoreSettings.business_hours,
-    instagram_url: row.instagram_url ?? null,
-    facebook_url: row.facebook_url ?? null,
-    footer_text: row.footer_text ?? defaultStoreSettings.footer_text,
-    standard_shipping_cost:
-      Number(row.standard_shipping_cost) || defaultStoreSettings.standard_shipping_cost,
-    express_shipping_cost:
-      Number(row.express_shipping_cost) || defaultStoreSettings.express_shipping_cost,
-    free_shipping_threshold:
-      Number(row.free_shipping_threshold) || defaultStoreSettings.free_shipping_threshold,
+    store_name: String(row.store_name ?? defaultStoreSettings.store_name),
+    contact_email: String(row.contact_email ?? defaultStoreSettings.contact_email),
+    contact_phone: String(row.contact_phone ?? defaultStoreSettings.contact_phone),
+    whatsapp_phone: row.whatsapp_phone ? String(row.whatsapp_phone) : null,
+    address_line: String(row.address_line ?? defaultStoreSettings.address_line),
+    city: String(row.city ?? defaultStoreSettings.city),
+    state: String(row.state ?? defaultStoreSettings.state),
+    business_hours: String(
+      row.business_hours ?? defaultStoreSettings.business_hours
+    ),
+    instagram_url: row.instagram_url ? String(row.instagram_url) : null,
+    facebook_url: row.facebook_url ? String(row.facebook_url) : null,
+    footer_text: String(row.footer_text ?? defaultStoreSettings.footer_text),
+    pickup_enabled:
+      row.pickup_enabled === undefined
+        ? defaultStoreSettings.pickup_enabled
+        : Boolean(row.pickup_enabled),
+    local_delivery_enabled:
+      row.local_delivery_enabled === undefined
+        ? defaultStoreSettings.local_delivery_enabled
+        : Boolean(row.local_delivery_enabled),
+    local_delivery_cost: Number(row.local_delivery_cost) || 0,
+    pickup_instructions: String(
+      row.pickup_instructions ?? defaultStoreSettings.pickup_instructions
+    ),
+    legal_name: row.legal_name ? String(row.legal_name) : null,
+    tax_id: row.tax_id ? String(row.tax_id) : null,
+    legal_address: row.legal_address ? String(row.legal_address) : null,
   };
 }
 
 export async function getStoreSettings(): Promise<StoreSettings> {
-  return getStoreSettingsCached();
+  try {
+    return await getStoreSettingsCached();
+  } catch (error) {
+    reportDataFallback("store-settings", error);
+    return defaultStoreSettings;
+  }
 }
 
 const getStoreSettingsCached = unstable_cache(
@@ -78,21 +107,20 @@ const getStoreSettingsCached = unstable_cache(
       .eq("id", 1)
       .maybeSingle();
 
-    if (error) {
-      console.error("Error fetching store settings:", error);
-      return defaultStoreSettings;
-    }
+    if (error) throw error;
 
     return data ? mapStoreSettings(data) : defaultStoreSettings;
   },
-  ["store-settings"],
+  ["store-settings-v4"],
   {
     tags: [STORE_SETTINGS_CACHE_TAG],
     revalidate: 3600,
   }
 );
 
-export async function updateStoreSettings(input: z.infer<typeof storeSettingsSchema>) {
+export async function updateStoreSettings(
+  input: z.infer<typeof storeSettingsSchema>
+) {
   await requireAdmin();
   const payload = storeSettingsSchema.parse(input);
   const supabase = getSupabaseAdmin();
@@ -111,9 +139,13 @@ export async function updateStoreSettings(input: z.infer<typeof storeSettingsSch
       instagram_url: payload.instagramUrl || null,
       facebook_url: payload.facebookUrl || null,
       footer_text: payload.footerText,
-      standard_shipping_cost: payload.standardShippingCost,
-      express_shipping_cost: payload.expressShippingCost,
-      free_shipping_threshold: payload.freeShippingThreshold,
+      pickup_enabled: payload.pickupEnabled,
+      local_delivery_enabled: payload.localDeliveryEnabled,
+      local_delivery_cost: payload.localDeliveryCost,
+      pickup_instructions: payload.pickupInstructions,
+      legal_name: payload.legalName || null,
+      tax_id: payload.taxId || null,
+      legal_address: payload.legalAddress || null,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "id" }

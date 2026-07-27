@@ -1,10 +1,7 @@
 import { ImageResponse } from "next/og";
+import { GloriaIconArt } from "@/components/brand/gloria-icon-art";
 
-export const size = {
-  width: 512,
-  height: 512,
-};
-
+export const size = { width: 512, height: 512 };
 export const contentType = "image/png";
 
 export default function Icon() {
@@ -12,37 +9,16 @@ export default function Icon() {
     (
       <div
         style={{
-          alignItems: "center",
-          background: "#f6ae66",
-          color: "#fffdf9",
-          display: "flex",
-          height: "100%",
-          justifyContent: "center",
           width: "100%",
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#a8d829",
+          borderRadius: 92,
         }}
       >
-        <div
-          style={{
-            alignItems: "center",
-            border: "10px solid rgba(255, 253, 249, 0.62)",
-            borderRadius: 112,
-            display: "flex",
-            height: 396,
-            justifyContent: "center",
-            width: 396,
-          }}
-        >
-          <span
-            style={{
-              fontSize: 118,
-              fontWeight: 900,
-              letterSpacing: -10,
-              lineHeight: 1,
-            }}
-          >
-            Punes
-          </span>
-        </div>
+        <GloriaIconArt size={360} />
       </div>
     ),
     size

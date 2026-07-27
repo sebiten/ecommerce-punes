@@ -20,7 +20,27 @@ export async function getProducts(options?: {
     .order("created_at", { ascending: false });
 
   if (options?.categorySlug) {
-    query = query.eq("category.slug", options.categorySlug);
+    const { data: selectedCategory } = await supabase
+      .from("categories")
+      .select("id")
+      .eq("slug", options.categorySlug)
+      .eq("active", true)
+      .maybeSingle();
+
+    if (!selectedCategory) {
+      return [];
+    }
+
+    const { data: childCategories } = await supabase
+      .from("categories")
+      .select("id")
+      .eq("parent_id", selectedCategory.id)
+      .eq("active", true);
+
+    query = query.in("category_id", [
+      selectedCategory.id,
+      ...(childCategories || []).map((category) => category.id),
+    ]);
   }
 
   if (options?.featured) {
@@ -62,6 +82,7 @@ export async function getCategories(): Promise<Category[]> {
   const { data, error } = await supabase
     .from("categories")
     .select("*")
+    .eq("active", true)
     .order("sort_order", { ascending: true });
 
   if (error) throw error;
@@ -75,6 +96,7 @@ export async function getCategoryBySlug(slug: string): Promise<Category | null> 
     .from("categories")
     .select("*")
     .eq("slug", slug)
+    .eq("active", true)
     .single();
 
   if (error) return null;

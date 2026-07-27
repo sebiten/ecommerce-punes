@@ -20,7 +20,9 @@ interface CategoryFormState {
   slug: string;
   description: string;
   imageUrl: string;
+  parentId: string;
   sortOrder: string;
+  active: boolean;
 }
 
 const emptyForm: CategoryFormState = {
@@ -28,7 +30,9 @@ const emptyForm: CategoryFormState = {
   slug: "",
   description: "",
   imageUrl: "",
+  parentId: "",
   sortOrder: "0",
+  active: true,
 };
 
 interface CategoriesManagerProps {
@@ -60,7 +64,9 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
       slug: form.slug,
       description: form.description || null,
       imageUrl: form.imageUrl || null,
+      parentId: form.parentId || null,
       sortOrder: Number(form.sortOrder) || 0,
+      active: form.active,
     };
 
     try {
@@ -75,7 +81,9 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
                   slug: payload.slug,
                   description: payload.description,
                   image_url: payload.imageUrl,
+                  parent_id: payload.parentId,
                   sort_order: payload.sortOrder,
+                  active: payload.active,
                 }
               : category
           )
@@ -122,7 +130,9 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
       slug: category.slug,
       description: category.description || "",
       imageUrl: category.image_url || "",
+      parentId: category.parent_id || "",
       sortOrder: String(category.sort_order),
+      active: category.active,
     });
     setError(null);
     setIsOpen(true);
@@ -202,6 +212,48 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
                 </div>
               </div>
 
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <Label htmlFor="parentId">Categoría superior</Label>
+                  <select
+                    id="parentId"
+                    value={form.parentId}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        parentId: event.target.value,
+                      }))
+                    }
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  >
+                    <option value="">Sin categoría superior</option>
+                    {categories
+                      .filter(
+                        (category) =>
+                          category.id !== form.id && !category.parent_id
+                      )
+                      .map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                <label className="flex min-h-10 items-end gap-2 pb-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.active}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        active: event.target.checked,
+                      }))
+                    }
+                  />
+                  Visible en la tienda
+                </label>
+              </div>
+
               <div>
                 <Label htmlFor="description">Descripcion</Label>
                 <Input
@@ -275,6 +327,8 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
                   <th className="h-12 px-4 text-left font-medium">Nombre</th>
                   <th className="h-12 px-4 text-left font-medium">Slug</th>
                   <th className="h-12 px-4 text-left font-medium">Productos</th>
+                  <th className="h-12 px-4 text-left font-medium">Superior</th>
+                  <th className="h-12 px-4 text-left font-medium">Estado</th>
                   <th className="h-12 px-4 text-left font-medium">Orden</th>
                   <th className="h-12 px-4 text-left font-medium">Acciones</th>
                 </tr>
@@ -285,6 +339,16 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
                     <td className="p-4 font-medium">{category.name}</td>
                     <td className="p-4 text-muted-foreground">{category.slug}</td>
                     <td className="p-4">{category.productCount}</td>
+                    <td className="p-4 text-muted-foreground">
+                      {category.parent_id
+                        ? categories.find(
+                            (parent) => parent.id === category.parent_id
+                          )?.name || "No disponible"
+                        : "Principal"}
+                    </td>
+                    <td className="p-4">
+                      {category.active ? "Visible" : "Oculta"}
+                    </td>
                     <td className="p-4">{category.sort_order}</td>
                     <td className="p-4">
                       <div className="flex items-center gap-2">
@@ -309,7 +373,7 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
                 ))}
                 {!categories.length ? (
                   <tr>
-                    <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={7} className="p-8 text-center text-muted-foreground">
                       No hay categorías todavía.
                     </td>
                   </tr>

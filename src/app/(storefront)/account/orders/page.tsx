@@ -3,25 +3,9 @@ import { getOrders } from "@/actions/orders";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
+import { getOrderStatusLabel } from "@/lib/commerce";
 
 export const dynamic = "force-dynamic";
-
-function getOrderStatusLabel(status: string) {
-  switch (status) {
-    case "pending":
-      return "Pendiente";
-    case "paid":
-      return "Pagado";
-    case "shipped":
-      return "Enviado";
-    case "delivered":
-      return "Entregado";
-    case "cancelled":
-      return "Cancelado";
-    default:
-      return status;
-  }
-}
 
 export default async function AccountOrdersPage() {
   const orders = await getOrders();
@@ -70,7 +54,9 @@ export default async function AccountOrdersPage() {
                       <td className="p-4">
                         {new Date(order.created_at).toLocaleDateString("es-AR")}
                       </td>
-                      <td className="p-4">{getOrderStatusLabel(order.status)}</td>
+                      <td className="p-4">
+                        {getOrderStatusLabel(order.status, order.shipping_method)}
+                      </td>
                       <td className="p-4">{formatPrice(Number(order.total))}</td>
                       <td className="p-4 text-right">
                         <Button asChild size="sm" variant="outline">

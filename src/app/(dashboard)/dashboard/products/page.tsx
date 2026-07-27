@@ -5,6 +5,7 @@ import { Plus, Pencil } from "lucide-react";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { formatPrice } from "@/lib/utils";
 import { DeleteProductButton } from "./delete-product-button";
+import { CopyProductLinkButton } from "./copy-product-link-button";
 
 export default async function ProductsPage() {
   const supabase = getSupabaseAdmin();
@@ -13,10 +14,17 @@ export default async function ProductsPage() {
     .from("products")
     .select(`
       *,
-      category:categories(name),
+      category:categories(name, slug),
       images:product_images(url)
     `)
     .order("created_at", { ascending: false });
+
+  const visibleProducts = (products || []).filter(
+    (product) =>
+      !["colchones", "sommiers", "almohadas", "accesorios"].includes(
+        product.category?.slug || ""
+      )
+  );
 
   return (
     <div className="space-y-6">
@@ -24,7 +32,7 @@ export default async function ProductsPage() {
         <div>
           <h1 className="text-3xl font-bold">Productos</h1>
           <p className="text-muted-foreground">
-            {products?.length || 0} productos en el catálogo
+            {visibleProducts.length} productos en el catálogo
           </p>
         </div>
         <Button asChild>
@@ -41,6 +49,7 @@ export default async function ProductsPage() {
             <thead className="border-b bg-muted/50">
               <tr>
                 <th className="h-12 px-4 text-left align-middle font-medium">Producto</th>
+                <th className="h-12 px-4 text-left align-middle font-medium">Marca</th>
                 <th className="h-12 px-4 text-left align-middle font-medium">Categoría</th>
                 <th className="h-12 px-4 text-left align-middle font-medium">Precio</th>
                 <th className="h-12 px-4 text-left align-middle font-medium">Estado</th>
@@ -48,7 +57,7 @@ export default async function ProductsPage() {
               </tr>
             </thead>
             <tbody>
-              {products?.map((product) => (
+              {visibleProducts.map((product) => (
                 <tr key={product.id} className="border-b">
                   <td className="p-4">
                     <div className="flex items-center gap-3">
@@ -56,7 +65,7 @@ export default async function ProductsPage() {
                         <Image
                           src={
                             product.images?.[0]?.url ||
-                            "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=100&h=100&fit=crop"
+                            "https://images.unsplash.com/photo-1766934587214-86e21b3ae093?auto=format&fit=crop&w=120&q=75"
                           }
                           alt={product.name}
                           fill
@@ -70,6 +79,7 @@ export default async function ProductsPage() {
                       </div>
                     </div>
                   </td>
+                  <td className="p-4">{product.brand || "Sin marca"}</td>
                   <td className="p-4">
                     {product.category?.name || "Sin categoría"}
                   </td>
@@ -94,6 +104,10 @@ export default async function ProductsPage() {
                           <Pencil className="h-4 w-4" />
                         </Link>
                       </Button>
+                      <CopyProductLinkButton
+                        slug={product.slug}
+                        productName={product.name}
+                      />
                       <DeleteProductButton
                         productId={product.id}
                         productName={product.name}
@@ -102,9 +116,9 @@ export default async function ProductsPage() {
                   </td>
                 </tr>
               ))}
-              {!products?.length && (
+              {!visibleProducts.length && (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={6} className="p-8 text-center text-muted-foreground">
                     No hay productos. Empezá creando uno nuevo.
                   </td>
                 </tr>

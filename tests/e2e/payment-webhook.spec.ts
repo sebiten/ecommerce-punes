@@ -2,7 +2,9 @@ import { expect, test } from "@playwright/test";
 import { createHmac } from "node:crypto";
 import {
   cleanupCheckoutSmokeProduct,
+  createExpiredOrderForProduct,
   getLatestOrderForProduct,
+  getOrderState,
   getVariantStock,
   seedCheckoutSmokeProduct,
 } from "./helpers/supabase";
@@ -40,13 +42,9 @@ test("approved MercadoPago webhook marks guest order as paid", async ({ page }) 
     await page.getByTestId("cart-checkout-link").click();
 
     await page.getByLabel("Nombre").fill("QA");
-    await page.getByLabel("Apellido").fill("Punes");
-    await page.getByLabel("Email").fill("qa+punes@example.com");
-    await page.getByLabel("Telefono").fill("1133334444");
-    await page.getByLabel("Calle y numero").fill("Av. Test 123");
-    await page.getByLabel("Ciudad").fill("Buenos Aires");
-    await page.getByLabel("Provincia").fill("Buenos Aires");
-    await page.getByLabel("Codigo postal").fill("1000");
+    await page.getByLabel("Apellido").fill("Gloria");
+    await page.getByLabel("Email").fill("qa+gloria@example.com");
+    await page.getByLabel("Teléfono").fill("3884000000");
 
     const checkoutResponsePromise = page.waitForResponse(
       (response) =>
@@ -63,6 +61,8 @@ test("approved MercadoPago webhook marks guest order as paid", async ({ page }) 
       status: "pending",
       mercadopago_id: null,
       mercadopago_status: null,
+      stock_reserved: true,
+      stock_restored: false,
     });
     expect(pendingOrder.items).toEqual([
       expect.objectContaining({
@@ -105,8 +105,35 @@ test("approved MercadoPago webhook marks guest order as paid", async ({ page }) 
         mercadopago_id: pendingOrder.id,
         mercadopago_status: "approved",
         stock_restored: false,
+        stock_reserved: true,
       });
     await expect.poll(async () => getVariantStock(seed.variantId)).toBe(4);
+  } finally {
+    await cleanupCheckoutSmokeProduct(seed);
+  }
+});
+
+test("expired unpaid order releases reserved stock", async ({ page }) => {
+  const seed = await seedCheckoutSmokeProduct();
+
+  try {
+    const orderId = await createExpiredOrderForProduct(seed);
+    await expect.poll(async () => getVariantStock(seed.variantId)).toBe(4);
+
+    const response = await page.request.post("/api/cron/expire-orders", {
+      headers: {
+        Authorization: `Bearer ${process.env.CRON_SECRET}`,
+      },
+    });
+
+    expect(response.ok()).toBe(true);
+    await expect.poll(async () => getOrderState(orderId)).toMatchObject({
+      status: "cancelled",
+      stock_reserved: false,
+      stock_restored: true,
+      cancel_reason: "Reserva vencida sin pago",
+    });
+    await expect.poll(async () => getVariantStock(seed.variantId)).toBe(5);
   } finally {
     await cleanupCheckoutSmokeProduct(seed);
   }

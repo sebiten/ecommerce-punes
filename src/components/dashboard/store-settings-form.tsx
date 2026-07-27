@@ -28,9 +28,13 @@ export function StoreSettingsForm({ settings }: StoreSettingsFormProps) {
     instagramUrl: settings.instagram_url || "",
     facebookUrl: settings.facebook_url || "",
     footerText: settings.footer_text,
-    standardShippingCost: String(settings.standard_shipping_cost),
-    expressShippingCost: String(settings.express_shipping_cost),
-    freeShippingThreshold: String(settings.free_shipping_threshold),
+    pickupEnabled: settings.pickup_enabled,
+    localDeliveryEnabled: settings.local_delivery_enabled,
+    localDeliveryCost: String(settings.local_delivery_cost),
+    pickupInstructions: settings.pickup_instructions,
+    legalName: settings.legal_name || "",
+    taxId: settings.tax_id || "",
+    legalAddress: settings.legal_address || "",
   });
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -59,16 +63,20 @@ export function StoreSettingsForm({ settings }: StoreSettingsFormProps) {
           instagramUrl: formData.instagramUrl,
           facebookUrl: formData.facebookUrl,
           footerText: formData.footerText,
-          standardShippingCost: Number(formData.standardShippingCost),
-          expressShippingCost: Number(formData.expressShippingCost),
-          freeShippingThreshold: Number(formData.freeShippingThreshold),
+          pickupEnabled: formData.pickupEnabled,
+          localDeliveryEnabled: formData.localDeliveryEnabled,
+          localDeliveryCost: Number(formData.localDeliveryCost),
+          pickupInstructions: formData.pickupInstructions,
+          legalName: formData.legalName,
+          taxId: formData.taxId,
+          legalAddress: formData.legalAddress,
         });
-        setSuccess("Configuracion guardada.");
+        setSuccess("Configuración guardada.");
       } catch (submitError) {
         setError(
           submitError instanceof Error
             ? submitError.message
-            : "No se pudo guardar la configuracion"
+            : "No se pudo guardar la configuración"
         );
       }
     });
@@ -76,47 +84,58 @@ export function StoreSettingsForm({ settings }: StoreSettingsFormProps) {
 
   return (
     <form className="space-y-6" onSubmit={handleSubmit}>
+      {[
+        settings.address_line,
+        settings.business_hours,
+        settings.contact_phone,
+        settings.legal_name,
+        settings.tax_id,
+        settings.legal_address,
+      ].some((value) => !value || /completar|confirmar/i.test(value)) ? (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+          <p className="font-bold">La tienda todavía no está lista para vender.</p>
+          <p className="mt-1">
+            Completá dirección, horarios, contacto, razón social, CUIT y domicilio legal.
+          </p>
+        </div>
+      ) : null}
+
       <Card>
         <CardHeader>
-          <CardTitle>Informacion del negocio</CardTitle>
+          <CardTitle>Información del negocio</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
-          <div>
-            <Label htmlFor="storeName">Nombre comercial</Label>
-            <Input id="storeName" name="storeName" value={formData.storeName} onChange={handleChange} />
+          <Field label="Nombre comercial" name="storeName" value={formData.storeName} onChange={handleChange} />
+          <Field label="Email de contacto" name="contactEmail" type="email" value={formData.contactEmail} onChange={handleChange} />
+          <Field label="Teléfono" name="contactPhone" value={formData.contactPhone} onChange={handleChange} />
+          <Field label="WhatsApp" name="whatsappPhone" value={formData.whatsappPhone} onChange={handleChange} />
+          <div className="md:col-span-2">
+            <Field label="Dirección de retiro" name="addressLine" value={formData.addressLine} onChange={handleChange} />
           </div>
-          <div>
-            <Label htmlFor="contactEmail">Email de contacto</Label>
-            <Input id="contactEmail" name="contactEmail" type="email" value={formData.contactEmail} onChange={handleChange} />
-          </div>
-          <div>
-            <Label htmlFor="contactPhone">Telefono</Label>
-            <Input id="contactPhone" name="contactPhone" value={formData.contactPhone} onChange={handleChange} />
-          </div>
-          <div>
-            <Label htmlFor="whatsappPhone">WhatsApp</Label>
-            <Input id="whatsappPhone" name="whatsappPhone" value={formData.whatsappPhone} onChange={handleChange} />
+          <Field label="Ciudad" name="city" value={formData.city} onChange={handleChange} />
+          <Field label="Provincia / País" name="state" value={formData.state} onChange={handleChange} />
+          <div className="md:col-span-2">
+            <Field label="Horarios" name="businessHours" value={formData.businessHours} onChange={handleChange} />
           </div>
           <div className="md:col-span-2">
-            <Label htmlFor="addressLine">Direccion</Label>
-            <Input id="addressLine" name="addressLine" value={formData.addressLine} onChange={handleChange} />
+            <Field label="Texto del footer" name="footerText" value={formData.footerText} onChange={handleChange} />
           </div>
-          <div>
-            <Label htmlFor="city">Ciudad</Label>
-            <Input id="city" name="city" value={formData.city} onChange={handleChange} />
-          </div>
-          <div>
-            <Label htmlFor="state">Provincia / Pais</Label>
-            <Input id="state" name="state" value={formData.state} onChange={handleChange} />
-          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Información legal</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2">
+          <Field label="Nombre o razón social" name="legalName" value={formData.legalName} onChange={handleChange} />
+          <Field label="CUIT" name="taxId" value={formData.taxId} onChange={handleChange} />
           <div className="md:col-span-2">
-            <Label htmlFor="businessHours">Horarios</Label>
-            <Input id="businessHours" name="businessHours" value={formData.businessHours} onChange={handleChange} />
+            <Field label="Domicilio legal" name="legalAddress" value={formData.legalAddress} onChange={handleChange} />
           </div>
-          <div className="md:col-span-2">
-            <Label htmlFor="footerText">Texto del footer</Label>
-            <Input id="footerText" name="footerText" value={formData.footerText} onChange={handleChange} />
-          </div>
+          <p className="text-sm text-muted-foreground md:col-span-2">
+            Estos datos se muestran en términos, cambios y privacidad. Deben ser reales antes de publicar.
+          </p>
         </CardContent>
       </Card>
 
@@ -125,43 +144,93 @@ export function StoreSettingsForm({ settings }: StoreSettingsFormProps) {
           <CardTitle>Redes sociales</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
-          <div>
-            <Label htmlFor="instagramUrl">Instagram</Label>
-            <Input id="instagramUrl" name="instagramUrl" value={formData.instagramUrl} onChange={handleChange} />
-          </div>
-          <div>
-            <Label htmlFor="facebookUrl">Facebook</Label>
-            <Input id="facebookUrl" name="facebookUrl" value={formData.facebookUrl} onChange={handleChange} />
-          </div>
+          <Field label="Instagram" name="instagramUrl" value={formData.instagramUrl} onChange={handleChange} />
+          <Field label="Facebook" name="facebookUrl" value={formData.facebookUrl} onChange={handleChange} />
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Envíos</CardTitle>
+          <CardTitle>Retiro y entrega local</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-3">
-          <div>
-            <Label htmlFor="standardShippingCost">Envío estándar</Label>
-            <Input id="standardShippingCost" name="standardShippingCost" type="number" min="0" value={formData.standardShippingCost} onChange={handleChange} />
-          </div>
-          <div>
-            <Label htmlFor="expressShippingCost">Envío express</Label>
-            <Input id="expressShippingCost" name="expressShippingCost" type="number" min="0" value={formData.expressShippingCost} onChange={handleChange} />
-          </div>
-          <div>
-            <Label htmlFor="freeShippingThreshold">Umbral envio gratis</Label>
-            <Input id="freeShippingThreshold" name="freeShippingThreshold" type="number" min="0" value={formData.freeShippingThreshold} onChange={handleChange} />
+        <CardContent className="grid gap-4 md:grid-cols-2">
+          <label className="flex min-h-20 items-start gap-3 rounded-xl border p-4">
+            <input
+              type="checkbox"
+              checked={formData.pickupEnabled}
+              onChange={(event) =>
+                setFormData((current) => ({
+                  ...current,
+                  pickupEnabled: event.target.checked,
+                }))
+              }
+              className="mt-1"
+            />
+            <span>
+              <span className="block font-semibold">Permitir retiro en el local</span>
+              <span className="mt-1 block text-sm text-muted-foreground">
+                El cliente espera tu confirmación antes de acercarse.
+              </span>
+            </span>
+          </label>
+          <label className="flex min-h-20 items-start gap-3 rounded-xl border p-4">
+            <input
+              type="checkbox"
+              checked={formData.localDeliveryEnabled}
+              onChange={(event) =>
+                setFormData((current) => ({
+                  ...current,
+                  localDeliveryEnabled: event.target.checked,
+                }))
+              }
+              className="mt-1"
+            />
+            <span>
+              <span className="block font-semibold">Permitir entrega local</span>
+              <span className="mt-1 block text-sm text-muted-foreground">
+                Activala solo cuando tengas días, zonas y responsable definidos.
+              </span>
+            </span>
+          </label>
+          <Field
+            label="Costo de entrega local"
+            name="localDeliveryCost"
+            type="number"
+            min="0"
+            value={formData.localDeliveryCost}
+            onChange={handleChange}
+            disabled={!formData.localDeliveryEnabled}
+          />
+          <div className="md:col-span-2">
+            <Field
+              label="Indicaciones para retiro"
+              name="pickupInstructions"
+              value={formData.pickupInstructions}
+              onChange={handleChange}
+            />
           </div>
         </CardContent>
       </Card>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
-      {success ? <p className="text-sm text-green-600">{success}</p> : null}
+      {success ? <p className="text-sm text-green-700">{success}</p> : null}
 
       <Button type="submit" disabled={isPending}>
         {isPending ? "Guardando..." : "Guardar cambios"}
       </Button>
     </form>
+  );
+}
+
+function Field({
+  label,
+  name,
+  ...props
+}: React.ComponentProps<typeof Input> & { label: string; name: string }) {
+  return (
+    <div>
+      <Label htmlFor={name}>{label}</Label>
+      <Input id={name} name={name} {...props} />
+    </div>
   );
 }

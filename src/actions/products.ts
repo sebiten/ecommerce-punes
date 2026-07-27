@@ -13,6 +13,7 @@ import {
   revalidateProductCacheFromServerAction,
 } from "@/lib/cache/products";
 import type { Category, ProductWithDetails } from "@/types";
+import { reportDataFallback } from "@/lib/logging";
 
 const productImageSchema = z.object({
   url: z.string().url(),
@@ -20,8 +21,9 @@ const productImageSchema = z.object({
 });
 
 const productVariantSchema = z.object({
-  width: z.number().positive(),
-  length: z.number().positive(),
+  size: z.string().trim().min(1),
+  color: z.string().trim().nullable().optional(),
+  sku: z.string().trim().nullable().optional(),
   priceOverride: z.number().nonnegative().nullable().optional(),
   stock: z.number().int().nonnegative().optional(),
   active: z.boolean().optional(),
@@ -31,7 +33,10 @@ const productPayloadSchema = z.object({
   name: z.string().trim().min(2),
   slug: z.string().trim().min(2),
   description: z.string().trim().optional(),
+  sizeGuide: z.string().trim().max(4000).optional(),
   basePrice: z.number().nonnegative(),
+  compareAtPrice: z.number().nonnegative().nullable().optional(),
+  brand: z.string().trim().nullable().optional(),
   categoryId: z.string().uuid().nullable().optional(),
   featured: z.boolean().optional(),
   active: z.boolean().optional(),
@@ -48,24 +53,28 @@ function normalizeProductVariants(variants: ProductPayload["variants"]) {
   const variantsBySize = new Map<string, ProductPayload["variants"][number]>();
 
   for (const variant of variants) {
-    const key = `${variant.width}x${variant.length}`;
+    const size = variant.size.trim();
+    const color = variant.color?.trim() || null;
+    const sku = variant.sku?.trim() || null;
+    const key = `${size.toLocaleLowerCase("es-AR")}:${color?.toLocaleLowerCase("es-AR") ?? ""}`;
     const existing = variantsBySize.get(key);
 
     if (!existing) {
-      variantsBySize.set(key, { ...variant });
+      variantsBySize.set(key, { ...variant, size, color, sku });
       continue;
     }
 
     variantsBySize.set(key, {
       ...existing,
+      sku: existing.sku || sku,
       priceOverride: existing.priceOverride ?? variant.priceOverride ?? null,
       stock: Number(existing.stock ?? 0) + Number(variant.stock ?? 0),
       active: Boolean(existing.active ?? true) || Boolean(variant.active ?? true),
     });
   }
 
-  return Array.from(variantsBySize.values()).sort(
-    (a, b) => a.width - b.width || a.length - b.length
+  return Array.from(variantsBySize.values()).sort((a, b) =>
+    `${a.size}-${a.color ?? ""}`.localeCompare(`${b.size}-${b.color ?? ""}`, "es")
   );
 }
 
@@ -75,7 +84,12 @@ function mapProduct(product: any): ProductWithDetails {
     name: product.name,
     slug: product.slug,
     description: product.description,
+    sizeGuide: product.size_guide || null,
     basePrice: Number(product.base_price) || 0,
+    compareAtPrice: product.compare_at_price
+      ? Number(product.compare_at_price)
+      : null,
+    brand: product.brand || null,
     categoryId: product.category_id,
     featured: product.featured || false,
     active: product.active !== false,
@@ -89,6 +103,7 @@ function mapProduct(product: any): ProductWithDetails {
           image_url: product.category.image_url,
           parent_id: product.category.parent_id,
           sort_order: product.category.sort_order || 0,
+          active: product.category.active !== false,
           created_at: product.category.created_at,
         }
       : null,
@@ -104,8 +119,9 @@ function mapProduct(product: any): ProductWithDetails {
     variants: (product.variants || []).map((variant: any) => ({
       id: variant.id,
       product_id: variant.product_id,
-      width: Number(variant.width) || 0,
-      length: Number(variant.length) || 0,
+      size: variant.size || "",
+      color: variant.color || null,
+      sku: variant.sku || null,
       priceOverride: variant.price_override ? Number(variant.price_override) : null,
       stock: variant.stock || 0,
       active: variant.active !== false,
@@ -114,11 +130,10 @@ function mapProduct(product: any): ProductWithDetails {
 }
 
 async function fetchProduct(query: any) {
-  const { data, error } = await query.single();
+  const { data, error } = await query.maybeSingle();
 
-  if (error || !data) {
-    return null;
-  }
+  if (error) throw error;
+  if (!data) return null;
 
   return mapProduct(data);
 }
@@ -152,8 +167,9 @@ async function replaceProductRelations(
     const { error } = await supabase.from("product_variants").insert(
       variants.map((variant) => ({
         product_id: productId,
-        width: variant.width,
-        length: variant.length,
+        size: variant.size,
+        color: variant.color ?? null,
+        sku: variant.sku ?? null,
         price_override: variant.priceOverride ?? null,
         stock: variant.stock ?? 0,
         active: variant.active ?? true,
@@ -168,68 +184,134 @@ async function replaceProductRelations(
 
 export async function getProducts(options?: {
   categorySlug?: string;
+  brand?: string;
   searchTerm?: string;
   featured?: boolean;
   limit?: number;
 }): Promise<ProductWithDetails[]> {
-  return getProductsCached({
-    categorySlug: options?.categorySlug,
-    searchTerm: options?.searchTerm?.trim() || undefined,
-    featured: options?.featured,
-    limit: options?.limit,
-  });
+  try {
+    return await getProductsCached({
+      categorySlug: options?.categorySlug,
+      brand: options?.brand?.trim() || undefined,
+      searchTerm: options?.searchTerm?.trim() || undefined,
+      featured: options?.featured,
+      limit: options?.limit,
+    });
+  } catch (error) {
+    reportDataFallback("products", error);
+    return [];
+  }
 }
 
 const getProductsCached = unstable_cache(
   async (options?: {
     categorySlug?: string;
+    brand?: string;
     searchTerm?: string;
     featured?: boolean;
     limit?: number;
   }): Promise<ProductWithDetails[]> => {
-    try {
-      const supabase = getSupabaseAdmin();
+    const supabase = getSupabaseAdmin();
 
-      let query = supabase
-        .from("products")
-        .select(`
-          *,
-          category:categories(*),
-          images:product_images(*),
-          variants:product_variants(*)
-        `)
+    let query = supabase
+      .from("products")
+      .select(`
+        *,
+        category:categories(*),
+        images:product_images(*),
+        variants:product_variants(*)
+      `)
+      .eq("active", true)
+      .order("created_at", { ascending: false });
+
+    if (options?.categorySlug) {
+      const { data: selectedCategory, error: categoryError } = await supabase
+        .from("categories")
+        .select("id")
+        .eq("slug", options.categorySlug)
         .eq("active", true)
-        .order("created_at", { ascending: false });
+        .maybeSingle();
 
-      if (options?.categorySlug) {
-        query = query.eq("category.slug", options.categorySlug);
-      }
+      if (categoryError) throw categoryError;
+      if (!selectedCategory) return [];
 
-      if (options?.searchTerm) {
-        query = query.or(`name.ilike.%${options.searchTerm}%,description.ilike.%${options.searchTerm}%`);
-      }
+      const { data: childCategories, error: childCategoriesError } =
+        await supabase
+          .from("categories")
+          .select("id")
+          .eq("parent_id", selectedCategory.id)
+          .eq("active", true);
 
-      if (options?.featured) {
-        query = query.eq("featured", true);
-      }
-
-      if (options?.limit) {
-        query = query.limit(options.limit);
-      }
-
-      const { data, error } = await query;
-      if (error) {
-        console.error("Error fetching products:", error);
-        return [];
-      }
-
-      return (data || []).map(mapProduct);
-    } catch (error) {
-      console.error("Error fetching products:", error);
-      return [];
+      if (childCategoriesError) throw childCategoriesError;
+      query = query.in("category_id", [
+        selectedCategory.id,
+        ...(childCategories || []).map((category) => category.id),
+      ]);
     }
+
+    if (options?.brand) {
+      query = query.ilike("brand", options.brand);
+    }
+
+    if (options?.searchTerm) {
+      const searchTerm = options.searchTerm.replace(/[,%()]/g, " ").trim();
+      if (searchTerm) {
+        query = query.or(
+          `name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%`
+        );
+      }
+    }
+
+    if (options?.featured) {
+      query = query.eq("featured", true);
+    }
+
+    if (options?.limit) {
+      query = query.limit(options.limit);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    return (data || []).map(mapProduct);
   },
   ["products-public"],
+  {
+    tags: [PRODUCTS_CACHE_TAG],
+    revalidate: 3600,
+  }
+);
+
+export async function getBrands(): Promise<string[]> {
+  try {
+    return await getBrandsCached();
+  } catch (error) {
+    reportDataFallback("brands", error);
+    return [];
+  }
+}
+
+const getBrandsCached = unstable_cache(
+  async (): Promise<string[]> => {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("products")
+      .select("brand")
+      .eq("active", true)
+      .not("brand", "is", null)
+      .order("brand", { ascending: true });
+
+    if (error) throw error;
+
+    return Array.from(
+      new Set(
+        (data || [])
+          .map((row) => row.brand?.trim())
+          .filter((brand): brand is string => Boolean(brand))
+      )
+    );
+  },
+  ["product-brands"],
   {
     tags: [PRODUCTS_CACHE_TAG],
     revalidate: 3600,
@@ -239,30 +321,30 @@ const getProductsCached = unstable_cache(
 export const getProductBySlug = cache(async function getProductBySlug(
   slug: string
 ): Promise<ProductWithDetails | null> {
-  return getProductBySlugCached(slug);
+  try {
+    return await getProductBySlugCached(slug);
+  } catch (error) {
+    reportDataFallback("product", error);
+    return null;
+  }
 });
 
 const getProductBySlugCached = unstable_cache(
   async (slug: string): Promise<ProductWithDetails | null> => {
-    try {
-      const supabase = getSupabaseAdmin();
+    const supabase = getSupabaseAdmin();
 
-      return fetchProduct(
-        supabase
-          .from("products")
-          .select(`
-            *,
-            category:categories(*),
-            images:product_images(*),
-            variants:product_variants(*)
-          `)
-          .eq("slug", slug)
-          .eq("active", true)
-      );
-    } catch (error) {
-      console.error("Error fetching product:", error);
-      return null;
-    }
+    return fetchProduct(
+      supabase
+        .from("products")
+        .select(`
+          *,
+          category:categories(*),
+          images:product_images(*),
+          variants:product_variants(*)
+        `)
+        .eq("slug", slug)
+        .eq("active", true)
+    );
   },
   ["product-by-slug"],
   {
@@ -303,7 +385,10 @@ export async function createProduct(input: ProductPayload) {
       name: payload.name,
       slug: payload.slug,
       description: payload.description || null,
+      size_guide: payload.sizeGuide || null,
       base_price: payload.basePrice,
+      compare_at_price: payload.compareAtPrice ?? null,
+      brand: payload.brand || null,
       category_id: payload.categoryId || null,
       featured: payload.featured || false,
       active: payload.active ?? true,
@@ -375,7 +460,10 @@ export async function updateProduct(id: string, input: ProductPayload) {
       name: payload.name,
       slug: payload.slug,
       description: payload.description || null,
+      size_guide: payload.sizeGuide || null,
       base_price: payload.basePrice,
+      compare_at_price: payload.compareAtPrice ?? null,
+      brand: payload.brand || null,
       category_id: payload.categoryId || null,
       featured: payload.featured || false,
       active: payload.active ?? true,
@@ -402,4 +490,25 @@ export async function deleteProduct(id: string) {
   }
 
   revalidateProductCacheFromServerAction(existing?.slug);
+}
+
+export async function renameProductBrand(
+  currentBrand: string,
+  formData: FormData
+) {
+  await requireAdmin();
+  const nextBrand = z
+    .string()
+    .trim()
+    .min(1)
+    .max(80)
+    .parse(formData.get("brand"));
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from("products")
+    .update({ brand: nextBrand })
+    .ilike("brand", currentBrand);
+
+  if (error) throw error;
+  revalidateProductCacheFromServerAction();
 }

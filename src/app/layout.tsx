@@ -1,18 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Archivo_Black, Manrope } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
+import { esES } from "@clerk/localizations";
 import { ThemeProvider } from "@/components/theme-provider";
-import { esES } from '@clerk/localizations'
+import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/site";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const manrope = Manrope({
+  variable: "--font-gloria-body",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const archivoBlack = Archivo_Black({
+  variable: "--font-gloria-display",
   subsets: ["latin"],
+  weight: "400",
 });
 
 export const metadata: Metadata = {
@@ -20,16 +22,31 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
   ),
   title: {
-    default: "Pune | Colchones y Sommiers",
-    template: "%s | Pune",
+    default: `${SITE_NAME} | Ropa en Libertador, Jujuy`,
+    template: `%s | ${SITE_NAME}`,
   },
-  description: "Fábrica de colchones y sommiers de alta calidad. Envíos a todo el país.",
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    locale: "es_AR",
+    siteName: SITE_NAME,
+    title: `${SITE_NAME} | Ropa en Libertador, Jujuy`,
+    description: SITE_DESCRIPTION,
+    url: "/",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#f6ae66",
+  themeColor: "#a8d829",
 };
 
 export default function RootLayout({
@@ -38,8 +55,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body className="min-h-full flex flex-col antialiased">
+    <html
+      lang="es-AR"
+      data-scroll-behavior="smooth"
+      className={`${manrope.variable} ${archivoBlack.variable}`}
+    >
+      <body className="flex min-h-full flex-col antialiased">
         <ClerkProvider
           localization={esES as any}
           publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY!}

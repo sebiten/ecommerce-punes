@@ -1,87 +1,94 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #9a5b19;
-  --color-primary-foreground: #fff7ea;
-  --color-secondary: #f8f4f0;
-  --color-secondary-foreground: #1a1a1a;
-  --color-accent: #f6ae66;
-  --color-accent-foreground: #1a1a1a;
-  --color-background: #ffffff;
-  --color-foreground: #1a1a1a;
-  --color-card: #ffffff;
-  --color-card-foreground: #1a1a1a;
-  --color-popover: #ffffff;
-  --color-popover-foreground: #1a1a1a;
-  --color-muted: #f5f5f5;
-  --color-muted-foreground: #666666;
-  --color-destructive: #dc2626;
-  --color-destructive-foreground: #ffffff;
-  --color-border: #e5e5e5;
-  --color-input: #e5e5e5;
-  --color-ring: #f6ae66;
-  --radius: 0.5rem;
+  --font-sans: var(--font-gloria-body);
+  --font-display: var(--font-gloria-display);
+
+  --color-gloria-50: oklch(0.985 0.014 122);
+  --color-gloria-100: oklch(0.96 0.04 122);
+  --color-gloria-200: oklch(0.91 0.08 122);
+  --color-gloria-300: oklch(0.86 0.13 122);
+  --color-gloria-400: oklch(0.82 0.17 122);
+  --color-gloria-500: oklch(0.79 0.19 122);
+  --color-gloria-600: oklch(0.67 0.16 125);
+  --color-gloria-700: oklch(0.44 0.11 132);
+  --color-gloria-800: oklch(0.35 0.085 134);
+  --color-gloria-900: oklch(0.27 0.06 136);
+  --color-gloria-950: oklch(0.2 0.045 136);
+
+  --color-primary: oklch(0.44 0.11 132);
+  --color-primary-foreground: oklch(0.985 0.014 122);
+  --color-secondary: oklch(0.96 0.04 122);
+  --color-secondary-foreground: oklch(0.25 0.05 136);
+  --color-accent: oklch(0.91 0.08 122);
+  --color-accent-foreground: oklch(0.23 0.05 136);
+  --color-background: oklch(0.985 0.008 120);
+  --color-foreground: oklch(0.2 0.035 136);
+  --color-card: oklch(0.998 0.002 120);
+  --color-card-foreground: oklch(0.2 0.035 136);
+  --color-popover: oklch(0.998 0.002 120);
+  --color-popover-foreground: oklch(0.2 0.035 136);
+  --color-muted: oklch(0.955 0.018 120);
+  --color-muted-foreground: oklch(0.43 0.04 136);
+  --color-destructive: oklch(0.52 0.2 25);
+  --color-destructive-foreground: oklch(0.99 0.004 120);
+  --color-border: oklch(0.875 0.028 122);
+  --color-input: oklch(0.82 0.045 122);
+  --color-ring: oklch(0.67 0.16 125);
+  --radius: 0.75rem;
 }
 
 @layer base {
   * {
     border-color: var(--color-border);
   }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
-    background-color: var(--color-background);
+    background: var(--color-background);
     color: var(--color-foreground);
+    font-family: var(--font-gloria-body), sans-serif;
+  }
+
+  ::selection {
+    background: var(--color-gloria-200);
+    color: var(--color-gloria-950);
+  }
+
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
 @layer utilities {
+  .font-display {
+    font-family: var(--font-gloria-display), sans-serif;
+  }
+
   .text-balance {
     text-wrap: balance;
   }
 
-  .animate-punes-float {
-    animation: punes-float 7s ease-in-out infinite;
+  .animate-gloria-rise {
+    animation: gloria-rise 650ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
-  .animate-punes-float-slow {
-    animation: punes-float 10s ease-in-out infinite;
-  }
-
-  .animate-punes-drift {
-    animation: punes-drift 16s ease-in-out infinite alternate;
-  }
-
-  .animate-punes-rise {
-    animation: punes-rise 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  }
-
-  .animate-punes-shimmer {
-    animation: punes-shimmer 5s ease-in-out infinite;
+  .animate-gloria-float {
+    animation: gloria-float 8s ease-in-out infinite;
   }
 }
 
-@keyframes punes-float {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) rotate(0deg);
-  }
-  50% {
-    transform: translate3d(0, -14px, 0) rotate(1deg);
-  }
-}
-
-@keyframes punes-drift {
-  from {
-    transform: translate3d(-2%, -1%, 0) scale(1);
-  }
-  to {
-    transform: translate3d(3%, 2%, 0) scale(1.04);
-  }
-}
-
-@keyframes punes-rise {
+@keyframes gloria-rise {
   from {
     opacity: 0;
-    transform: translate3d(0, 18px, 0);
+    transform: translate3d(0, 16px, 0);
   }
   to {
     opacity: 1;
@@ -89,12 +96,26 @@
   }
 }
 
-@keyframes punes-shimmer {
+@keyframes gloria-float {
   0%,
   100% {
-    opacity: 0.45;
+    transform: translate3d(0, 0, 0);
   }
   50% {
-    opacity: 0.9;
+    transform: translate3d(0, -8px, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

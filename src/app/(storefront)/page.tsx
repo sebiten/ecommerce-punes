@@ -1,301 +1,347 @@
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
 import {
   ArrowRight,
-  BedDouble,
   CreditCard,
-  Factory,
-  Headphones,
-  Moon,
-  Shield,
-  Sparkles,
-  Star,
-  Truck,
+  MapPin,
+  MessageCircle,
+  PackageCheck,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { getProducts } from "@/actions/products";
+import { getStoreSettings } from "@/actions/store-settings";
 import { ProductGrid } from "@/components/storefront/product-grid";
-import { getCategories, getProducts } from "@/actions/products";
+import { Button } from "@/components/ui/button";
+import { serializeJsonLd } from "@/lib/site";
 
-const IMAGES = {
-  hero: "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=1400&h=1200&fit=crop",
-  colchon: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=700&h=650&fit=crop",
-  sommier: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=700&h=650&fit=crop",
-  almohada: "https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?w=700&h=650&fit=crop",
+const EDITORIAL_IMAGES = {
+  hero: "https://images.unsplash.com/photo-1767968037382-8eb9c564339f?auto=format&fit=crop&w=1600&q=86",
+  woman:
+    "https://images.unsplash.com/photo-1759163120690-b09c674bab82?auto=format&fit=crop&w=900&q=84",
+  man: "https://images.unsplash.com/photo-1762316984079-f94002fbdc46?auto=format&fit=crop&w=900&q=84",
+  store:
+    "https://images.unsplash.com/photo-1766934587214-86e21b3ae093?auto=format&fit=crop&w=1100&q=84",
+  uniforms:
+    "https://images.unsplash.com/photo-1759143101324-d375443f1955?auto=format&fit=crop&w=1100&q=84",
 };
 
-const CATEGORY_IMAGES: Record<string, string> = {
-  colchones: IMAGES.colchon,
-  sommiers: IMAGES.sommier,
-  accesorios: IMAGES.almohada,
-};
-
-const BENEFITS = [
+const collectionLinks = [
   {
-    icon: Truck,
-    title: "Envío gratis",
-    text: "En pedidos superiores a $50.000 a todo el país.",
+    title: "Uniformes",
+    eyebrow: "Vuelta al cole",
+    href: "/categories/uniformes-escolares",
+    image: EDITORIAL_IMAGES.uniforms,
   },
   {
-    icon: Shield,
-    title: "Garantía 10 años",
-    text: "Productos pensados para durar, con respaldo real.",
+    title: "Mujer",
+    eyebrow: "Colección",
+    href: "/categories/mujer",
+    image: EDITORIAL_IMAGES.woman,
   },
   {
-    icon: CreditCard,
-    title: "Hasta 12 cuotas",
-    text: "Pagá cómodo y recibí asesoramiento antes de elegir.",
+    title: "Hombre",
+    eyebrow: "Colección",
+    href: "/categories/hombre",
+    image: EDITORIAL_IMAGES.man,
   },
   {
-    icon: Headphones,
-    title: "Atención cercana",
-    text: "Te ayudamos a encontrar la firmeza correcta.",
+    title: "Remeras",
+    eyebrow: "Todos los días",
+    href: "/products?q=remera",
+    image: EDITORIAL_IMAGES.store,
+  },
+  {
+    title: "Jeans",
+    eyebrow: "Tu próximo favorito",
+    href: "/products?q=jean",
+    image: EDITORIAL_IMAGES.hero,
   },
 ];
 
 export default async function HomePage() {
-  const [featuredProducts, categories] = await Promise.all([
-    getProducts({ featured: true, limit: 8 }),
-    getCategories(),
+  const [products, settings] = await Promise.all([
+    getProducts({ limit: 12 }),
+    getStoreSettings(),
   ]);
+  const featuredProducts = products.filter((product) => product.featured).slice(0, 8);
+  const offers = products
+    .filter(
+      (product) =>
+        product.compareAtPrice &&
+        Number(product.compareAtPrice) > Number(product.basePrice)
+    )
+    .slice(0, 8);
+  const showcaseProducts = featuredProducts.length
+    ? featuredProducts
+    : products.slice(0, 8);
+  const hasWhatsapp = Boolean(settings.whatsapp_phone);
+  const whatsappUrl = hasWhatsapp
+    ? `https://wa.me/${settings.whatsapp_phone?.replace(/\D/g, "")}?text=${encodeURIComponent(
+        "Hola, quiero consultar por las prendas disponibles en Pilchería Gloria."
+      )}`
+    : null;
+  const fulfillmentCopy =
+    settings.pickup_enabled && settings.local_delivery_enabled
+      ? "retiralo en el local o elegí entrega en la zona"
+      : settings.pickup_enabled
+        ? "retiralo en el local después de nuestra confirmación"
+        : "coordiná la entrega local";
+  const fulfillmentCards = [
+    ...(settings.pickup_enabled
+      ? [["Retiro", "Previa confirmación", MapPin] as const]
+      : []),
+    ...(settings.local_delivery_enabled
+      ? [["Entrega", "En la zona", PackageCheck] as const]
+      : []),
+    ["Pago", "Mercado Pago", CreditCard] as const,
+    ["Consulta", "Por WhatsApp", MessageCircle] as const,
+  ];
+  const hasPublicAddress =
+    !/completar|confirmar|industrial 1234/i.test(settings.address_line);
+
+  const localBusinessJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ClothingStore",
+    name: settings.store_name,
+    url: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+    address: {
+      "@type": "PostalAddress",
+      ...(hasPublicAddress
+        ? { streetAddress: settings.address_line }
+        : {}),
+      addressLocality: settings.city,
+      addressRegion: "Jujuy",
+      addressCountry: "AR",
+    },
+    ...(settings.contact_phone !== "Completar"
+      ? { telephone: settings.contact_phone }
+      : {}),
+  };
 
   return (
-    <div className="overflow-hidden bg-[#fffaf4]">
-      <section className="relative isolate min-h-[760px] overflow-hidden border-b border-[#eadfce] bg-[#fffaf4] text-[#17110c]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(246,174,102,0.32),transparent_34%),radial-gradient(circle_at_82%_12%,rgba(246,174,102,0.22),transparent_30%),linear-gradient(135deg,#fffaf4_0%,#fff3e4_54%,#fffdf9_100%)]" />
-        <div className="absolute left-1/2 top-0 h-full w-[1px] bg-[#eadfce]" />
-        <div className="animate-punes-drift absolute -right-28 top-24 h-80 w-80 rounded-full border border-[#f6ae66]/35" />
-        <div className="animate-punes-shimmer absolute bottom-16 left-10 hidden h-56 w-56 rounded-full border border-[#f6ae66]/25 sm:block" />
+    <main className="overflow-hidden bg-background">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(localBusinessJsonLd) }}
+      />
 
-        <div className="container relative mx-auto grid min-h-[760px] items-center gap-12 px-4 py-16 lg:grid-cols-[0.95fr_1.05fr]">
-          <div className="animate-punes-rise max-w-3xl">
-            <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#f6ae66]/45 bg-[#fffdf9] px-4 py-2 text-sm font-bold text-[#9a5b19] shadow-sm">
-              <Sparkles className="h-4 w-4" />
-              Descanso fabricado con oficio
+      <section className="relative isolate border-b border-border bg-gloria-50">
+        <div className="absolute -left-32 top-16 size-72 rounded-full bg-gloria-200/70 blur-3xl" />
+        <div className="container relative mx-auto grid min-h-[calc(100svh-4rem)] items-center gap-8 px-4 py-10 lg:grid-cols-[0.88fr_1.12fr] lg:py-14">
+          <div className="animate-gloria-rise z-10 max-w-2xl">
+            <p className="mb-5 text-sm font-bold uppercase tracking-[0.2em] text-gloria-700">
+              Ropa en Libertador General San Martín
             </p>
-            <h1 className="text-balance text-5xl font-black leading-[0.9] tracking-[-0.05em] text-[#17110c] sm:text-7xl lg:text-8xl">
-              Dormir bien también puede verse extraordinario.
+            <h1 className="font-display text-balance text-5xl leading-[0.94] tracking-[-0.045em] text-gloria-950 sm:text-7xl lg:text-[5.6rem]">
+              Vestite como te sentís.
             </h1>
-            <p className="mt-7 max-w-xl text-lg leading-8 text-[#5f5246]">
-              Colchones, sommiers y accesorios seleccionados para que la
-              habitación se sienta más cálida, más firme y más tuya desde la
-              primera noche.
+            <p className="mt-6 max-w-xl text-base leading-7 text-muted-foreground sm:text-lg">
+              Prendas para mujer y hombre, con talles y stock visibles. Elegí
+              online y {fulfillmentCopy}.
             </p>
-
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Button
                 size="lg"
-                className="rounded-full bg-[#f6ae66] px-7 font-bold text-[#17110c] shadow-xl shadow-[#5c3514]/12 hover:bg-[#ffbd79]"
+                className="min-h-12 rounded-full bg-gloria-500 px-7 text-gloria-950 hover:bg-gloria-400"
                 asChild
               >
                 <Link href="/products">
-                  Explorar descanso
-                  <ArrowRight className="ml-2 h-5 w-5" />
+                  Ver toda la ropa
+                  <ArrowRight className="ml-2 size-4" />
                 </Link>
               </Button>
               <Button
                 size="lg"
                 variant="outline"
-                className="rounded-full border-[#d8b98f] bg-[#fffdf9] px-7 text-[#5f3b18] hover:bg-[#fff3e4] hover:text-[#17110c]"
+                className="min-h-12 rounded-full border-gloria-300 bg-white px-7 text-gloria-800"
                 asChild
               >
-                <Link href="/products?category=sommiers">Ver sommiers</Link>
+                <Link href="/categories/mujer">Explorar mujer</Link>
               </Button>
             </div>
-
-            <div className="mt-10 grid max-w-xl grid-cols-3 gap-3 text-sm">
-              <div className="rounded-2xl border border-[#eadfce] bg-[#fffdf9] p-4 shadow-sm">
-                <p className="text-2xl font-black text-[#9a5b19]">30+</p>
-                <p className="mt-1 text-[#6d6257]">años de experiencia</p>
-              </div>
-              <div className="rounded-2xl border border-[#eadfce] bg-[#fffdf9] p-4 shadow-sm">
-                <p className="text-2xl font-black text-[#9a5b19]">10</p>
-                <p className="mt-1 text-[#6d6257]">años de garantía</p>
-              </div>
-              <div className="rounded-2xl border border-[#eadfce] bg-[#fffdf9] p-4 shadow-sm">
-                <p className="text-2xl font-black text-[#9a5b19]">AR</p>
-                <p className="mt-1 text-[#6d6257]">envíos al país</p>
-              </div>
+            <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold text-gloria-900">
+              <span className="inline-flex items-center gap-2">
+                <PackageCheck className="size-4 text-gloria-600" />
+                Stock por talle
+              </span>
+              {settings.pickup_enabled ? (
+                <span className="inline-flex items-center gap-2">
+                  <MapPin className="size-4 text-gloria-600" />
+                  Retiro coordinado
+                </span>
+              ) : null}
+              {settings.local_delivery_enabled ? (
+                <span className="inline-flex items-center gap-2">
+                  <PackageCheck className="size-4 text-gloria-600" />
+                  Entrega local
+                </span>
+              ) : null}
+              <span className="inline-flex items-center gap-2">
+                <CreditCard className="size-4 text-gloria-600" />
+                Mercado Pago
+              </span>
             </div>
           </div>
 
-          <div className="relative min-h-[560px]">
-            <div className="animate-punes-float-slow absolute right-0 top-6 h-[74%] w-[78%] overflow-hidden rounded-[3rem] border border-[#eadfce] bg-[#fffdf9] shadow-2xl shadow-[#5c3514]/16">
+          <div className="relative min-h-[34rem] sm:min-h-[42rem]">
+            <div className="absolute inset-y-0 right-0 w-[88%] overflow-hidden rounded-[2.5rem_0.8rem_2.5rem_0.8rem] bg-gloria-100 shadow-[0_35px_80px_-45px_oklch(0.35_0.085_134/0.5)]">
               <Image
-                src={IMAGES.hero}
-                alt="Dormitorio cálido con cama preparada para descanso premium"
+                src={EDITORIAL_IMAGES.hero}
+                alt="Selección de indumentaria en una tienda contemporánea"
                 fill
+                priority
                 className="object-cover"
-                preload
-                sizes="(max-width: 1024px) 100vw, 55vw"
+                sizes="(max-width: 1024px) 100vw, 56vw"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#17110c]/22 via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-gloria-950/45 via-transparent to-transparent" />
             </div>
-
-            <div className="animate-punes-float absolute left-0 top-20 w-56 rounded-[2rem] border border-[#eadfce] bg-[#fffdf9] p-5 text-[#17110c] shadow-2xl shadow-[#5c3514]/14">
-              <Factory className="mb-5 h-6 w-6 text-[#9a5b19]" />
-              <p className="text-sm font-bold">Hecho para uso real</p>
-              <p className="mt-2 text-sm leading-6 text-[#6d6257]">
-                Capas, soporte y terminación pensadas para noches largas.
+            <div className="animate-gloria-float absolute bottom-8 left-0 max-w-[15rem] rounded-3xl border border-gloria-200 bg-white p-5 shadow-xl">
+              <p className="font-display text-2xl text-gloria-950">Tu talle, claro.</p>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                Mirá colores, precio y disponibilidad antes de comprar.
               </p>
-            </div>
-
-            <div className="absolute bottom-8 left-12 right-12 rounded-[2rem] border border-[#eadfce] bg-[#fffdf9]/92 p-5 text-[#17110c] shadow-2xl shadow-[#5c3514]/16 backdrop-blur-sm">
-              <div className="grid grid-cols-3 gap-3 text-center text-sm">
-                <div className="rounded-2xl bg-[#fff3e4] p-4">
-                  <BedDouble className="mx-auto mb-2 h-5 w-5 text-[#9a5b19]" />
-                  Firmeza
-                </div>
-                <div className="rounded-2xl bg-[#fff3e4] p-4">
-                  <Moon className="mx-auto mb-2 h-5 w-5 text-[#9a5b19]" />
-                  Confort
-                </div>
-                <div className="rounded-2xl bg-[#fff3e4] p-4">
-                  <Shield className="mx-auto mb-2 h-5 w-5 text-[#9a5b19]" />
-                  Respaldo
-                </div>
-              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="relative bg-[#f8f4f0] py-20">
+      <section className="container mx-auto px-4 py-16 sm:py-20">
+        <div className="mb-8 flex items-end justify-between gap-5">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-gloria-700">
+              Entrá por donde quieras
+            </p>
+            <h2 className="mt-2 font-display text-3xl text-gloria-950 sm:text-5xl">
+              Colecciones
+            </h2>
+          </div>
+          <Link
+            href="/products"
+            className="hidden items-center gap-2 font-bold text-gloria-800 hover:text-gloria-600 sm:flex"
+          >
+            Ver todo <ArrowRight className="size-4" />
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+          {collectionLinks.map((collection, index) => (
+            <Link
+              key={collection.title}
+              href={collection.href}
+              className={`group relative overflow-hidden rounded-[1.5rem] ${
+                index === 0 ? "col-span-2 aspect-[16/11] lg:col-span-1 lg:aspect-[4/5]" : "aspect-[4/5]"
+              }`}
+            >
+              <Image
+                src={collection.image}
+                alt={`Indumentaria de ${collection.title.toLowerCase()}`}
+                fill
+                className="object-cover transition duration-500 group-hover:scale-[1.04]"
+                sizes="(max-width: 1024px) 50vw, 25vw"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-gloria-950/75 via-transparent to-transparent" />
+              <div className="absolute inset-x-4 bottom-4 text-white">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-gloria-100">
+                  {collection.eyebrow}
+                </p>
+                <h3 className="mt-1 font-display text-2xl sm:text-3xl">
+                  {collection.title}
+                </h3>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="border-y border-border bg-white py-16 sm:py-20">
         <div className="container mx-auto px-4">
-          <div className="mb-12 grid gap-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
+          <div className="mb-8 flex items-end justify-between gap-4">
             <div>
-              <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#9a5b19]">
-                Elegí por sensación
+              <p className="text-sm font-bold uppercase tracking-[0.18em] text-gloria-700">
+                Recién elegidos
               </p>
-              <h2 className="mt-3 text-4xl font-black tracking-tight text-[#17110c]">
-                No todos descansan igual.
+              <h2 className="mt-2 font-display text-3xl text-gloria-950 sm:text-5xl">
+                Prendas destacadas
               </h2>
             </div>
-            <p className="max-w-2xl text-lg leading-8 text-[#66584a]">
-              Organizamos el catálogo por tipo de descanso para que la compra no
-              se sienta fría: soporte, estética y uso cotidiano en una sola
-              decisión.
-            </p>
+            <Button variant="outline" className="hidden rounded-full sm:flex" asChild>
+              <Link href="/products">Catálogo completo</Link>
+            </Button>
           </div>
-
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            {categories.map((category, index) => (
-              <Link
-                key={category.id}
-                href={`/products?category=${category.slug}`}
-                className="group animate-punes-rise relative h-[27rem] overflow-hidden rounded-[2rem] border border-[#eadfce] bg-[#fffdf9] shadow-sm shadow-[#5c3514]/8"
-                style={{ animationDelay: `${index * 90}ms` }}
-              >
-                <Image
-                  src={CATEGORY_IMAGES[category.slug] || IMAGES.colchon}
-                  alt={category.name}
-                  fill
-                  className="object-cover transition duration-700 group-hover:scale-[1.06]"
-                  sizes="(max-width: 768px) 100vw, 33vw"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#17110c]/78 via-[#17110c]/20 to-transparent" />
-                <div className="absolute inset-x-5 bottom-5">
-                  <p className="mb-3 inline-flex rounded-full bg-[#fff7ea]/92 px-3 py-1 text-xs font-bold text-[#9a5b19]">
-                    Colección {index + 1}
-                  </p>
-                  <h3 className="text-3xl font-black text-[#fff7ea]">
-                    {category.name}
-                  </h3>
-                  <p className="mt-3 line-clamp-2 text-sm leading-6 text-[#fff7ea]/78">
-                    {category.description || "Ver colección"}
-                  </p>
-                  <span className="mt-5 inline-flex items-center rounded-full bg-[#f6ae66] px-4 py-2 text-sm font-bold text-[#17110c]">
-                    Ver productos
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </span>
-                </div>
-              </Link>
-            ))}
-          </div>
-          {categories.length === 0 ? (
-            <p className="mt-6 text-center text-sm text-[#66584a]">
-              No hay categorías publicadas todavía.
-            </p>
-          ) : null}
+          {showcaseProducts.length ? (
+            <ProductGrid products={showcaseProducts} priorityFirst={4} />
+          ) : (
+            <div className="rounded-3xl border border-dashed border-gloria-300 bg-gloria-50 px-6 py-14 text-center">
+              <p className="font-display text-2xl text-gloria-950">
+                La nueva colección está por llegar.
+              </p>
+              <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
+                El catálogo se publicará desde el panel con fotos, talles, colores y stock reales.
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
-      {featuredProducts.length > 0 ? (
-        <section className="bg-[#fffaf4] py-20">
-          <div className="container mx-auto px-4">
-            <div className="mb-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#9a5b19]">
-                  Selección Punes
-                </p>
-                <h2 className="mt-3 text-4xl font-black tracking-tight text-[#17110c]">
-                  Productos destacados
-                </h2>
-                <p className="mt-3 text-[#66584a]">
-                  Los más elegidos por clientes que buscan firmeza, estética y
-                  buen descanso.
-                </p>
-              </div>
-              <Button variant="outline" className="rounded-full border-[#9a5b19] text-[#9a5b19]" asChild>
-                <Link href="/products">
-                  Ver todos
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
-            <ProductGrid products={featuredProducts} />
+      {offers.length ? (
+        <section className="container mx-auto px-4 py-16">
+          <div className="mb-8">
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-gloria-700">
+              Precio anterior visible
+            </p>
+            <h2 className="mt-2 font-display text-3xl text-gloria-950 sm:text-5xl">
+              Ofertas vigentes
+            </h2>
           </div>
+          <ProductGrid products={offers} />
         </section>
       ) : null}
 
-      <section className="relative overflow-hidden border-y border-[#eadfce] bg-[#fffdf9] py-20 text-[#17110c]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(246,174,102,0.18),transparent_34%)]" />
-        <div className="container relative mx-auto px-4">
-          <div className="mb-14 max-w-2xl">
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#9a5b19]">
-              Compra sin dudas
+      <section className="bg-gloria-950 py-14 text-white">
+        <div className="container mx-auto grid gap-8 px-4 lg:grid-cols-[1fr_1.35fr] lg:items-center">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-gloria-200">
+              Comprá cerca
             </p>
-            <h2 className="mt-3 text-4xl font-black tracking-tight">
-              Detalles que hacen más fácil elegir.
+            <h2 className="mt-2 font-display text-3xl sm:text-5xl">
+              Del catálogo a tus manos.
             </h2>
           </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {BENEFITS.map((benefit) => {
-              const Icon = benefit.icon;
-
-              return (
-                <div
-                  key={benefit.title}
-                  className="rounded-[1.75rem] border border-[#eadfce] bg-[#fffaf4] p-6 shadow-sm shadow-[#5c3514]/5"
-                >
-                  <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f6ae66] text-[#17110c]">
-                    <Icon className="h-6 w-6" />
-                  </div>
-                  <h3 className="text-lg font-bold">{benefit.title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-[#66584a]">
-                    {benefit.text}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-[#f6ae66] py-16">
-        <div className="container mx-auto px-4 text-center text-[#17110c]">
-          <div className="mb-4 flex items-center justify-center gap-1">
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} className="h-6 w-6 fill-[#17110c] text-[#17110c]" />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {fulfillmentCards.map(([title, text, Icon]) => (
+              <div key={String(title)} className="rounded-2xl bg-white/8 p-4">
+                <Icon className="size-5 text-gloria-200" />
+                <p className="mt-4 font-bold">{title as string}</p>
+                <p className="mt-1 text-xs text-white/65">{text as string}</p>
+              </div>
             ))}
           </div>
-          <p className="mb-2 text-xl font-black">
-            Calificados por más de 2.000 clientes satisfechos
-          </p>
-          <p className="text-[#17110c]/72">
-            Descubrí por qué Punes es la elección de miles de familias.
-          </p>
         </div>
       </section>
-    </div>
+
+      <section className="relative overflow-hidden bg-gloria-100 py-16 sm:py-20">
+        <div className="absolute -right-20 top-0 size-72 rounded-full bg-gloria-300/35 blur-3xl" />
+        <div className="container relative mx-auto flex flex-col items-start justify-between gap-8 px-4 md:flex-row md:items-end">
+          <div className="max-w-2xl">
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-gloria-700">
+              ¿Buscás algo puntual?
+            </p>
+            <h2 className="mt-3 font-display text-4xl text-gloria-950 sm:text-6xl">
+              Te ayudamos a encontrarlo.
+            </h2>
+            <p className="mt-4 text-muted-foreground">
+              Consultanos por talles, colores o disponibilidad en Libertador y localidades cercanas.
+            </p>
+          </div>
+          <Button size="lg" className="min-h-12 rounded-full px-7" asChild>
+            {whatsappUrl ? (
+              <a href={whatsappUrl} target="_blank" rel="noreferrer">
+                Escribir por WhatsApp
+              </a>
+            ) : (
+              <Link href="/products">Ver catálogo</Link>
+            )}
+          </Button>
+        </div>
+      </section>
+    </main>
   );
 }

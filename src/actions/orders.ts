@@ -5,14 +5,24 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { ensureUserProfile, getProfile, requireAdmin } from "@/actions/auth";
 import { createPreference, searchPaymentsByExternalReference } from "@/lib/mercadopago/client";
 import { revalidatePath } from "next/cache";
-import type { CartItem, OrderStatus } from "@/types";
+import type { CartItem, OrderStatus, ShippingAddress } from "@/types";
 import { getShippingCost } from "@/lib/commerce";
 import { getStoreSettings } from "@/actions/store-settings";
 import { revalidateProductCacheFromRouteHandler } from "@/lib/cache/products";
+import {
+  applyMercadoPagoPayment,
+  cancelOrderAndRelease,
+  claimOrderCoupon,
+  getOrderReservationExpiration,
+  reserveOrderStock,
+} from "@/lib/orders/payment-state";
+import { sendOrderEmail } from "@/lib/notifications/email";
 
 const ORDER_STATUS_VALUES: OrderStatus[] = [
   "pending",
   "paid",
+  "payment_review",
+  "ready_for_pickup",
   "shipped",
   "delivered",
   "cancelled",
@@ -50,21 +60,6 @@ function createGuestAccessToken() {
 
 function getAppUrl() {
   return (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/+$/, "");
-}
-
-function getOrderStatusFromMercadoPagoStatus(status: string): OrderStatus {
-  const failedStatuses = new Set([
-    "rejected",
-    "cancelled",
-    "refunded",
-    "charged_back",
-  ]);
-
-  if (status === "approved") {
-    return "paid";
-  }
-
-  return failedStatuses.has(status) ? "cancelled" : "pending";
 }
 
 function revalidateProductCacheAfterStockChange() {
@@ -118,7 +113,7 @@ async function resolveCheckoutItems(items: CartItem[]) {
       base_price,
       active,
       images:product_images(url, sort_order),
-      variants:product_variants(id, product_id, price_override, stock, active)
+      variants:product_variants(id, product_id, size, color, price_override, stock, active)
     `)
     .in(
       "id",
@@ -154,9 +149,15 @@ async function resolveCheckoutItems(items: CartItem[]) {
       throw new Error(`Stock insuficiente para ${product.name}`);
     }
 
+    const variantLabel = variant
+      ? [variant.size ? `Talle ${variant.size}` : null, variant.color]
+          .filter(Boolean)
+          .join(" - ")
+      : "";
+
     resolvedItems.push({
       ...item,
-      title: product.name,
+      title: variantLabel ? `${product.name} - ${variantLabel}` : product.name,
       unitPrice: Number(variant?.price_override ?? product.base_price),
       pictureUrl: sortedImages[0]?.url,
     });
@@ -210,146 +211,9 @@ async function getCouponDiscount(couponCode: string | undefined, subtotal: numbe
   };
 }
 
-async function decrementVariantStock(items: ResolvedCheckoutItem[]) {
-  const supabase = getSupabaseAdmin();
-  let stockChanged = false;
-
-  for (const item of items) {
-    if (!item.variant_id) {
-      continue;
-    }
-
-    const { data: variant, error: variantError } = await supabase
-      .from("product_variants")
-      .select("stock")
-      .eq("id", item.variant_id)
-      .single();
-
-    if (variantError) {
-      throw variantError;
-    }
-
-    const nextStock = Number(variant.stock ?? 0) - item.quantity;
-    if (nextStock < 0) {
-      throw new Error(`Stock insuficiente para ${item.title}`);
-    }
-
-    const { error: updateError } = await supabase
-      .from("product_variants")
-      .update({ stock: nextStock })
-      .eq("id", item.variant_id);
-
-    if (updateError) {
-      throw updateError;
-    }
-
-    stockChanged = true;
-  }
-
-  if (stockChanged) {
-    revalidateProductCacheAfterStockChange();
-  }
-}
-
-async function restoreVariantStock(items: ResolvedCheckoutItem[]) {
-  const supabase = getSupabaseAdmin();
-  let stockChanged = false;
-
-  for (const item of items) {
-    if (!item.variant_id) {
-      continue;
-    }
-
-    const { data: variant, error: variantError } = await supabase
-      .from("product_variants")
-      .select("stock")
-      .eq("id", item.variant_id)
-      .single();
-
-    if (variantError) {
-      console.error("Error leyendo stock para rollback:", variantError);
-      continue;
-    }
-
-    const { error: updateError } = await supabase
-      .from("product_variants")
-      .update({ stock: Number(variant.stock ?? 0) + item.quantity })
-      .eq("id", item.variant_id);
-
-    if (updateError) {
-      console.error("Error restaurando stock:", updateError);
-      continue;
-    }
-
-    stockChanged = true;
-  }
-
-  if (stockChanged) {
-    revalidateProductCacheAfterStockChange();
-  }
-}
-
 async function restoreOrderStock(orderId: string) {
-  const supabase = getSupabaseAdmin();
-  const { data: order, error: orderError } = await supabase
-    .from("orders")
-    .select(`
-      id,
-      stock_restored,
-      items:order_items(variant_id, quantity)
-    `)
-    .eq("id", orderId)
-    .single();
-
-  if (orderError) {
-    throw orderError;
-  }
-
-  if (order.stock_restored) {
-    return;
-  }
-
-  let stockChanged = false;
-
-  for (const item of order.items || []) {
-    if (!item.variant_id) {
-      continue;
-    }
-
-    const { data: variant, error: variantError } = await supabase
-      .from("product_variants")
-      .select("stock")
-      .eq("id", item.variant_id)
-      .single();
-
-    if (variantError) {
-      throw variantError;
-    }
-
-    const { error: updateError } = await supabase
-      .from("product_variants")
-      .update({ stock: Number(variant.stock ?? 0) + Number(item.quantity) })
-      .eq("id", item.variant_id);
-
-    if (updateError) {
-      throw updateError;
-    }
-
-    stockChanged = true;
-  }
-
-  const { error: restoreError } = await supabase
-    .from("orders")
-    .update({ stock_restored: true })
-    .eq("id", orderId);
-
-  if (restoreError) {
-    throw restoreError;
-  }
-
-  if (stockChanged) {
-    revalidateProductCacheAfterStockChange();
-  }
+  await cancelOrderAndRelease(orderId, "Cancelada desde el panel");
+  revalidateProductCacheAfterStockChange();
 }
 
 async function clearUserCart(userId: string | null) {
@@ -386,25 +250,33 @@ async function reconcilePendingOrderPayment(order: any) {
       return order;
     }
 
-    const nextStatus = getOrderStatusFromMercadoPagoStatus(payment.status);
-    if (nextStatus === "pending") {
+    if (
+      !["approved", "rejected", "cancelled", "refunded", "charged_back"].includes(
+        payment.status
+      )
+    ) {
       return order;
     }
 
-    if (nextStatus === "cancelled") {
-      await restoreOrderStock(order.id);
+    const nextStatus = await applyMercadoPagoPayment(order.id, payment);
+    const emailEvent =
+      nextStatus === "paid"
+        ? "payment-approved"
+        : nextStatus === "payment_review"
+          ? "payment-review"
+          : nextStatus === "cancelled"
+            ? "cancelled"
+            : null;
+    if (emailEvent) {
+      await sendOrderEmail(order.id, emailEvent).catch((notificationError) => {
+        console.error("No se pudo notificar la conciliación del pedido:", notificationError);
+      });
     }
-
     const supabase = getSupabaseAdmin();
     const { data, error } = await supabase
       .from("orders")
-      .update({
-        mercadopago_id: String(payment.id),
-        mercadopago_status: payment.status,
-        status: nextStatus,
-      })
+      .select("*")
       .eq("id", order.id)
-      .select()
       .single();
 
     if (error || !data) {
@@ -420,6 +292,7 @@ async function reconcilePendingOrderPayment(order: any) {
     return {
       ...order,
       ...data,
+      status: nextStatus,
     };
   } catch (error) {
     console.error("Error buscando pagos de MercadoPago para orden pendiente:", error);
@@ -452,7 +325,7 @@ function buildMercadoPagoItems(
   if (shippingCost > 0) {
     preferenceItems.push({
       id: "shipping",
-      title: "Envío",
+      title: "Entrega local",
       unit_price: Number(shippingCost.toFixed(2)),
       quantity: 1,
     });
@@ -471,15 +344,7 @@ export async function createOrder({
   total?: number;
   shippingCost?: number;
   shippingMethod: string;
-  shippingAddress: {
-    name: string;
-    email: string;
-    phone: string;
-    street: string;
-    city: string;
-    state: string;
-    zip?: string;
-  };
+  shippingAddress: ShippingAddress;
   couponCode?: string;
 }) {
   const { userId } = await auth();
@@ -497,14 +362,41 @@ export async function createOrder({
   );
   const settings = await getStoreSettings();
   const discount = await getCouponDiscount(couponCode, subtotal);
-  const safeShippingMethod = shippingMethod === "express" ? "express" : "standard";
-  const shippingCost = getShippingCost(subtotal - discount.discount, safeShippingMethod, {
-    standardShippingCost: settings.standard_shipping_cost,
-    expressShippingCost: settings.express_shipping_cost,
-    freeShippingThreshold: settings.free_shipping_threshold,
+  const safeShippingMethod =
+    shippingMethod === "local_delivery" ? "local_delivery" : "pickup";
+
+  if (safeShippingMethod === "pickup" && !settings.pickup_enabled) {
+    throw new Error("El retiro en el local no está disponible");
+  }
+
+  if (
+    safeShippingMethod === "local_delivery" &&
+    !settings.local_delivery_enabled
+  ) {
+    throw new Error("La entrega local no está disponible");
+  }
+
+  if (!shippingAddress.name?.trim() || !shippingAddress.email?.trim()) {
+    throw new Error("Completá tu nombre y email");
+  }
+
+  if (!shippingAddress.phone?.trim()) {
+    throw new Error("Completá un teléfono de contacto");
+  }
+
+  if (
+    safeShippingMethod === "local_delivery" &&
+    (!shippingAddress.street?.trim() || !shippingAddress.city?.trim())
+  ) {
+    throw new Error("Completá la dirección y localidad para la entrega");
+  }
+
+  const shippingCost = getShippingCost(safeShippingMethod, {
+    localDeliveryCost: settings.local_delivery_cost,
   });
   const total = subtotal - discount.discount + shippingCost;
   const guestAccessToken = userId ? null : createGuestAccessToken();
+  const reservationExpiresAt = getOrderReservationExpiration();
 
   const { data: order, error: orderError } = await supabase
     .from("orders")
@@ -518,6 +410,7 @@ export async function createOrder({
       coupon_code: discount.code,
       discount_total: discount.discount,
       status: "pending",
+      reservation_expires_at: reservationExpiresAt,
     })
     .select()
     .single();
@@ -539,7 +432,16 @@ export async function createOrder({
     throw orderItemsError;
   }
 
-  await decrementVariantStock(resolvedItems);
+  try {
+    await reserveOrderStock(order.id);
+    revalidateProductCacheAfterStockChange();
+  } catch (error) {
+    await cancelOrderAndRelease(
+      order.id,
+      "No se pudo reservar el stock del pedido"
+    );
+    throw error;
+  }
 
   let preference;
   try {
@@ -564,30 +466,31 @@ export async function createOrder({
         failure: `${appUrl}/checkout`,
         pending: `${appUrl}/checkout`,
       },
+      expires: true,
+      expiration_date_from: new Date().toISOString(),
+      expiration_date_to: reservationExpiresAt,
+      payment_methods: {
+        excluded_payment_types: [
+          { id: "ticket" },
+          { id: "atm" },
+          { id: "bank_transfer" },
+        ],
+      },
     });
+    await claimOrderCoupon(order.id);
   } catch (error) {
-    await restoreVariantStock(resolvedItems);
-    await supabase
-      .from("orders")
-      .update({ status: "cancelled", stock_restored: true })
-      .eq("id", order.id);
+    await cancelOrderAndRelease(
+      order.id,
+      "No se pudo iniciar o confirmar la preferencia de pago"
+    );
+    revalidateProductCacheAfterStockChange();
     throw error;
   }
 
-  if (discount.code) {
-    const { data: coupon } = await supabase
-      .from("coupons")
-      .select("used_count")
-      .eq("code", discount.code)
-      .single();
-
-    await supabase
-      .from("coupons")
-      .update({ used_count: Number(coupon?.used_count || 0) + 1 })
-      .eq("code", discount.code);
-  }
-
   await clearUserCart(userId);
+  await sendOrderEmail(order.id, "order-created").catch((notificationError) => {
+    console.error("No se pudo enviar el email de reserva:", notificationError);
+  });
 
   return { order, preference };
 }
@@ -689,7 +592,7 @@ export async function updateOrderStatus(id: string, status: string) {
   const supabase = getSupabaseAdmin();
   const { data: existingOrder, error: existingOrderError } = await supabase
     .from("orders")
-    .select("stock_restored")
+    .select("status, stock_restored, shipping_method")
     .eq("id", id)
     .single();
 
@@ -699,6 +602,31 @@ export async function updateOrderStatus(id: string, status: string) {
 
   if (existingOrder.stock_restored && status !== "cancelled") {
     throw new Error("No se puede reabrir una orden con stock restaurado");
+  }
+
+  const allowedTransitions: Record<OrderStatus, OrderStatus[]> = {
+    pending: ["pending", "paid", "cancelled"],
+    paid: ["paid", "ready_for_pickup", "shipped", "cancelled"],
+    payment_review: ["payment_review", "cancelled"],
+    ready_for_pickup: ["ready_for_pickup", "delivered", "cancelled"],
+    shipped: ["shipped", "delivered", "cancelled"],
+    delivered: ["delivered"],
+    cancelled: ["cancelled"],
+  };
+  const currentStatus = existingOrder.status as OrderStatus;
+  if (!allowedTransitions[currentStatus]?.includes(status)) {
+    throw new Error("Ese cambio de estado no es válido para esta orden");
+  }
+
+  if (
+    status === "ready_for_pickup" &&
+    existingOrder.shipping_method === "local_delivery"
+  ) {
+    throw new Error("Una entrega local no puede quedar lista para retiro");
+  }
+
+  if (status === "shipped" && existingOrder.shipping_method !== "local_delivery") {
+    throw new Error("Un pedido con retiro no puede marcarse en camino");
   }
 
   if (status === "cancelled") {
@@ -711,7 +639,27 @@ export async function updateOrderStatus(id: string, status: string) {
     .eq("id", id);
 
   if (error) throw error;
+  const emailEvent =
+    status === "ready_for_pickup"
+      ? "ready-for-pickup"
+      : status === "shipped"
+        ? "shipped"
+        : status === "delivered"
+          ? "delivered"
+          : status === "cancelled"
+            ? "cancelled"
+            : status === "payment_review"
+              ? "payment-review"
+              : status === "paid"
+                ? "payment-approved"
+                : null;
+  if (emailEvent) {
+    await sendOrderEmail(id, emailEvent).catch((notificationError) => {
+      console.error("No se pudo enviar la notificación del pedido:", notificationError);
+    });
+  }
   revalidatePath("/dashboard/orders");
   revalidatePath(`/dashboard/orders/${id}`);
   revalidatePath("/account/orders");
+  revalidatePath(`/account/orders/${id}`);
 }

@@ -25,9 +25,11 @@ export const categories = pgTable("categories", {
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
   description: text("description"),
+  sizeGuide: text("size_guide"),
   imageUrl: text("image_url"),
   parentId: uuid("parent_id"),
   sortOrder: integer("sort_order").default(0),
+  active: boolean("active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -37,6 +39,8 @@ export const products = pgTable("products", {
   slug: text("slug").notNull().unique(),
   description: text("description"),
   basePrice: numeric("base_price", { precision: 10, scale: 2 }).notNull(),
+  compareAtPrice: numeric("compare_at_price", { precision: 10, scale: 2 }),
+  brand: text("brand"),
   categoryId: uuid("category_id").references(() => categories.id),
   featured: boolean("featured").default(false),
   active: boolean("active").default(true),
@@ -58,8 +62,11 @@ export const productVariants = pgTable("product_variants", {
   productId: uuid("product_id")
     .references(() => products.id, { onDelete: "cascade" })
     .notNull(),
-  width: numeric("width").notNull(),
-  length: numeric("length").notNull(),
+  width: numeric("width"),
+  length: numeric("length"),
+  size: text("size"),
+  color: text("color"),
+  sku: text("sku"),
   priceOverride: numeric("price_override", { precision: 10, scale: 2 }),
   stock: integer("stock").default(0),
   active: boolean("active").default(true),
@@ -83,6 +90,7 @@ export const addresses = pgTable("addresses", {
 export const orders = pgTable("orders", {
   id: uuid("id").primaryKey().defaultRandom(),
   profileId: text("profile_id").references(() => profiles.id),
+  clerkUserId: text("clerk_user_id").references(() => profiles.clerkUserId),
   status: text("status").notNull().default("pending"),
   total: numeric("total", { precision: 10, scale: 2 }).notNull(),
   shippingCost: numeric("shipping_cost", { precision: 10, scale: 2 }),
@@ -92,6 +100,12 @@ export const orders = pgTable("orders", {
   couponCode: text("coupon_code"),
   discountTotal: numeric("discount_total", { precision: 10, scale: 2 }).default("0"),
   stockRestored: boolean("stock_restored").default(false),
+  stockReserved: boolean("stock_reserved").default(false),
+  couponCounted: boolean("coupon_counted").default(false),
+  reservationExpiresAt: timestamp("reservation_expires_at", {
+    withTimezone: true,
+  }),
+  cancelReason: text("cancel_reason"),
   mercadopagoId: text("mercadopago_id"),
   mercadopagoStatus: text("mercadopago_status"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -119,6 +133,58 @@ export const coupons = pgTable("coupons", {
   expiresAt: timestamp("expires_at"),
   active: boolean("active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const storeSettings = pgTable("store_settings", {
+  id: integer("id").primaryKey().default(1),
+  storeName: text("store_name").notNull(),
+  contactEmail: text("contact_email").notNull(),
+  contactPhone: text("contact_phone").notNull(),
+  whatsappPhone: text("whatsapp_phone"),
+  addressLine: text("address_line").notNull(),
+  city: text("city").notNull(),
+  state: text("state").notNull(),
+  businessHours: text("business_hours").notNull(),
+  instagramUrl: text("instagram_url"),
+  facebookUrl: text("facebook_url"),
+  footerText: text("footer_text").notNull(),
+  pickupEnabled: boolean("pickup_enabled").default(true),
+  localDeliveryEnabled: boolean("local_delivery_enabled").default(false),
+  localDeliveryCost: numeric("local_delivery_cost", {
+    precision: 10,
+    scale: 2,
+  }).default("0"),
+  pickupInstructions: text("pickup_instructions"),
+  legalName: text("legal_name"),
+  taxId: text("tax_id"),
+  legalAddress: text("legal_address"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const withdrawalRequests = pgTable("withdrawal_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  requestCode: text("request_code").notNull().unique(),
+  orderId: uuid("order_id").references(() => orders.id, { onDelete: "set null" }),
+  orderReference: text("order_reference").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone").notNull(),
+  reason: text("reason"),
+  status: text("status").notNull().default("received"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const orderNotifications = pgTable("order_notifications", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orderId: uuid("order_id").references(() => orders.id, { onDelete: "cascade" }),
+  eventKey: text("event_key").notNull(),
+  recipient: text("recipient").notNull(),
+  status: text("status").notNull().default("pending"),
+  providerId: text("provider_id"),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  sentAt: timestamp("sent_at", { withTimezone: true }),
 });
 
 export const cartItems = pgTable("cart_items", {
@@ -235,5 +301,11 @@ export type OrderItem = typeof orderItems.$inferSelect;
 export type NewOrderItem = typeof orderItems.$inferInsert;
 export type Coupon = typeof coupons.$inferSelect;
 export type NewCoupon = typeof coupons.$inferInsert;
+export type StoreSettings = typeof storeSettings.$inferSelect;
+export type NewStoreSettings = typeof storeSettings.$inferInsert;
+export type WithdrawalRequest = typeof withdrawalRequests.$inferSelect;
+export type NewWithdrawalRequest = typeof withdrawalRequests.$inferInsert;
+export type OrderNotification = typeof orderNotifications.$inferSelect;
+export type NewOrderNotification = typeof orderNotifications.$inferInsert;
 export type CartItem = typeof cartItems.$inferSelect;
 export type NewCartItem = typeof cartItems.$inferInsert;

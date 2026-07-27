@@ -33,7 +33,12 @@ function mapProduct(product: any): ProductWithDetails {
     name: product.name,
     slug: product.slug,
     description: product.description,
+    sizeGuide: product.size_guide || null,
     basePrice: Number(product.base_price) || 0,
+    compareAtPrice: product.compare_at_price
+      ? Number(product.compare_at_price)
+      : null,
+    brand: product.brand || null,
     categoryId: product.category_id,
     featured: product.featured || false,
     active: product.active !== false,
@@ -47,6 +52,7 @@ function mapProduct(product: any): ProductWithDetails {
           image_url: product.category.image_url,
           parent_id: product.category.parent_id,
           sort_order: product.category.sort_order || 0,
+          active: product.category.active !== false,
           created_at: product.category.created_at,
         }
       : null,
@@ -62,8 +68,9 @@ function mapProduct(product: any): ProductWithDetails {
     variants: (product.variants || []).map((variant: any) => ({
       id: variant.id,
       product_id: variant.product_id,
-      width: Number(variant.width) || 0,
-      length: Number(variant.length) || 0,
+      size: variant.size || "",
+      color: variant.color || null,
+      sku: variant.sku || null,
       priceOverride: variant.price_override ? Number(variant.price_override) : null,
       stock: variant.stock || 0,
       active: variant.active !== false,

@@ -1,6 +1,6 @@
-import Link from "next/link";
 import Image from "next/image";
-import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import type { ProductWithDetails } from "@/types";
 
@@ -9,6 +9,9 @@ interface ProductCardProps {
   priority?: boolean;
 }
 
+const FALLBACK_IMAGE =
+  "https://images.unsplash.com/photo-1766934587214-86e21b3ae093?auto=format&fit=crop&w=900&q=82";
+
 function getAvailableVariants(product: ProductWithDetails) {
   return product.variants.filter(
     (variant) => variant.active !== false && Number(variant.stock ?? 0) > 0
@@ -16,85 +19,83 @@ function getAvailableVariants(product: ProductWithDetails) {
 }
 
 function getDisplayPrice(product: ProductWithDetails) {
-  const variantPrices = getAvailableVariants(product)
+  const prices = getAvailableVariants(product)
     .map((variant) => Number(variant.priceOverride ?? product.basePrice))
-    .filter((price) => Number.isFinite(price) && price > 0);
+    .filter((price) => Number.isFinite(price) && price >= 0);
 
-  return variantPrices.length ? Math.min(...variantPrices) : Number(product.basePrice);
+  return prices.length ? Math.min(...prices) : Number(product.basePrice);
 }
 
 export function ProductCard({ product, priority = false }: ProductCardProps) {
-  const imageUrl =
-    product.images?.[0]?.url ||
-    "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&h=600&fit=crop";
   const availableVariants = getAvailableVariants(product);
   const totalStock = availableVariants.reduce(
-    (sum, variant) => sum + Number(variant.stock ?? 0),
+    (total, variant) => total + Number(variant.stock ?? 0),
     0
   );
-  const availableMeasureCount =
-    availableVariants.length || product.variants.length || 1;
+  const sizes = new Set(availableVariants.map((variant) => variant.size)).size;
+  const price = getDisplayPrice(product);
+  const compareAtPrice = Number(product.compareAtPrice ?? 0);
+  const isOffer = compareAtPrice > price;
 
   return (
     <Link
       href={`/products/${product.slug}`}
-      className="group block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f6ae66] focus-visible:ring-offset-4"
+      className="group block h-full rounded-[1.35rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4"
     >
-      <article className="flex h-full flex-col overflow-hidden rounded-[1.75rem] border border-[#eadfce] bg-[#fffdf9] shadow-sm shadow-[#5c3514]/5 transition duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[#5c3514]/12">
-        <div className="relative aspect-[4/3] overflow-hidden bg-[#efe2d1]">
+      <article className="flex h-full flex-col overflow-hidden rounded-[1.35rem] border border-border/80 bg-card transition duration-300 hover:-translate-y-1 hover:border-gloria-300 hover:shadow-[0_20px_55px_-30px_oklch(0.35_0.085_134/0.45)]">
+        <div className="relative aspect-[4/5] overflow-hidden bg-muted">
           <Image
-            src={imageUrl}
-            alt={product.name}
+            src={product.images?.[0]?.url || FALLBACK_IMAGE}
+            alt={product.images?.[0]?.alt || product.name}
             fill
-            className="object-cover transition duration-500 ease-out group-hover:scale-[1.04]"
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover transition duration-500 ease-out group-hover:scale-[1.035]"
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             loading={priority ? "eager" : "lazy"}
             fetchPriority={priority ? "high" : "auto"}
           />
-          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#17110c]/45 to-transparent" />
-          {product.featured ? (
-            <Badge className="absolute left-4 top-4 border-0 bg-[#f6ae66] text-[#17110c] shadow-lg shadow-black/10">
-              Destacado
-            </Badge>
-          ) : null}
-          <span className="absolute bottom-4 left-4 rounded-full bg-[#fffaf4]/95 px-3 py-1 text-xs font-semibold text-[#5f3b18] shadow-sm">
-            {totalStock > 0 ? "Entrega disponible" : "Consultar stock"}
+          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-gloria-950/45 to-transparent" />
+          <div className="absolute left-3 top-3 flex flex-wrap gap-2">
+            {product.featured ? (
+              <span className="rounded-full bg-gloria-500 px-3 py-1 text-[0.68rem] font-bold uppercase tracking-wide text-gloria-950">
+                Destacado
+              </span>
+            ) : null}
+            {isOffer ? (
+              <span className="rounded-full bg-white px-3 py-1 text-[0.68rem] font-bold uppercase tracking-wide text-gloria-800">
+                Oferta
+              </span>
+            ) : null}
+          </div>
+          <span className="absolute bottom-3 left-3 rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-foreground">
+            {totalStock > 0 ? `${sizes || 1} talle${sizes === 1 ? "" : "s"}` : "Agotado"}
           </span>
         </div>
 
-        <div className="flex flex-1 flex-col p-5">
-          {product.category ? (
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9a5b19]">
-              {product.category.name}
-            </p>
-          ) : null}
-
-          <h3 className="mt-2 line-clamp-2 text-xl font-bold leading-tight text-[#17110c]">
+        <div className="flex flex-1 flex-col p-4 sm:p-5">
+          <p className="min-h-4 text-[0.68rem] font-bold uppercase tracking-[0.16em] text-gloria-700">
+            {product.brand || product.category?.name || "Pilchería Gloria"}
+          </p>
+          <h2 className="mt-2 line-clamp-2 text-base font-bold leading-snug text-foreground sm:text-lg">
             {product.name}
-          </h3>
-
-          <p className="mt-3 line-clamp-2 text-sm leading-6 text-[#6d6257]">
-            {product.description || "Descanso confiable con terminacion cuidada."}
+          </h2>
+          <p className="mt-2 line-clamp-2 text-sm leading-5 text-muted-foreground">
+            {product.description || "Conocé talles, colores y disponibilidad."}
           </p>
 
-          <div className="mt-5 flex flex-wrap gap-2 text-xs text-[#6d4c2c]">
-            <span className="rounded-full bg-[#f8f0e5] px-3 py-1">
-              {availableMeasureCount} medida{availableMeasureCount !== 1 ? "s" : ""}
-            </span>
-            <span className="rounded-full bg-[#f8f0e5] px-3 py-1">
-              {totalStock > 0 ? `Stock ${totalStock}` : "A pedido"}
-            </span>
-          </div>
-
-          <div className="mt-auto space-y-4 pt-6">
+          <div className="mt-auto flex items-end justify-between gap-3 pt-5">
             <div>
-              <p className="text-xs text-[#8b7a69]">Desde</p>
-              <p className="text-2xl font-black tracking-tight text-[#17110c]">
-                {formatPrice(getDisplayPrice(product))}
+              {isOffer ? (
+                <p className="text-xs text-muted-foreground line-through">
+                  {formatPrice(compareAtPrice)}
+                </p>
+              ) : null}
+              <p className="text-lg font-black tracking-tight text-foreground sm:text-xl">
+                {formatPrice(price)}
               </p>
             </div>
-            <span className="inline-flex w-full items-center justify-center rounded-full bg-[#f6ae66] px-4 py-3 text-sm font-bold text-[#17110c] shadow-sm shadow-[#5c3514]/10 transition group-hover:bg-[#ffbd79]">
-              Ver producto
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition group-hover:bg-gloria-800">
+              <ArrowUpRight className="size-5" />
+              <span className="sr-only">Ver {product.name}</span>
             </span>
           </div>
         </div>

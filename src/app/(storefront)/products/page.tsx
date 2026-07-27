@@ -1,155 +1,240 @@
-import { Suspense } from "react";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Sparkles } from "lucide-react";
-import { getCategories, getProducts } from "@/actions/products";
+import { Search, SlidersHorizontal, X } from "lucide-react";
+import { getBrands, getCategories, getProducts } from "@/actions/products";
 import { ProductGrid } from "@/components/storefront/product-grid";
 import { Button } from "@/components/ui/button";
+import { SITE_DESCRIPTION } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Productos - Pune",
-  description: "Ver todos los productos de colchones y sommiers",
+  title: "Ropa para mujer y hombre",
+  description: SITE_DESCRIPTION,
+  alternates: { canonical: "/products" },
 };
 
 interface ProductsPageProps {
-  searchParams: Promise<{ category?: string; q?: string }>;
+  searchParams: Promise<{
+    category?: string;
+    brand?: string;
+    q?: string;
+  }>;
 }
 
-function getCategoryName(
-  categories: Awaited<ReturnType<typeof getCategories>>,
-  categorySlug?: string
-) {
-  return categories.find((category) => category.slug === categorySlug)?.name;
+function buildProductsHref(params: {
+  category?: string;
+  brand?: string;
+  q?: string;
+}) {
+  const search = new URLSearchParams();
+  if (params.category) search.set("category", params.category);
+  if (params.brand) search.set("brand", params.brand);
+  if (params.q) search.set("q", params.q);
+  const query = search.toString();
+  return query ? `/products?${query}` : "/products";
 }
 
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
   const params = await searchParams;
-  const categorySlug = params.category;
+  const categorySlug = params.category?.trim() || undefined;
+  const brand = params.brand?.trim() || undefined;
   const searchTerm = params.q?.trim() || undefined;
-  const [products, categories] = await Promise.all([
-    getProducts({ categorySlug, searchTerm }),
+  const [products, categories, brands] = await Promise.all([
+    getProducts({ categorySlug, brand, searchTerm }),
     getCategories(),
+    getBrands(),
   ]);
-
-  const allProductsHref = searchTerm
-    ? `/products?q=${encodeURIComponent(searchTerm)}`
-    : "/products";
-  const selectedCategoryName = getCategoryName(categories, categorySlug);
-  const pageTitle = searchTerm
+  const selectedCategory = categories.find(
+    (category) => category.slug === categorySlug
+  );
+  const activeFilterCount = [categorySlug, brand, searchTerm].filter(Boolean).length;
+  const title = searchTerm
     ? `Resultados para "${searchTerm}"`
-    : selectedCategoryName || "Colección de descanso";
-  const pageDescription = searchTerm
-    ? "Productos que coinciden con tu búsqueda."
-    : selectedCategoryName
-      ? `Selección de ${selectedCategoryName.toLowerCase()} disponible para comprar online.`
-      : "Colchones, sommiers y accesorios disponibles para elegir por medida, stock y precio.";
-  const productCountLabel = `${products.length} producto${products.length !== 1 ? "s" : ""} disponible${products.length !== 1 ? "s" : ""}`;
+    : selectedCategory?.name || brand || "Toda la ropa";
 
   return (
-    <div className="overflow-hidden bg-[linear-gradient(180deg,#fffaf4_0%,#f8f4f0_42%,#fffaf7_100%)]">
-      <section className="relative isolate overflow-hidden border-b border-[#eadfce]">
-        <div className="absolute -left-28 top-6 h-56 w-56 rounded-full bg-[#f6ae66]/22 blur-3xl" />
-        <div className="absolute right-[-6rem] top-[-5rem] h-64 w-64 rounded-full border border-[#f6ae66]/25" />
-
-        <div className="container relative mx-auto px-4 py-8 sm:py-10">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-            <div className="max-w-3xl">
-              <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#dfcbb1] bg-[#fffdf9]/90 px-4 py-2 text-sm font-bold text-[#9a5b19] shadow-sm">
-                <Sparkles className="h-4 w-4" />
-                Catálogo Punes
-              </p>
-              <h1 className="text-balance text-4xl font-black leading-[0.95] tracking-[-0.04em] text-[#17110c] sm:text-5xl lg:text-6xl">
-                {pageTitle}
+    <main className="min-h-screen bg-background">
+      <section className="border-b border-border bg-gloria-50">
+        <div className="container mx-auto px-4 py-8 sm:py-10">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-gloria-700">
+            Catálogo online
+          </p>
+          <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h1 className="font-display text-4xl text-gloria-950 sm:text-6xl">
+                {title}
               </h1>
-              <p className="mt-4 max-w-2xl text-base leading-7 text-[#66584a]">
-                {pageDescription}
+              <p className="mt-2 text-sm text-muted-foreground">
+                {products.length} producto{products.length === 1 ? "" : "s"} disponible
+                {products.length === 1 ? "" : "s"}
               </p>
             </div>
-
-            <div className="rounded-[1.25rem] border border-[#eadfce] bg-[#fffdf9] px-5 py-4 shadow-sm">
-              <p className="text-sm font-bold text-[#9a5b19]">
-                {productCountLabel}
-              </p>
-              <p className="mt-1 text-sm text-[#66584a]">
-                Filtrá por categoría o abrí un producto para ver medidas.
-              </p>
-            </div>
+            {activeFilterCount ? (
+              <Button variant="outline" className="w-fit rounded-full" asChild>
+                <Link href="/products">
+                  <X className="mr-2 size-4" />
+                  Limpiar filtros
+                </Link>
+              </Button>
+            ) : null}
           </div>
         </div>
       </section>
 
       <div className="container mx-auto px-4 py-6 sm:py-8">
-        <div className="mb-6 flex flex-col gap-3 border-b border-[#eadfce] pb-5 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-2xl font-black text-[#17110c]">
-            {selectedCategoryName || "Todos los productos"}
-          </h2>
-          {searchTerm ? (
-            <Button variant="outline" asChild>
-              <Link href={categorySlug ? `/products?category=${categorySlug}` : "/products"}>
-                Limpiar búsqueda
-              </Link>
-            </Button>
+        <form action="/products" className="mb-5 flex gap-2">
+          <label className="relative block flex-1">
+            <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <span className="sr-only">Buscar productos</span>
+            <input
+              name="q"
+              defaultValue={searchTerm}
+              placeholder="Buscar por prenda o descripción"
+              className="min-h-12 w-full rounded-full border border-input bg-white pl-11 pr-4 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+            />
+          </label>
+          {categorySlug ? (
+            <input type="hidden" name="category" value={categorySlug} />
           ) : null}
-        </div>
+          {brand ? <input type="hidden" name="brand" value={brand} /> : null}
+          <Button type="submit" className="min-h-12 rounded-full px-5">
+            Buscar
+          </Button>
+        </form>
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[260px_1fr]">
-          <aside>
-            <div className="sticky top-24 rounded-[1.5rem] border border-[#eadfce] bg-[#fffdf9]/90 p-3 shadow-sm">
-              <div className="px-3 py-3">
-                <h3 className="font-bold text-[#17110c]">Categorías</h3>
-                <p className="mt-1 text-sm text-[#7c6d5d]">
-                  Filtrá por tipo de descanso.
-                </p>
-              </div>
-              <div className="space-y-1">
-                <Button
-                  variant={!categorySlug ? "secondary" : "ghost"}
-                  className="w-full justify-start rounded-xl"
-                  asChild
-                >
-                  <Link href={allProductsHref}>Todos</Link>
-                </Button>
-                {categories.map((category) => (
-                  <Button
-                    key={category.id}
-                    variant={categorySlug === category.slug ? "secondary" : "ghost"}
-                    className="w-full justify-start rounded-xl"
-                    asChild
-                  >
-                    <Link
-                      href={
-                        searchTerm
-                          ? `/products?category=${category.slug}&q=${encodeURIComponent(searchTerm)}`
-                          : `/products?category=${category.slug}`
-                      }
-                    >
-                      {category.name}
-                    </Link>
-                  </Button>
-                ))}
-              </div>
-            </div>
+        <details className="mb-7 rounded-2xl border border-border bg-white open:pb-4 lg:hidden">
+          <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 px-4 font-bold">
+            <SlidersHorizontal className="size-4" />
+            Filtrar catálogo
+            {activeFilterCount ? (
+              <span className="ml-auto rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
+                {activeFilterCount}
+              </span>
+            ) : null}
+          </summary>
+          <div className="grid gap-5 border-t border-border px-4 pt-4 sm:grid-cols-2">
+            <FilterGroup
+              label="Categorías"
+              items={categories.map((category) => ({
+                label: `${category.parent_id ? "↳ " : ""}${category.name}`,
+                href: buildProductsHref({
+                  category: category.slug,
+                  brand,
+                  q: searchTerm,
+                }),
+                active: category.slug === categorySlug,
+              }))}
+            />
+            <FilterGroup
+              label="Marcas"
+              items={brands.map((item) => ({
+                label: item,
+                href: buildProductsHref({
+                  category: categorySlug,
+                  brand: item,
+                  q: searchTerm,
+                }),
+                active: item.toLowerCase() === brand?.toLowerCase(),
+              }))}
+            />
+          </div>
+        </details>
+
+        <div className="grid gap-8 lg:grid-cols-[13rem_1fr]">
+          <aside className="hidden space-y-7 lg:block">
+            <FilterGroup
+              label="Categorías"
+              items={[
+                {
+                  label: "Todo",
+                  href: buildProductsHref({ brand, q: searchTerm }),
+                  active: !categorySlug,
+                },
+                ...categories.map((category) => ({
+                  label: `${category.parent_id ? "↳ " : ""}${category.name}`,
+                  href: buildProductsHref({
+                    category: category.slug,
+                    brand,
+                    q: searchTerm,
+                  }),
+                  active: category.slug === categorySlug,
+                })),
+              ]}
+            />
+            {brands.length ? (
+              <FilterGroup
+                label="Marcas"
+                items={[
+                  {
+                    label: "Todas",
+                    href: buildProductsHref({
+                      category: categorySlug,
+                      q: searchTerm,
+                    }),
+                    active: !brand,
+                  },
+                  ...brands.map((item) => ({
+                    label: item,
+                    href: buildProductsHref({
+                      category: categorySlug,
+                      brand: item,
+                      q: searchTerm,
+                    }),
+                    active: item.toLowerCase() === brand?.toLowerCase(),
+                  })),
+                ]}
+              />
+            ) : null}
           </aside>
 
-          <main>
-            <Suspense fallback={<div>Cargando productos...</div>}>
-              {products.length > 0 ? (
-                <ProductGrid products={products} priorityFirst={4} />
-              ) : (
-                <div className="rounded-[1.5rem] border border-[#eadfce] bg-[#fffdf9] px-6 py-16 text-center">
-                  <p className="text-[#66584a]">
-                    {searchTerm
-                      ? "No encontramos productos para esa búsqueda."
-                      : "No hay productos disponibles en este momento."}
-                  </p>
-                  <Button className="mt-6 rounded-full" asChild>
-                    <Link href="/products">Volver al catálogo</Link>
-                  </Button>
-                </div>
-              )}
-            </Suspense>
-          </main>
+          <section aria-label="Listado de productos">
+            {products.length ? (
+              <ProductGrid products={products} priorityFirst={4} />
+            ) : (
+              <div className="rounded-3xl border border-dashed border-gloria-300 bg-gloria-50 px-6 py-16 text-center">
+                <h2 className="font-display text-2xl text-gloria-950">
+                  No encontramos prendas
+                </h2>
+                <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">
+                  Probá otra búsqueda o volvé al catálogo completo.
+                </p>
+                <Button className="mt-6 rounded-full" asChild>
+                  <Link href="/products">Ver todo</Link>
+                </Button>
+              </div>
+            )}
+          </section>
         </div>
+      </div>
+    </main>
+  );
+}
+
+function FilterGroup({
+  label,
+  items,
+}: {
+  label: string;
+  items: Array<{ label: string; href: string; active: boolean }>;
+}) {
+  return (
+    <div>
+      <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-gloria-700">
+        {label}
+      </h2>
+      <div className="space-y-1">
+        {items.map((item) => (
+          <Link
+            key={`${item.label}-${item.href}`}
+            href={item.href}
+            className={`flex min-h-10 items-center rounded-xl px-3 text-sm font-semibold transition ${
+              item.active
+                ? "bg-primary text-primary-foreground"
+                : "text-foreground hover:bg-gloria-100"
+            }`}
+          >
+            {item.label}
+          </Link>
+        ))}
       </div>
     </div>
   );

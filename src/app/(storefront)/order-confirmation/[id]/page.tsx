@@ -3,6 +3,10 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { getOrderForConfirmation } from "@/actions/orders";
+import {
+  getOrderStatusDescription,
+  getOrderStatusLabel,
+} from "@/lib/commerce";
 import { ClearCartOnMount } from "./clear-cart-on-mount";
 
 interface OrderConfirmationPageProps {
@@ -51,12 +55,11 @@ export default async function OrderConfirmationPage({
           ) : null}
           <p className="mb-4">
             <strong>Estado:</strong>{" "}
-            <span className="capitalize">{order.status}</span>
+            {getOrderStatusLabel(order.status, order.shipping_method)}
           </p>
 
           <p className="text-muted-foreground">
-            Te enviamos un email con los detalles de tu pedido. En cuanto se
-            confirme el pago, comenzaremos a preparar tu envío.
+            {getOrderStatusDescription(order.status, order.shipping_method)}
           </p>
         </div>
       ) : (

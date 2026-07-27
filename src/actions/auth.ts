@@ -7,6 +7,7 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import type { Profile } from "@/types";
 import type { Role } from "@/types";
+import { reportDataFallback } from "@/lib/logging";
 
 type ProfileRow = {
   id: string;
@@ -37,7 +38,7 @@ async function getClerkUserBasics(userId: string) {
     user.emailAddresses.find((item) => item.id === user.primaryEmailAddressId)
       ?.emailAddress ??
     user.emailAddresses[0]?.emailAddress ??
-    `${userId}@pune.local`;
+    `${userId}@pilcheriagloria.local`;
   const displayName =
     [user.firstName, user.lastName].filter(Boolean).join(" ").trim() ||
     user.username ||
@@ -56,7 +57,7 @@ async function getProfileFromDb(userId: string) {
     .maybeSingle();
 
   if (error) {
-    console.error("Error fetching profile:", error);
+    reportDataFallback("profile", error);
     return null;
   }
   return data ? buildProfileFromRow(data as ProfileRow) : null;
@@ -70,7 +71,7 @@ export async function ensureUserProfile(userId: string) {
   try {
     clerkBasics = await getClerkUserBasics(userId);
   } catch (error) {
-    console.error("Error fetching Clerk user:", error);
+    reportDataFallback("clerk-user", error);
     if (existingProfile) return existingProfile;
     throw new Error("User not found in Clerk");
   }
@@ -111,7 +112,7 @@ export async function getProfile(): Promise<Profile | null> {
   try {
     return await ensureUserProfile(userId);
   } catch (error) {
-    console.error("Error getting profile:", error);
+    reportDataFallback("current-profile", error);
     return null;
   }
 }

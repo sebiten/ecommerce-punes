@@ -1,13 +1,7 @@
 import type { CartItem, ProductVariant } from "@/types";
 
-export const STANDARD_SHIPPING_COST = 5000;
-export const EXPRESS_SHIPPING_COST = 10000;
-export const FREE_SHIPPING_THRESHOLD = 50000;
-
 interface ShippingSettings {
-  standardShippingCost?: number;
-  expressShippingCost?: number;
-  freeShippingThreshold?: number;
+  localDeliveryCost?: number;
 }
 
 export function getVariantPrice(
@@ -40,24 +34,66 @@ export function getCartSubtotal(items: CartItem[]) {
 }
 
 export function getShippingCost(
-  subtotal: number,
   shippingMethod: string,
   settings?: ShippingSettings
 ) {
-  const standardShippingCost =
-    settings?.standardShippingCost ?? STANDARD_SHIPPING_COST;
-  const expressShippingCost =
-    settings?.expressShippingCost ?? EXPRESS_SHIPPING_COST;
-  const freeShippingThreshold =
-    settings?.freeShippingThreshold ?? FREE_SHIPPING_THRESHOLD;
+  return shippingMethod === "local_delivery"
+    ? Number(settings?.localDeliveryCost ?? 0)
+    : 0;
+}
 
-  if (shippingMethod === "express") {
-    return expressShippingCost;
+export function getDeliveryMethodLabel(method?: string | null) {
+  return method === "local_delivery" ? "Entrega local" : "Retiro en el local";
+}
+
+export function getOrderStatusLabel(
+  status: string,
+  shippingMethod?: string | null
+) {
+  switch (status) {
+    case "pending":
+      return "Pendiente de pago";
+    case "paid":
+      return shippingMethod === "local_delivery"
+        ? "Preparando entrega"
+        : "Preparando retiro";
+    case "payment_review":
+      return "Pago en revisión";
+    case "ready_for_pickup":
+      return "Listo para retirar";
+    case "shipped":
+      return "En camino";
+    case "delivered":
+      return "Entregado";
+    case "cancelled":
+      return "Cancelado";
+    default:
+      return status;
   }
+}
 
-  if (subtotal >= freeShippingThreshold) {
-    return 0;
+export function getOrderStatusDescription(
+  status: string,
+  shippingMethod?: string | null
+) {
+  switch (status) {
+    case "pending":
+      return "Estamos esperando la confirmación del pago.";
+    case "paid":
+      return shippingMethod === "local_delivery"
+        ? "El pago está confirmado y estamos preparando tu entrega."
+        : "El pago está confirmado. Te avisaremos cuando el pedido esté listo.";
+    case "payment_review":
+      return "Recibimos el pago, pero necesitamos verificar el stock antes de confirmar la preparación.";
+    case "ready_for_pickup":
+      return "Tu pedido ya está preparado. Retiralo mostrando el código de compra.";
+    case "shipped":
+      return "Tu pedido salió para entrega.";
+    case "delivered":
+      return "El pedido fue entregado.";
+    case "cancelled":
+      return "El pedido fue cancelado.";
+    default:
+      return "";
   }
-
-  return standardShippingCost;
 }

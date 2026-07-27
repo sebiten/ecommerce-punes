@@ -16,7 +16,7 @@ test("guest user can go from product to checkout", async ({ page }) => {
       const request = route.request();
       const payload = request.postDataJSON() as {
         items?: Array<{ product_id: string; variant_id: string | null; quantity: number }>;
-        shippingAddress?: { email?: string; street?: string };
+        shippingAddress?: { email?: string; street?: string | null };
       };
 
       expect(payload.items).toEqual([
@@ -26,8 +26,8 @@ test("guest user can go from product to checkout", async ({ page }) => {
           quantity: 1,
         }),
       ]);
-      expect(payload.shippingAddress?.email).toBe("qa+punes@example.com");
-      expect(payload.shippingAddress?.street).toBe("Av. Test 123");
+      expect(payload.shippingAddress?.email).toBe("qa+gloria@example.com");
+      expect(payload.shippingAddress?.street).toBeNull();
 
       await route.fulfill({
         status: 200,
@@ -45,7 +45,7 @@ test("guest user can go from product to checkout", async ({ page }) => {
     await page.goto(`/products/${seed.productSlug}`);
     await expect(page).toHaveURL(new RegExp(`/products/${seed.productSlug}$`));
 
-    await expect(page.getByText("140 x 190 cm").first()).toBeVisible();
+    await expect(page.getByText("Negro", { exact: true }).first()).toBeVisible();
     await page.getByTestId("add-to-cart-button").click();
 
     const cartDrawer = page.getByTestId("cart-drawer");
@@ -57,14 +57,9 @@ test("guest user can go from product to checkout", async ({ page }) => {
     await expect(cartDrawer).not.toBeInViewport();
 
     await page.getByLabel("Nombre").fill("QA");
-    await page.getByLabel("Apellido").fill("Punes");
-    await page.getByLabel("Email").fill("qa+punes@example.com");
-    await page.getByLabel("Telefono").fill("1133334444");
-    await page.getByLabel("Calle y numero").fill("Av. Test 123");
-    await page.getByLabel("Ciudad").fill("Buenos Aires");
-    await page.getByLabel("Provincia").fill("Buenos Aires");
-    await page.getByLabel("Codigo postal").fill("1000");
-
+    await page.getByLabel("Apellido").fill("Gloria");
+    await page.getByLabel("Email").fill("qa+gloria@example.com");
+    await page.getByLabel("Teléfono").fill("3884000000");
     await page.getByTestId("checkout-submit").click();
     await expect(page).toHaveURL(/mercadopago\.com\.ar\/checkout/);
   } finally {

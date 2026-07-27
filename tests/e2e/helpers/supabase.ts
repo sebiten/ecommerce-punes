@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 
-type SeededProduct = {
+export type SeededProduct = {
   categoryId: string;
   productId: string;
   productSlug: string;
@@ -14,6 +14,8 @@ type OrderWithItems = {
   mercadopago_id: string | null;
   mercadopago_status: string | null;
   stock_restored: boolean;
+  stock_reserved: boolean;
+  reservation_expires_at: string | null;
   guest_access_token: string | null;
   items: Array<{
     product_id: string;
@@ -41,7 +43,7 @@ function getSupabaseAdmin() {
 export async function seedCheckoutSmokeProduct(): Promise<SeededProduct> {
   const supabase = getSupabaseAdmin();
   const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const productName = `Playwright Smoke ${suffix}`;
+  const productName = `Playwright Remera ${suffix}`;
   const productSlug = `playwright-smoke-${suffix}`;
   const categorySlug = `playwright-smoke-category-${suffix}`;
 
@@ -51,6 +53,7 @@ export async function seedCheckoutSmokeProduct(): Promise<SeededProduct> {
       name: `Playwright Smoke ${suffix}`,
       slug: categorySlug,
       sort_order: 999,
+      active: true,
     })
     .select("id")
     .single();
@@ -66,6 +69,8 @@ export async function seedCheckoutSmokeProduct(): Promise<SeededProduct> {
       slug: productSlug,
       description: "Producto seed para smoke e2e",
       base_price: 125000,
+      compare_at_price: 139000,
+      brand: "Marca E2E",
       category_id: category.id,
       active: true,
       featured: false,
@@ -79,7 +84,7 @@ export async function seedCheckoutSmokeProduct(): Promise<SeededProduct> {
 
   const { error: imageError } = await supabase.from("product_images").insert({
     product_id: product.id,
-    url: "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&h=800&fit=crop",
+    url: "https://images.unsplash.com/photo-1766934587214-86e21b3ae093?auto=format&fit=crop&w=800&q=80",
     alt: productName,
     sort_order: 0,
   });
@@ -92,8 +97,9 @@ export async function seedCheckoutSmokeProduct(): Promise<SeededProduct> {
     .from("product_variants")
     .insert({
       product_id: product.id,
-      width: 140,
-      length: 190,
+      size: "M",
+      color: "Negro",
+      sku: `E2E-${suffix}`,
       price_override: null,
       stock: 5,
       active: true,
@@ -161,6 +167,8 @@ export async function getLatestOrderForProduct(productId: string) {
       mercadopago_id,
       mercadopago_status,
       stock_restored,
+      stock_reserved,
+      reservation_expires_at,
       guest_access_token,
       items:order_items(product_id, variant_id, quantity)
     `)
@@ -174,6 +182,67 @@ export async function getLatestOrderForProduct(productId: string) {
   }
 
   return data as OrderWithItems;
+}
+
+export async function createExpiredOrderForProduct(seed: SeededProduct) {
+  const supabase = getSupabaseAdmin();
+  const { data: order, error: orderError } = await supabase
+    .from("orders")
+    .insert({
+      total: 125000,
+      shipping_cost: 0,
+      shipping_method: "pickup",
+      shipping_address: {
+        name: "QA Gloria",
+        email: "qa+expired@example.com",
+        phone: "3884000000",
+      },
+      status: "pending",
+      reservation_expires_at: new Date(Date.now() - 60_000).toISOString(),
+    })
+    .select("id")
+    .single();
+
+  if (orderError || !order) {
+    throw orderError ?? new Error("No se pudo crear la orden vencida e2e");
+  }
+
+  const { error: itemError } = await supabase.from("order_items").insert({
+    order_id: order.id,
+    product_id: seed.productId,
+    variant_id: seed.variantId,
+    quantity: 1,
+    unit_price: 125000,
+  });
+
+  if (itemError) {
+    throw itemError;
+  }
+
+  const { error: reserveError } = await supabase.rpc("reserve_order_stock", {
+    p_order_id: order.id,
+  });
+
+  if (reserveError) {
+    throw reserveError;
+  }
+
+  return order.id;
+}
+
+export async function getOrderState(orderId: string) {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("orders")
+    .select("status, stock_reserved, stock_restored, cancel_reason")
+    .eq("id", orderId)
+    .single();
+
+  if (error || !data) {
+    throw error ?? new Error("No se encontró la orden e2e");
+  }
+
+  return data;
 }
 
 export async function getVariantStock(variantId: string) {

@@ -2,15 +2,15 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Punes Colchones y Sommiers",
-    short_name: "Punes",
+    name: "Pilchería Gloria",
+    short_name: "Gloria",
     description:
-      "Tienda online de colchones, sommiers y accesorios para el descanso.",
+      "Ropa para mujer y hombre en Libertador General San Martín, Jujuy.",
     start_url: "/",
-    scope: "/",
     display: "standalone",
-    background_color: "#fffaf4",
-    theme_color: "#f6ae66",
+    background_color: "#f8fbed",
+    theme_color: "#a8d829",
+    orientation: "portrait-primary",
     icons: [
       {
         src: "/icon",

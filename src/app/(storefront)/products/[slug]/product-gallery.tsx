@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Badge } from "@/components/ui/badge";
 import type { ProductImage } from "@/types";
 
 interface ProductGalleryProps {
@@ -12,7 +11,7 @@ interface ProductGalleryProps {
 }
 
 const fallbackImage =
-  "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&h=800&fit=crop";
+  "https://images.unsplash.com/photo-1766934587214-86e21b3ae093?auto=format&fit=crop&w=1200&q=84";
 
 export function ProductGallery({
   productName,
@@ -21,26 +20,33 @@ export function ProductGallery({
 }: ProductGalleryProps) {
   const galleryImages = images.length
     ? images
-    : [{ id: "fallback", url: fallbackImage, alt: productName, sort_order: 0, product_id: "" }];
+    : [
+        {
+          id: "fallback",
+          url: fallbackImage,
+          alt: productName,
+          sort_order: 0,
+          product_id: "",
+        },
+      ];
   const [selectedIndex, setSelectedIndex] = useState(0);
   const selectedImage = galleryImages[selectedIndex] ?? galleryImages[0];
 
   return (
-    <div className="space-y-4">
-      <div className="relative aspect-square overflow-hidden rounded-[2rem] border border-[#eadfce] bg-[#efe2d1] shadow-xl shadow-[#5c3514]/10">
+    <div className="space-y-3">
+      <div className="relative aspect-[4/5] overflow-hidden rounded-[1.75rem] border border-border bg-muted">
         <Image
           src={selectedImage.url}
           alt={selectedImage.alt || productName}
           fill
           className="object-cover"
-          preload
-          sizes="(max-width: 1024px) 100vw, 50vw"
+          priority
+          sizes="(max-width: 1024px) 100vw, 52vw"
         />
-        <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#17110c]/45 to-transparent" />
         {featured ? (
-          <Badge className="absolute left-5 top-5 border-0 bg-[#f6ae66] text-[#17110c] shadow-lg shadow-black/10">
+          <span className="absolute left-4 top-4 rounded-full bg-gloria-500 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-gloria-950">
             Destacado
-          </Badge>
+          </span>
         ) : null}
       </div>
 
@@ -51,10 +57,10 @@ export function ProductGallery({
               key={image.id || image.url}
               type="button"
               onClick={() => setSelectedIndex(index)}
-              className={`relative aspect-square overflow-hidden rounded-2xl border bg-[#efe2d1] transition ${
+              className={`relative aspect-[4/5] min-h-14 overflow-hidden rounded-xl border bg-muted transition ${
                 selectedIndex === index
-                  ? "border-[#9a5b19] ring-2 ring-[#9a5b19]/20"
-                  : "border-[#eadfce] hover:border-[#9a5b19]/45"
+                  ? "border-primary ring-2 ring-primary/20"
+                  : "border-border hover:border-gloria-300"
               }`}
               aria-label={`Ver imagen ${index + 1} de ${productName}`}
             >

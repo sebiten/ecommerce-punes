@@ -3,9 +3,10 @@
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath, unstable_cache, updateTag } from "next/cache";
 import { z } from "zod";
-import { ensureUserProfile } from "@/actions/auth";
+import { ensureUserProfile, requireAdmin } from "@/actions/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import type { ProductReview, ProductReviewStats } from "@/types";
+import { reportDataFallback } from "@/lib/logging";
 
 type ReviewFormState = {
   ok: boolean;
@@ -54,7 +55,7 @@ const getProductReviewStatsCached = unstable_cache(
       .eq("approved", true);
 
     if (error) {
-      console.error("Error fetching review stats:", error);
+      reportDataFallback("review-stats", error);
       return { average: 0, count: 0 };
     }
 
@@ -92,7 +93,7 @@ const getProductReviewsCached = unstable_cache(
       .limit(20);
 
     if (error) {
-      console.error("Error fetching reviews:", error);
+      reportDataFallback("reviews", error);
       return [];
     }
 
@@ -133,7 +134,7 @@ export async function getProductReviewEligibility(productId: string) {
     .limit(1);
 
   if (error) {
-    console.error("Error checking review eligibility:", error);
+    reportDataFallback("review-eligibility", error);
     return {
       canReview: false,
       reason: "No pudimos validar tu compra.",
@@ -205,5 +206,58 @@ export async function submitProductReview(
 
   updateTag(PRODUCT_REVIEWS_CACHE_TAG);
   revalidatePath(`/products/${parsed.data.productSlug}`);
-  return { ok: true, message: "Resena guardada." };
+  return { ok: true, message: "Reseña guardada." };
+}
+
+export async function getProductReviewsAdmin() {
+  await requireAdmin();
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("product_reviews")
+    .select("*, product:products(name, slug)")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function setProductReviewApproval(
+  reviewId: string,
+  approved: boolean,
+  _formData?: FormData
+) {
+  await requireAdmin();
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("product_reviews")
+    .update({ approved, updated_at: new Date().toISOString() })
+    .eq("id", reviewId)
+    .select("product:products(slug)")
+    .single();
+
+  if (error) throw error;
+  updateTag(PRODUCT_REVIEWS_CACHE_TAG);
+  revalidatePath("/dashboard/reviews");
+  const product = Array.isArray(data.product) ? data.product[0] : data.product;
+  if (product?.slug) revalidatePath(`/products/${product.slug}`);
+}
+
+export async function deleteProductReviewAdmin(
+  reviewId: string,
+  _formData?: FormData
+) {
+  await requireAdmin();
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("product_reviews")
+    .delete()
+    .eq("id", reviewId)
+    .select("product:products(slug)")
+    .single();
+
+  if (error) throw error;
+  updateTag(PRODUCT_REVIEWS_CACHE_TAG);
+  revalidatePath("/dashboard/reviews");
+  const product = Array.isArray(data.product) ? data.product[0] : data.product;
+  if (product?.slug) revalidatePath(`/products/${product.slug}`);
 }

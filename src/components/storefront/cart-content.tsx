@@ -58,7 +58,10 @@ export function CartContent() {
                   </h4>
                   {selectedVariant ? (
                     <p className="text-xs text-muted-foreground">
-                      {selectedVariant?.width} x {selectedVariant?.length} cm
+                      Talle {selectedVariant.size}
+                      {selectedVariant.color
+                        ? `, ${selectedVariant.color}`
+                        : ""}
                     </p>
                   ) : null}
                   {isUnavailableVariant ? (

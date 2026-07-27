@@ -1,23 +1,35 @@
+import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  BedDouble,
   CheckCircle2,
-  Moon,
-  RotateCcw,
-  Ruler,
-  Shield,
-  Sparkles,
-  Truck,
+  CreditCard,
+  MapPin,
+  MessageCircle,
+  PackageCheck,
+  Shirt,
 } from "lucide-react";
 import { getProductBySlug } from "@/actions/products";
+import { getStoreSettings } from "@/actions/store-settings";
 import { formatPrice } from "@/lib/utils";
+import { absoluteUrl, serializeJsonLd } from "@/lib/site";
 import { AddToCartButton } from "./add-to-cart-button";
 import { ProductGallery } from "./product-gallery";
 import { ProductReviews, ProductReviewSummary } from "./product-reviews";
-import type { Metadata } from "next";
+import { ProductShareActions } from "./product-share-actions";
 
 interface ProductPageProps {
   params: Promise<{ slug: string }>;
+}
+
+function getProductPrice(product: NonNullable<Awaited<ReturnType<typeof getProductBySlug>>>) {
+  const availablePrices = product.variants
+    .filter((variant) => variant.active !== false && Number(variant.stock) > 0)
+    .map((variant) => Number(variant.priceOverride ?? product.basePrice));
+
+  return availablePrices.length
+    ? Math.min(...availablePrices)
+    : Number(product.basePrice);
 }
 
 export async function generateMetadata({
@@ -25,29 +37,43 @@ export async function generateMetadata({
 }: ProductPageProps): Promise<Metadata> {
   const { slug } = await params;
   const product = await getProductBySlug(slug);
+  if (!product) return { title: "Producto no encontrado" };
 
-  if (!product) {
-    return { title: "Producto no encontrado" };
-  }
+  const price = getProductPrice(product);
+  const description =
+    product.description?.slice(0, 155) ||
+    `${product.name}${product.brand ? ` de ${product.brand}` : ""} disponible en Pilchería Gloria.`;
+  const image = product.images?.[0]?.url;
 
   return {
-    title: product.name,
-    description: product.description || `Comprar ${product.name}`,
+    title: `${product.name}${product.brand ? ` | ${product.brand}` : ""}`,
+    description,
+    alternates: { canonical: `/products/${product.slug}` },
     openGraph: {
+      type: "website",
       title: product.name,
-      description: product.description || `Comprar ${product.name}`,
-      images: product.images?.map((image) => image.url) ?? [],
+      description: `${description} Precio: ${formatPrice(price)}.`,
+      url: `/products/${product.slug}`,
+      images: image
+        ? [{ url: image, alt: product.images[0]?.alt || product.name }]
+        : [],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: product.name,
+      description,
+      images: image ? [image] : [],
     },
   };
 }
 
 export default async function ProductPage({ params }: ProductPageProps) {
   const { slug } = await params;
-  const product = await getProductBySlug(slug);
-
-  if (!product) {
-    notFound();
-  }
+  const [product, settings] = await Promise.all([
+    getProductBySlug(slug),
+    getStoreSettings(),
+  ]);
+  if (!product) notFound();
 
   const activeVariants = product.variants.filter(
     (variant) => variant.active !== false
@@ -56,24 +82,98 @@ export default async function ProductPage({ params }: ProductPageProps) {
     (sum, variant) => sum + Number(variant.stock ?? 0),
     0
   );
+  const price = getProductPrice(product);
+  const compareAtPrice = Number(product.compareAtPrice ?? 0);
+  const isOffer = compareAtPrice > price;
+  const productUrl = absoluteUrl(`/products/${product.slug}`);
+  const images = product.images.map((image) => image.url);
+  const fulfillmentBenefits = [
+    {
+      icon: Shirt,
+      title: "Talles claros",
+      text: "Disponibilidad visible por variante.",
+    },
+    ...(settings.pickup_enabled
+      ? [
+          {
+            icon: MapPin,
+            title: "Retiro coordinado",
+            text: settings.pickup_instructions,
+          },
+        ]
+      : []),
+    ...(settings.local_delivery_enabled
+      ? [
+          {
+            icon: PackageCheck,
+            title: "Entrega local",
+            text: "Coordinamos en Libertador y localidades cercanas.",
+          },
+        ]
+      : []),
+    {
+      icon: CreditCard,
+      title: "Mercado Pago",
+      text: "Pago online procesado de forma segura.",
+    },
+  ];
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.description || undefined,
+    image: images,
+    sku: activeVariants.find((variant) => variant.sku)?.sku || undefined,
+    brand: product.brand
+      ? { "@type": "Brand", name: product.brand }
+      : undefined,
+    category: product.category?.name,
+    offers: {
+      "@type": "Offer",
+      url: productUrl,
+      priceCurrency: "ARS",
+      price,
+      availability:
+        availableStock > 0
+          ? "https://schema.org/InStock"
+          : "https://schema.org/OutOfStock",
+      itemCondition: "https://schema.org/NewCondition",
+    },
+  };
 
   return (
-    <div className="overflow-hidden bg-[linear-gradient(180deg,#fffaf4_0%,#f8f4f0_45%,#fffdf9_100%)]">
-      <section className="relative isolate border-b border-[#eadfce]">
-        <div className="absolute -left-32 top-20 h-80 w-80 rounded-full bg-[#f6ae66]/18 blur-3xl" />
-        <div className="animate-punes-drift absolute right-[-10rem] top-[-8rem] h-[28rem] w-[28rem] rounded-full border border-[#9a5b19]/12" />
+    <main className="bg-background">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(productJsonLd) }}
+      />
 
-        <div className="container relative mx-auto px-4 py-8 sm:py-12">
-          <div className="mb-8 flex flex-wrap items-center gap-2 text-sm text-[#7c6d5d]">
-            <span>Productos</span>
+      <section className="border-b border-border">
+        <div className="container mx-auto px-4 py-5 sm:py-8">
+          <nav
+            className="mb-5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
+            aria-label="Migas de pan"
+          >
+            <Link href="/products" className="hover:text-primary">
+              Productos
+            </Link>
             <span>/</span>
-            {product.category ? <span>{product.category.name}</span> : null}
-            <span>/</span>
-            <span className="font-semibold text-[#17110c]">{product.name}</span>
-          </div>
+            {product.category ? (
+              <>
+                <Link
+                  href={`/categories/${product.category.slug}`}
+                  className="hover:text-primary"
+                >
+                  {product.category.name}
+                </Link>
+                <span>/</span>
+              </>
+            ) : null}
+            <span className="font-semibold text-foreground">{product.name}</span>
+          </nav>
 
-          <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1.02fr_0.98fr] lg:items-start">
-            <div className="animate-punes-rise">
+          <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
+            <div className="animate-gloria-rise">
               <ProductGallery
                 productName={product.name}
                 featured={product.featured}
@@ -81,126 +181,133 @@ export default async function ProductPage({ params }: ProductPageProps) {
               />
             </div>
 
-            <div className="animate-punes-rise rounded-[2rem] border border-[#eadfce] bg-[#fffdf9]/92 p-6 shadow-xl shadow-[#5c3514]/8 sm:p-8">
-              {product.category ? (
-                <p className="mb-3 inline-flex rounded-full bg-[#f8f0e5] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-[#9a5b19]">
-                  {product.category.name}
+            <div className="lg:sticky lg:top-24">
+              <div className="rounded-[1.75rem] border border-border bg-white p-5 shadow-[0_24px_60px_-42px_oklch(0.35_0.085_134/0.4)] sm:p-8">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-gloria-700">
+                  {product.brand || product.category?.name || "Pilchería Gloria"}
                 </p>
-              ) : null}
-              <h1 className="text-balance text-4xl font-black leading-[0.95] tracking-[-0.035em] text-[#17110c] sm:text-5xl">
-                {product.name}
-              </h1>
+                <h1 className="mt-3 font-display text-balance text-4xl leading-[0.98] text-gloria-950 sm:text-5xl">
+                  {product.name}
+                </h1>
+                <div className="mt-4">
+                  <ProductReviewSummary productId={product.id} />
+                </div>
 
-              <div className="mt-5">
-                <ProductReviewSummary productId={product.id} />
-              </div>
-
-              <div className="mt-6 rounded-[1.5rem] border border-[#eadfce] bg-[#fff8ef] p-5">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="mb-5 flex flex-wrap items-end gap-x-4 gap-y-1 border-y border-border py-5">
                   <div>
-                    <p className="text-sm font-bold text-[#9a5b19]">
-                      Precio desde
-                    </p>
-                    <p className="mt-1 text-4xl font-black tracking-tight text-[#17110c]">
-                      {formatPrice(Number(product.basePrice))}
+                    {isOffer ? (
+                      <p className="text-sm text-muted-foreground line-through">
+                        {formatPrice(compareAtPrice)}
+                      </p>
+                    ) : null}
+                    <p className="text-3xl font-black tracking-tight text-foreground sm:text-4xl">
+                      {formatPrice(price)}
                     </p>
                   </div>
-                  <span className="inline-flex w-fit items-center gap-2 rounded-full border border-[#dfcbb1] bg-[#fffdf9] px-3 py-2 text-sm font-semibold text-[#5f3b18]">
-                    <CheckCircle2 className="h-4 w-4 text-[#9a5b19]" />
-                    {availableStock > 0 ? "Disponible" : "Consultar stock"}
+                  <span
+                    className={`mb-1 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${
+                      availableStock > 0
+                        ? "bg-green-100 text-green-800"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    <CheckCircle2 className="size-3.5" />
+                    {availableStock > 0 ? "Disponible" : "Sin stock"}
                   </span>
                 </div>
 
-                <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
-                  <div className="rounded-2xl border border-[#eadfce] bg-[#fffdf9] p-4 text-[#17110c]">
-                    <Ruler className="mb-3 h-4 w-4 text-[#9a5b19]" />
-                    <p className="font-bold">
-                      {activeVariants.length} medida
-                      {activeVariants.length !== 1 ? "s" : ""}
-                    </p>
-                    <p className="mt-1 text-xs text-[#66584a]">
-                      Elegí la variante antes de comprar.
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-[#eadfce] bg-[#fffdf9] p-4 text-[#17110c]">
-                    <CheckCircle2 className="mb-3 h-4 w-4 text-[#9a5b19]" />
-                    <p className="font-bold">
-                      {availableStock > 0 ? `Stock ${availableStock}` : "A pedido"}
-                    </p>
-                    <p className="mt-1 text-xs text-[#66584a]">
-                      Actualizado según medidas activas.
-                    </p>
-                  </div>
+                <p className="mb-6 leading-7 text-muted-foreground">
+                  {product.description || "Descripción a completar desde el panel."}
+                </p>
+
+                <AddToCartButton
+                  product={product}
+                  whatsappPhone={settings.whatsapp_phone}
+                  productUrl={productUrl}
+                />
+                <div className="mt-4 border-t border-border pt-4">
+                  <ProductShareActions title={product.name} url={productUrl} />
                 </div>
               </div>
-
-              <div className="prose prose-sm mt-6 max-w-none text-[#66584a]">
-                <p>{product.description || "Descripción no disponible."}</p>
-              </div>
-
-              <div className="mt-7">
-                <AddToCartButton product={product} />
-              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="container mx-auto px-4 py-10">
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-[1.5rem] border border-[#eadfce] bg-[#fffdf9] p-5">
-            <Truck className="mb-4 h-5 w-5 text-[#9a5b19]" />
-            <h2 className="font-bold text-[#17110c]">Envío gratis</h2>
-            <p className="mt-2 text-sm leading-6 text-[#66584a]">
-              A todo el país en pedidos mayores a $50.000.
+      <section className="border-b border-border bg-white py-10">
+        <div className="container mx-auto grid gap-6 px-4 lg:grid-cols-[1fr_auto] lg:items-start">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-gloria-700">
+              Elegí con seguridad
             </p>
-          </div>
-          <div className="rounded-[1.5rem] border border-[#eadfce] bg-[#fffdf9] p-5">
-            <Shield className="mb-4 h-5 w-5 text-[#9a5b19]" />
-            <h2 className="font-bold text-[#17110c]">Garantía de 10 años</h2>
-            <p className="mt-2 text-sm leading-6 text-[#66584a]">
-              Respaldo extendido para comprar con tranquilidad.
-            </p>
-          </div>
-          <div className="rounded-[1.5rem] border border-[#eadfce] bg-[#fffdf9] p-5">
-            <RotateCcw className="mb-4 h-5 w-5 text-[#9a5b19]" />
-            <h2 className="font-bold text-[#17110c]">30 días de prueba</h2>
-            <p className="mt-2 text-sm leading-6 text-[#66584a]">
-              Si no te gusta, te devolvemos el dinero.
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-8 rounded-[2rem] border border-[#eadfce] bg-[#fff8ef] p-6 text-[#17110c] sm:p-8">
-          <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
-            <div>
-              <p className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-[0.16em] text-[#9a5b19]">
-                <Sparkles className="h-4 w-4" />
-                Sensación Punes
+            <h2 className="mt-2 font-display text-3xl text-gloria-950">
+              Guía de talles
+            </h2>
+            {product.sizeGuide ? (
+              <p className="mt-4 max-w-3xl whitespace-pre-line text-sm leading-7 text-muted-foreground">
+                {product.sizeGuide}
               </p>
-              <h2 className="mt-3 text-3xl font-black tracking-tight">
-                Pensado para que la decisión sea simple.
-              </h2>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl border border-[#eadfce] bg-[#fffdf9] p-4">
-                <BedDouble className="mb-3 h-5 w-5 text-[#9a5b19]" />
-                <p className="text-sm text-[#66584a]">Soporte para uso diario.</p>
-              </div>
-              <div className="rounded-2xl border border-[#eadfce] bg-[#fffdf9] p-4">
-                <Moon className="mb-3 h-5 w-5 text-[#9a5b19]" />
-                <p className="text-sm text-[#66584a]">Confort para dormir mejor.</p>
-              </div>
-              <div className="rounded-2xl border border-[#eadfce] bg-[#fffdf9] p-4">
-                <Shield className="mb-3 h-5 w-5 text-[#9a5b19]" />
-                <p className="text-sm text-[#66584a]">Compra segura y respaldada.</p>
-              </div>
-            </div>
+            ) : (
+              <p className="mt-4 max-w-3xl text-sm leading-7 text-muted-foreground">
+                Este producto todavía no tiene una tabla específica. Medí una prenda similar y consultanos antes de comprar.
+              </p>
+            )}
           </div>
+          <Link
+            href="/guia-de-talles"
+            className="inline-flex min-h-11 items-center justify-center rounded-full border border-gloria-300 px-5 text-sm font-bold text-gloria-900 hover:bg-gloria-50"
+          >
+            Cómo tomar tus medidas
+          </Link>
         </div>
+      </section>
 
+      <section className="border-b border-border bg-gloria-50 py-10">
+        <div className="container mx-auto grid grid-cols-2 gap-3 px-4 lg:grid-cols-4">
+          {fulfillmentBenefits.map((benefit) => {
+            const Icon = benefit.icon;
+            return (
+              <article
+                key={benefit.title}
+                className="rounded-2xl border border-gloria-200 bg-white p-4 sm:p-5"
+              >
+                <Icon className="size-5 text-gloria-700" />
+                <h2 className="mt-4 font-bold text-gloria-950">{benefit.title}</h2>
+                <p className="mt-2 line-clamp-3 text-xs leading-5 text-muted-foreground sm:text-sm">
+                  {benefit.text}
+                </p>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="container mx-auto px-4 pb-16">
         <ProductReviews productId={product.id} productSlug={product.slug} />
       </section>
-    </div>
+
+      {settings.whatsapp_phone ? (
+        <section className="bg-gloria-950 py-12 text-white">
+          <div className="container mx-auto flex flex-col gap-5 px-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-display text-3xl">¿Tenés dudas con el talle?</p>
+              <p className="mt-2 text-white/65">
+                Consultanos antes de comprar y te ayudamos.
+              </p>
+            </div>
+            <Link
+              href={`https://wa.me/${settings.whatsapp_phone.replace(/\D/g, "")}?text=${encodeURIComponent(
+                `Hola, quiero consultar por ${product.name}. ${productUrl}`
+              )}`}
+              target="_blank"
+              className="inline-flex min-h-12 items-center justify-center rounded-full bg-white px-6 font-bold text-gloria-950"
+            >
+              <MessageCircle className="mr-2 size-5" />
+              Consultar por WhatsApp
+            </Link>
+          </div>
+        </section>
+      ) : null}
+    </main>
   );
 }

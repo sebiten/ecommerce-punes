@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { revalidateProductCacheFromRouteHandler } from "@/lib/cache/products";
+import { getPayment } from "@/lib/mercadopago/client";
+import { applyMercadoPagoPayment } from "@/lib/orders/payment-state";
+import { sendOrderEmail } from "@/lib/notifications/email";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -53,64 +55,6 @@ function isValidWebhookSignature({
   );
 }
 
-async function restoreOrderStock(orderId: string) {
-  const supabase = getSupabaseAdmin();
-  const { data: order, error: orderError } = await supabase
-    .from("orders")
-    .select(`
-      id,
-      stock_restored,
-      items:order_items(variant_id, quantity)
-    `)
-    .eq("id", orderId)
-    .single();
-
-  if (orderError || !order || order.stock_restored) {
-    if (orderError) {
-      console.error("Error leyendo orden para restaurar stock:", orderError);
-    }
-    return;
-  }
-
-  let stockChanged = false;
-
-  for (const item of order.items || []) {
-    if (!item.variant_id) {
-      continue;
-    }
-
-    const { data: variant, error: variantError } = await supabase
-      .from("product_variants")
-      .select("stock")
-      .eq("id", item.variant_id)
-      .single();
-
-    if (variantError) {
-      throw variantError;
-    }
-
-    const { error: updateError } = await supabase
-      .from("product_variants")
-      .update({ stock: Number(variant.stock ?? 0) + Number(item.quantity) })
-      .eq("id", item.variant_id);
-
-    if (updateError) {
-      throw updateError;
-    }
-
-    stockChanged = true;
-  }
-
-  await supabase
-    .from("orders")
-    .update({ stock_restored: true })
-    .eq("id", orderId);
-
-  if (stockChanged) {
-    revalidateProductCacheFromRouteHandler();
-  }
-}
-
 export async function POST(request: Request) {
   try {
     const url = new URL(request.url);
@@ -119,8 +63,6 @@ export async function POST(request: Request) {
     const paymentId = String(
       url.searchParams.get("data.id") || body?.data?.id || body?.id || ""
     );
-
-    const supabase = getSupabaseAdmin();
 
     if (type === "payment" && paymentId) {
       const isValidSignature = isValidWebhookSignature({
@@ -144,51 +86,35 @@ export async function POST(request: Request) {
               status: "approved",
               external_reference: paymentId,
             }
-          : await fetch(
-              `https://api.mercadopago.com/v1/payments/${paymentId}`,
-              {
-                headers: {
-                  Authorization: `Bearer ${process.env.MERCADOPAGO_ACCESS_TOKEN}`,
-                },
-              }
-            ).then(async (paymentResponse) => {
-              if (!paymentResponse.ok) {
-                const errorBody = await paymentResponse.text();
-                throw new Error(`MercadoPago payment fetch failed: ${errorBody}`);
-              }
-
-              return paymentResponse.json();
-            });
+          : await getPayment(paymentId);
       const externalReference = payment.external_reference;
-      const status = payment.status;
-      const failedStatuses = new Set([
-        "rejected",
-        "cancelled",
-        "refunded",
-        "charged_back",
-      ]);
-      const orderStatus = status === "approved"
-        ? "paid"
-        : failedStatuses.has(status)
-          ? "cancelled"
-          : "pending";
 
       if (externalReference) {
-        if (orderStatus === "cancelled") {
-          await restoreOrderStock(externalReference);
+        const nextStatus = await applyMercadoPagoPayment(
+          externalReference,
+          payment
+        );
+        const emailEvent =
+          nextStatus === "paid"
+            ? "payment-approved"
+            : nextStatus === "payment_review"
+              ? "payment-review"
+              : nextStatus === "cancelled"
+                ? "cancelled"
+                : null;
+        if (emailEvent) {
+          await sendOrderEmail(externalReference, emailEvent).catch(
+            (notificationError) => {
+              console.error(
+                "No se pudo enviar la notificación del webhook:",
+                notificationError
+              );
+            }
+          );
         }
 
-        const { error } = await supabase
-          .from("orders")
-          .update({
-            mercadopago_id: paymentId,
-            mercadopago_status: status,
-            status: orderStatus,
-          })
-          .eq("id", externalReference);
-
-        if (error) {
-          console.error("Error updating order:", error);
+        if (["paid", "payment_review", "cancelled"].includes(nextStatus)) {
+          revalidateProductCacheFromRouteHandler();
         }
       }
     }

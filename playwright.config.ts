@@ -12,6 +12,7 @@ if (existsSync(envPath)) {
 }
 
 process.env.E2E_MERCADOPAGO_FAKE = "1";
+process.env.CRON_SECRET ??= "e2e-order-cron-secret";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -28,6 +29,7 @@ export default defineConfig({
     command: "pnpm dev",
     env: {
       E2E_MERCADOPAGO_FAKE: "1",
+      CRON_SECRET: process.env.CRON_SECRET,
     },
     url: "http://localhost:3000",
     reuseExistingServer: false,
