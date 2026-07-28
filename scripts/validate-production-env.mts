@@ -3,6 +3,8 @@ const isProductionDeployment =
   process.env.VALIDATE_PRODUCTION_ENV === "1";
 
 if (isProductionDeployment) {
+  const allowDevelopmentClerk =
+    process.env.ALLOW_CLERK_DEVELOPMENT_IN_PRODUCTION === "1";
   const required = [
     "NEXT_PUBLIC_APP_URL",
     "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
@@ -22,11 +24,15 @@ if (isProductionDeployment) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
 
   if (
+    !allowDevelopmentClerk &&
     process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.startsWith("pk_test_")
   ) {
     errors.push("NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY todavía es de desarrollo");
   }
-  if (process.env.CLERK_SECRET_KEY?.startsWith("sk_test_")) {
+  if (
+    !allowDevelopmentClerk &&
+    process.env.CLERK_SECRET_KEY?.startsWith("sk_test_")
+  ) {
     errors.push("CLERK_SECRET_KEY todavía es de desarrollo");
   }
   if (!appUrl.startsWith("https://") || /localhost|127\.0\.0\.1/.test(appUrl)) {
@@ -37,5 +43,11 @@ if (isProductionDeployment) {
     console.error("Configuración de producción inválida:");
     for (const error of errors) console.error(`- ${error}`);
     process.exit(1);
+  }
+
+  if (allowDevelopmentClerk) {
+    console.warn(
+      "Clerk development habilitado temporalmente para esta demo. No usar para ventas reales."
+    );
   }
 }
