@@ -30,7 +30,7 @@ export function StorefrontClientShell({ children }: StorefrontClientShellProps) 
     <>
       <CartSync />
       <Header />
-      <main className="flex-1">{children}</main>
+      <div className="flex-1">{children}</div>
       <CartDrawer isOpen={isOpen} onClose={() => setIsOpen(false)}>
         <CartContent />
       </CartDrawer>

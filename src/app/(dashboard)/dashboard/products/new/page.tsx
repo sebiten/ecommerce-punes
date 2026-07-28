@@ -1,7 +1,9 @@
 import { ProductForm } from "@/components/dashboard/product-form";
 import { getCategories } from "@/actions/products";
+import { requireAdmin } from "@/actions/auth";
 
 export default async function NewProductPage() {
+  await requireAdmin();
   const categories = await getCategories();
 
   return (

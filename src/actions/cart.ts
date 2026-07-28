@@ -205,7 +205,7 @@ export async function addToCart(
   const { userId } = await auth();
   if (!userId) throw new Error("User not authenticated");
 
-  await ensureUserProfile(userId);
+  await ensureUserProfile();
 
   const input = cartItemInputSchema.parse({
     product_id: productId,
@@ -241,7 +241,7 @@ export async function removeFromCart(cartItemId: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("User not authenticated");
 
-  await ensureUserProfile(userId);
+  await ensureUserProfile();
   const supabase = getSupabaseAdmin();
 
   const { error } = await supabase
@@ -258,7 +258,7 @@ export async function getCartItems(): Promise<CartItem[]> {
   const { userId } = await auth();
   if (!userId) return [];
 
-  await ensureUserProfile(userId);
+  await ensureUserProfile();
   return selectUserCart(userId);
 }
 
@@ -266,7 +266,7 @@ export async function updateCartItemQuantity(cartItemId: string, quantity: numbe
   const { userId } = await auth();
   if (!userId) throw new Error("User not authenticated");
 
-  await ensureUserProfile(userId);
+  await ensureUserProfile();
   const supabase = getSupabaseAdmin();
 
   if (quantity <= 0) {
@@ -287,7 +287,7 @@ export async function mergeCartItems(items: CartItemInput[]): Promise<CartItem[]
   const { userId } = await auth();
   if (!userId) throw new Error("User not authenticated");
 
-  await ensureUserProfile(userId);
+  await ensureUserProfile();
   const remoteItems = await selectUserCart(userId);
   const mergedItems = mergeCartCollections(remoteItems, items);
 
@@ -301,7 +301,7 @@ export async function replaceCartItems(items: CartItemInput[]): Promise<CartItem
   const { userId } = await auth();
   if (!userId) throw new Error("User not authenticated");
 
-  await ensureUserProfile(userId);
+  await ensureUserProfile();
   const normalizedItems = normalizeCartItems(items);
 
   await replaceUserCart(userId, normalizedItems);

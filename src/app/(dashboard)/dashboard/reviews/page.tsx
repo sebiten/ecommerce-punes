@@ -6,8 +6,10 @@ import {
   setProductReviewApproval,
 } from "@/actions/reviews";
 import { Button } from "@/components/ui/button";
+import { requireAdmin } from "@/actions/auth";
 
 export default async function ReviewsPage() {
+  await requireAdmin();
   const reviews = await getProductReviewsAdmin();
 
   return (

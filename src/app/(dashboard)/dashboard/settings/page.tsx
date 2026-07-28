@@ -1,9 +1,11 @@
 import { getStoreSettings } from "@/actions/store-settings";
 import { StoreSettingsForm } from "@/components/dashboard/store-settings-form";
+import { requireAdmin } from "@/actions/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
+  await requireAdmin();
   const settings = await getStoreSettings();
 
   return (

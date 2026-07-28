@@ -1,5 +1,3 @@
-import { MercadoPagoConfig } from "mercadopago";
-
 function getMercadoPagoAccessToken() {
   const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
   if (!accessToken) {
@@ -8,10 +6,6 @@ function getMercadoPagoAccessToken() {
 
   return accessToken;
 }
-
-const client = new MercadoPagoConfig({
-  accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN || "missing-access-token",
-});
 
 export interface MPPreferenceItem {
   id: string;
@@ -47,6 +41,7 @@ export interface MPPreference {
   payment_methods?: {
     excluded_payment_types?: Array<{ id: string }>;
   };
+  statement_descriptor?: string;
 }
 
 export async function createPreference(preference: MPPreference) {
@@ -64,6 +59,8 @@ export async function createPreference(preference: MPPreference) {
     headers: {
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
+      "X-Idempotency-Key":
+        preference.external_reference || crypto.randomUUID(),
     },
     body: JSON.stringify(preference),
   });
@@ -134,4 +131,91 @@ export async function getPayment(paymentId: string) {
   return response.json();
 }
 
-export { client as mercadopagoClient };
+let mercadoPagoAccountIdPromise: Promise<string> | null = null;
+
+export function getMercadoPagoAccountId() {
+  if (process.env.E2E_MERCADOPAGO_FAKE === "1") {
+    return Promise.resolve("e2e-collector");
+  }
+
+  mercadoPagoAccountIdPromise ??= (async () => {
+    const accessToken = getMercadoPagoAccessToken();
+    const response = await fetch("https://api.mercadopago.com/users/me", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      throw new Error("No se pudo verificar la cuenta receptora de Mercado Pago");
+    }
+
+    const account = await response.json();
+    if (!account?.id) {
+      throw new Error("Mercado Pago no devolvió la cuenta receptora");
+    }
+
+    return String(account.id);
+  })();
+
+  return mercadoPagoAccountIdPromise.catch((error) => {
+    mercadoPagoAccountIdPromise = null;
+    throw error;
+  });
+}
+
+export async function refundPayment(paymentId: string, orderId: string) {
+  if (process.env.E2E_MERCADOPAGO_FAKE === "1") {
+    return { id: `e2e-refund-${paymentId}`, status: "approved" };
+  }
+
+  const accessToken = getMercadoPagoAccessToken();
+  const response = await fetch(
+    `https://api.mercadopago.com/v1/payments/${paymentId}/refunds`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+        "X-Idempotency-Key": orderId,
+      },
+      body: JSON.stringify({}),
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`No se pudo devolver el pago en Mercado Pago: ${errorBody}`);
+  }
+
+  return response.json();
+}
+
+export async function cancelPayment(paymentId: string) {
+  if (process.env.E2E_MERCADOPAGO_FAKE === "1") {
+    return { id: paymentId, status: "cancelled" };
+  }
+
+  const accessToken = getMercadoPagoAccessToken();
+  const response = await fetch(
+    `https://api.mercadopago.com/v1/payments/${paymentId}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ status: "cancelled" }),
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`No se pudo cancelar el pago en Mercado Pago: ${errorBody}`);
+  }
+
+  return response.json();
+}

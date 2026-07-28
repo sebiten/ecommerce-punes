@@ -6,27 +6,91 @@ import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/utils";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getOrderStatusLabel } from "@/lib/commerce";
+import { getStoreSettings } from "@/actions/store-settings";
+import { getStoreReadinessIssues } from "@/lib/store-readiness";
+import { requireAdmin } from "@/actions/auth";
 
 export default async function DashboardPage() {
+  await requireAdmin();
   const supabase = getSupabaseAdmin();
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+  const paidStatuses = ["paid", "ready_for_pickup", "shipped", "delivered"];
+  const openStatuses = [
+    "pending",
+    "paid",
+    "payment_review",
+    "ready_for_pickup",
+    "shipped",
+  ];
 
-  const [{ data: orders }, { count: totalProducts }] = await Promise.all([
+  const [
+    { data: orders, error: ordersError },
+    { data: monthlyOrders, error: monthlyOrdersError },
+    { count: pendingOrders, error: pendingOrdersError },
+    { data: activeProducts, error: productsError },
+    { count: adminCount, error: adminCountError },
+    settings,
+  ] = await Promise.all([
     supabase
       .from("orders")
       .select("*")
       .order("created_at", { ascending: false })
       .limit(5),
     supabase
-      .from("products")
+      .from("orders")
+      .select("total")
+      .gte("created_at", monthStart.toISOString())
+      .in("status", paidStatuses),
+    supabase
+      .from("orders")
       .select("id", { count: "exact", head: true })
+      .in("status", openStatuses),
+    supabase
+      .from("products")
+      .select("id, slug, size_guide, base_price")
       .eq("active", true),
+    supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "admin"),
+    getStoreSettings(),
   ]);
 
-  const totalSales = orders?.reduce((sum, o) => sum + Number(o.total), 0) || 0;
-  const pendingOrders =
-    orders?.filter((order) =>
-      ["pending", "paid", "payment_review", "ready_for_pickup", "shipped"].includes(order.status)
+  const queryError =
+    ordersError ||
+    monthlyOrdersError ||
+    pendingOrdersError ||
+    productsError ||
+    adminCountError;
+  if (queryError) throw queryError;
+
+  const totalSales =
+    monthlyOrders?.reduce((sum, order) => sum + Number(order.total), 0) || 0;
+  const paidOrdersThisMonth = monthlyOrders?.length || 0;
+  const totalProducts = activeProducts?.length || 0;
+  const demoProducts =
+    activeProducts?.filter((product) =>
+      product.slug?.startsWith("gloria-demo-")
     ).length || 0;
+  const productsWithoutSizeGuide =
+    activeProducts?.filter((product) => !product.size_guide?.trim()).length || 0;
+  const readinessIssues = getStoreReadinessIssues(settings);
+  const operationalWarnings = [
+    readinessIssues.length > 0
+      ? `Faltan datos del negocio: ${readinessIssues.join(", ")}.`
+      : null,
+    demoProducts > 0
+      ? `${demoProducts} productos de demostración siguen activos.`
+      : null,
+    productsWithoutSizeGuide > 0
+      ? `${productsWithoutSizeGuide} productos activos no tienen guía de talles.`
+      : null,
+    (adminCount ?? 0) > 1
+      ? `Hay ${adminCount} perfiles administradores. Confirmá que ambos correspondan.`
+      : null,
+  ].filter((warning): warning is string => Boolean(warning));
 
   return (
     <div className="space-y-8">
@@ -37,6 +101,25 @@ export default async function DashboardPage() {
         </p>
       </div>
 
+      {operationalWarnings.length > 0 ? (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+          <p className="font-bold">La tienda todavía no está habilitada para vender.</p>
+          {operationalWarnings.map((warning) => (
+            <p key={warning} className="mt-1">
+              {warning}
+            </p>
+          ))}
+          <div className="mt-3 flex flex-wrap gap-3 font-semibold">
+            <Link href="/dashboard/settings" className="underline">
+              Completar configuración
+            </Link>
+            <Link href="/dashboard/products" className="underline">
+              Revisar productos
+            </Link>
+          </div>
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Ventas del mes"
@@ -46,19 +129,19 @@ export default async function DashboardPage() {
         />
         <StatsCard
           title="Pedidos pendientes"
-          value={pendingOrders}
+          value={pendingOrders ?? 0}
           icon={ShoppingCart}
           description="Órdenes por procesar"
         />
         <StatsCard
           title="Productos activos"
-          value={totalProducts ?? 0}
+          value={totalProducts}
           icon={Package}
           description="En el catálogo"
         />
         <StatsCard
-          title="Ingresos"
-          value={formatPrice(totalSales)}
+          title="Pedidos cobrados"
+          value={paidOrdersThisMonth}
           icon={TrendingUp}
           description="Este mes"
         />

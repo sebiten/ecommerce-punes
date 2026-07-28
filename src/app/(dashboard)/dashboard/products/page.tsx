@@ -6,8 +6,10 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { formatPrice } from "@/lib/utils";
 import { DeleteProductButton } from "./delete-product-button";
 import { CopyProductLinkButton } from "./copy-product-link-button";
+import { requireAdmin } from "@/actions/auth";
 
 export default async function ProductsPage() {
+  await requireAdmin();
   const supabase = getSupabaseAdmin();
 
   const { data: products } = await supabase

@@ -29,20 +29,53 @@ const productVariantSchema = z.object({
   active: z.boolean().optional(),
 });
 
-const productPayloadSchema = z.object({
-  name: z.string().trim().min(2),
-  slug: z.string().trim().min(2),
-  description: z.string().trim().optional(),
-  sizeGuide: z.string().trim().max(4000).optional(),
-  basePrice: z.number().nonnegative(),
-  compareAtPrice: z.number().nonnegative().nullable().optional(),
-  brand: z.string().trim().nullable().optional(),
-  categoryId: z.string().uuid().nullable().optional(),
-  featured: z.boolean().optional(),
-  active: z.boolean().optional(),
-  images: z.array(productImageSchema).default([]),
-  variants: z.array(productVariantSchema).default([]),
-});
+const productPayloadSchema = z
+  .object({
+    name: z.string().trim().min(2),
+    slug: z.string().trim().min(2),
+    description: z.string().trim().max(4000).optional(),
+    sizeGuide: z.string().trim().max(4000).optional(),
+    basePrice: z.number().positive(),
+    compareAtPrice: z.number().positive().nullable().optional(),
+    brand: z.string().trim().nullable().optional(),
+    categoryId: z.string().uuid().nullable().optional(),
+    featured: z.boolean().optional(),
+    active: z.boolean().optional(),
+    images: z.array(productImageSchema).max(10).default([]),
+    variants: z.array(productVariantSchema).max(100).default([]),
+  })
+  .superRefine((product, context) => {
+    if (product.active === false) return;
+
+    if (!product.description || product.description.trim().length < 20) {
+      context.addIssue({
+        code: "custom",
+        path: ["description"],
+        message: "Un producto activo necesita una descripción completa",
+      });
+    }
+    if (product.images.length === 0) {
+      context.addIssue({
+        code: "custom",
+        path: ["images"],
+        message: "Un producto activo necesita al menos una imagen",
+      });
+    }
+    if (!product.variants.some((variant) => variant.active !== false)) {
+      context.addIssue({
+        code: "custom",
+        path: ["variants"],
+        message: "Un producto activo necesita al menos una variante",
+      });
+    }
+    if (!product.sizeGuide || product.sizeGuide.trim().length < 10) {
+      context.addIssue({
+        code: "custom",
+        path: ["sizeGuide"],
+        message: "Completá una guía de talles antes de activar el producto",
+      });
+    }
+  });
 
 type ProductPayload = z.infer<typeof productPayloadSchema>;
 
@@ -143,41 +176,172 @@ async function replaceProductRelations(
   productId: string,
   payload: ProductPayload
 ) {
-  await supabase.from("product_images").delete().eq("product_id", productId);
-  await supabase.from("product_variants").delete().eq("product_id", productId);
+  const [
+    { data: previousImages, error: previousImagesError },
+    { data: previousVariants, error: previousVariantsError },
+  ] = await Promise.all([
+    supabase.from("product_images").select("*").eq("product_id", productId),
+    supabase.from("product_variants").select("*").eq("product_id", productId),
+  ]);
+  if (previousImagesError) throw previousImagesError;
+  if (previousVariantsError) throw previousVariantsError;
 
-  if (payload.images.length > 0) {
-    const { error } = await supabase.from("product_images").insert(
-      payload.images.map((image, index) => ({
-        product_id: productId,
-        url: image.url,
-        alt: image.alt || null,
-        sort_order: index,
-      }))
-    );
+  const imageByUrl = new Map(
+    (previousImages || []).map((image) => [image.url, image])
+  );
+  const desiredImages = payload.images.map((image, index) => ({
+    id: imageByUrl.get(image.url)?.id ?? randomUUID(),
+    product_id: productId,
+    url: image.url,
+    alt: image.alt || null,
+    sort_order: index,
+  }));
+  const variants = normalizeProductVariants(payload.variants);
+  const variantByKey = new Map(
+    (previousVariants || []).map((variant) => [
+      `${variant.size?.trim().toLocaleLowerCase("es-AR") ?? ""}:${
+        variant.color?.trim().toLocaleLowerCase("es-AR") ?? ""
+      }`,
+      variant,
+    ])
+  );
+  const desiredVariants = variants.map((variant) => {
+    const key = `${variant.size.toLocaleLowerCase("es-AR")}:${
+      variant.color?.toLocaleLowerCase("es-AR") ?? ""
+    }`;
+    return {
+      id: variantByKey.get(key)?.id ?? randomUUID(),
+      product_id: productId,
+      size: variant.size,
+      color: variant.color ?? null,
+      sku: variant.sku ?? null,
+      price_override: variant.priceOverride ?? null,
+      stock: variant.stock ?? 0,
+      active: variant.active ?? true,
+    };
+  });
+  const desiredImageIds = new Set(desiredImages.map((image) => image.id));
+  const desiredVariantIds = new Set(
+    desiredVariants.map((variant) => variant.id)
+  );
+  const staleImages = (previousImages || []).filter(
+    (image) => !desiredImageIds.has(image.id)
+  );
+  const staleVariants = (previousVariants || []).filter(
+    (variant) => !desiredVariantIds.has(variant.id)
+  );
 
-    if (error) {
-      throw error;
+  try {
+    if (desiredImages.length > 0) {
+      const { error } = await supabase
+        .from("product_images")
+        .upsert(desiredImages, { onConflict: "id" });
+      if (error) throw error;
     }
+    if (desiredVariants.length > 0) {
+      const { error } = await supabase
+        .from("product_variants")
+        .upsert(desiredVariants, { onConflict: "id" });
+      if (error) throw error;
+    }
+    if (staleImages.length > 0) {
+      const { error } = await supabase
+        .from("product_images")
+        .delete()
+        .in(
+          "id",
+          staleImages.map((image) => image.id)
+        );
+      if (error) throw error;
+    }
+    if (staleVariants.length > 0) {
+      const staleIds = staleVariants.map((variant) => variant.id);
+      const { error } = await supabase
+        .from("product_variants")
+        .delete()
+        .in("id", staleIds);
+
+      if (error?.code === "23503") {
+        const { error: archiveError } = await supabase
+          .from("product_variants")
+          .update({ active: false, stock: 0 })
+          .in("id", staleIds);
+        if (archiveError) throw archiveError;
+      } else if (error) {
+        throw error;
+      }
+    }
+  } catch (error) {
+    const previousImageIds = new Set(
+      (previousImages || []).map((image) => image.id)
+    );
+    const previousVariantIds = new Set(
+      (previousVariants || []).map((variant) => variant.id)
+    );
+    const newImageIds = desiredImages
+      .filter((image) => !previousImageIds.has(image.id))
+      .map((image) => image.id);
+    const newVariantIds = desiredVariants
+      .filter((variant) => !previousVariantIds.has(variant.id))
+      .map((variant) => variant.id);
+
+    if (newImageIds.length > 0) {
+      await supabase.from("product_images").delete().in("id", newImageIds);
+    }
+    if (newVariantIds.length > 0) {
+      await supabase.from("product_variants").delete().in("id", newVariantIds);
+    }
+    if ((previousImages || []).length > 0) {
+      await supabase
+        .from("product_images")
+        .upsert(previousImages || [], { onConflict: "id" });
+    }
+    if ((previousVariants || []).length > 0) {
+      await supabase
+        .from("product_variants")
+        .upsert(previousVariants || [], { onConflict: "id" });
+    }
+    throw error;
   }
 
-  const variants = normalizeProductVariants(payload.variants);
+  return staleImages.map((image) => image.url);
+}
 
-  if (variants.length > 0) {
-    const { error } = await supabase.from("product_variants").insert(
-      variants.map((variant) => ({
-        product_id: productId,
-        size: variant.size,
-        color: variant.color ?? null,
-        sku: variant.sku ?? null,
-        price_override: variant.priceOverride ?? null,
-        stock: variant.stock ?? 0,
-        active: variant.active ?? true,
-      }))
-    );
+function getProductImageStoragePath(url: string) {
+  try {
+    const marker = `/storage/v1/object/public/${PRODUCT_IMAGES_BUCKET}/`;
+    const pathname = new URL(url).pathname;
+    const markerIndex = pathname.indexOf(marker);
+    if (markerIndex === -1) return null;
+    return decodeURIComponent(pathname.slice(markerIndex + marker.length));
+  } catch {
+    return null;
+  }
+}
 
+async function removeUnreferencedProductImages(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  urls: string[]
+) {
+  const paths: string[] = [];
+
+  for (const url of urls) {
+    const path = getProductImageStoragePath(url);
+    if (!path) continue;
+
+    const { count, error } = await supabase
+      .from("product_images")
+      .select("id", { count: "exact", head: true })
+      .eq("url", url);
+    if (!error && count === 0) paths.push(path);
+  }
+
+  if (paths.length > 0) {
+    const { error } = await supabase.storage
+      .from(PRODUCT_IMAGES_BUCKET)
+      .remove(paths);
     if (error) {
-      throw error;
+      console.error("No se pudieron limpiar imágenes sin referencia:", error);
     }
   }
 }
@@ -400,7 +564,16 @@ export async function createProduct(input: ProductPayload) {
     throw error ?? new Error("No se pudo crear el producto");
   }
 
-  await replaceProductRelations(supabase, product.id, payload);
+  try {
+    await replaceProductRelations(supabase, product.id, payload);
+  } catch (relationError) {
+    await supabase.from("products").delete().eq("id", product.id);
+    await removeUnreferencedProductImages(
+      supabase,
+      payload.images.map((image) => image.url)
+    );
+    throw relationError;
+  }
   revalidateProductCacheFromServerAction(product.slug);
 
   return product;
@@ -474,7 +647,29 @@ export async function updateProduct(id: string, input: ProductPayload) {
     throw error;
   }
 
-  await replaceProductRelations(supabase, id, payload);
+  let removedImageUrls: string[];
+  try {
+    removedImageUrls = await replaceProductRelations(supabase, id, payload);
+  } catch (relationError) {
+    await supabase
+      .from("products")
+      .update({
+        name: existing.name,
+        slug: existing.slug,
+        description: existing.description || null,
+        size_guide: existing.sizeGuide || null,
+        base_price: existing.basePrice,
+        compare_at_price: existing.compareAtPrice,
+        brand: existing.brand,
+        category_id: existing.categoryId,
+        featured: existing.featured,
+        active: existing.active,
+      })
+      .eq("id", id);
+    throw relationError;
+  }
+
+  await removeUnreferencedProductImages(supabase, removedImageUrls);
   revalidateProductCacheFromServerAction(existing.slug);
   revalidateProductCacheFromServerAction(payload.slug);
 }
@@ -484,12 +679,30 @@ export async function deleteProduct(id: string) {
   const supabase = getSupabaseAdmin();
   const existing = await getProductByIdAdmin(id);
 
-  const { error } = await supabase.from("products").delete().eq("id", id);
+  if (!existing) {
+    throw new Error("Producto no encontrado");
+  }
+
+  const imageUrls = existing.images.map((image) => image.url);
+  const { count: orderItemCount, error: orderItemCountError } = await supabase
+    .from("order_items")
+    .select("id", { count: "exact", head: true })
+    .eq("product_id", id);
+  if (orderItemCountError) throw orderItemCountError;
+
+  const productMutation =
+    (orderItemCount ?? 0) > 0
+      ? supabase.from("products").update({ active: false }).eq("id", id)
+      : supabase.from("products").delete().eq("id", id);
+  const { error } = await productMutation;
   if (error) {
     throw error;
   }
 
-  revalidateProductCacheFromServerAction(existing?.slug);
+  if ((orderItemCount ?? 0) === 0) {
+    await removeUnreferencedProductImages(supabase, imageUrls);
+  }
+  revalidateProductCacheFromServerAction(existing.slug);
 }
 
 export async function renameProductBrand(

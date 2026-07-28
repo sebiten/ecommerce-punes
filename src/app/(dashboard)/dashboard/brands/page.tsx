@@ -3,8 +3,10 @@ import { renameProductBrand } from "@/actions/products";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { requireAdmin } from "@/actions/auth";
 
 export default async function BrandsPage() {
+  await requireAdmin();
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("products")

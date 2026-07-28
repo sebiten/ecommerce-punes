@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MapPin, Store, Truck } from "lucide-react";
@@ -44,6 +44,7 @@ export function CheckoutForm({
   const formId = "checkout-form";
   const router = useRouter();
   const { items, getTotal } = useCartStore();
+  const checkoutRequestId = useRef<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const defaultAddress = getDefaultAddress(addresses);
   const defaultName = splitFullName(defaultAddress?.name || profile?.full_name);
@@ -68,8 +69,18 @@ export function CheckoutForm({
     ) as DeliveryMethod,
     couponCode: "",
   });
+  const cartSignature = items
+    .map(
+      (item) =>
+        `${item.product_id}:${item.variant_id ?? "default"}:${item.quantity}`
+    )
+    .sort()
+    .join("|");
 
   useEffect(() => setIsMounted(true), []);
+  useEffect(() => {
+    checkoutRequestId.current = null;
+  }, [cartSignature]);
 
   const subtotal = getTotal();
   const shippingCost = getShippingCost(formData.shippingMethod, {
@@ -86,6 +97,7 @@ export function CheckoutForm({
     : settings.address_line;
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    checkoutRequestId.current = null;
     setFormData((current) => ({
       ...current,
       [event.target.name]: event.target.value,
@@ -93,6 +105,7 @@ export function CheckoutForm({
   };
 
   const handleAddressSelect = (value: string) => {
+    checkoutRequestId.current = null;
     setSelectedAddressId(value);
     setError(null);
 
@@ -118,6 +131,7 @@ export function CheckoutForm({
 
     try {
       const fullName = `${formData.name} ${formData.lastName}`.trim();
+      checkoutRequestId.current ??= crypto.randomUUID();
 
       if (
         profile &&
@@ -143,7 +157,10 @@ export function CheckoutForm({
 
       const response = await fetch("/api/checkout", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": checkoutRequestId.current,
+        },
         body: JSON.stringify({
           items,
           shippingMethod: formData.shippingMethod,
@@ -165,6 +182,9 @@ export function CheckoutForm({
 
       const data = await response.json();
       if (!response.ok) {
+        if (response.status < 500 && response.status !== 409) {
+          checkoutRequestId.current = null;
+        }
         throw new Error(data.error || "No se pudo iniciar el checkout");
       }
 
@@ -232,12 +252,13 @@ export function CheckoutForm({
             <CardContent>
               <RadioGroup
                 value={formData.shippingMethod}
-                onValueChange={(value) =>
+                onValueChange={(value) => {
+                  checkoutRequestId.current = null;
                   setFormData((current) => ({
                     ...current,
                     shippingMethod: value as DeliveryMethod,
-                  }))
-                }
+                  }));
+                }}
                 className="grid gap-3 sm:grid-cols-2"
               >
                 {settings.pickup_enabled ? (

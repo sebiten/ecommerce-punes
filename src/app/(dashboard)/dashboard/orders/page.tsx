@@ -5,17 +5,36 @@ import { Badge } from "@/components/ui/badge";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { formatPrice } from "@/lib/utils";
 import { getOrderStatusLabel } from "@/lib/commerce";
+import { requireAdmin } from "@/actions/auth";
 
-export default async function OrdersPage() {
+const PAGE_SIZE = 20;
+
+interface OrdersPageProps {
+  searchParams: Promise<{ page?: string }>;
+}
+
+export default async function OrdersPage({ searchParams }: OrdersPageProps) {
+  await requireAdmin();
   const supabase = getSupabaseAdmin();
+  const params = await searchParams;
+  const requestedPage = Number.parseInt(params.page || "1", 10);
+  const currentPage =
+    Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const from = (currentPage - 1) * PAGE_SIZE;
 
-  const { data: orders } = await supabase
+  const { data: orders, count, error } = await supabase
     .from("orders")
     .select(`
       *,
       items:order_items(count)
-    `)
-    .order("created_at", { ascending: false });
+    `, { count: "exact" })
+    .order("created_at", { ascending: false })
+    .range(from, from + PAGE_SIZE - 1);
+
+  if (error) throw error;
+
+  const totalOrders = count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalOrders / PAGE_SIZE));
 
   const statusColors: Record<string, string> = {
     pending: "bg-yellow-100 text-yellow-800",
@@ -32,7 +51,7 @@ export default async function OrdersPage() {
       <div>
         <h1 className="text-3xl font-bold">Órdenes</h1>
         <p className="text-muted-foreground">
-          {orders?.length || 0} órdenes en total
+          {totalOrders} órdenes en total
         </p>
       </div>
 
@@ -101,6 +120,38 @@ export default async function OrdersPage() {
           </div>
         </CardContent>
       </Card>
+
+      {totalPages > 1 ? (
+        <div className="flex items-center justify-between gap-4">
+          <p className="text-sm text-muted-foreground">
+            Página {currentPage} de {totalPages}
+          </p>
+          <div className="flex gap-2">
+            {currentPage > 1 ? (
+              <Button asChild variant="outline">
+                <Link href={`/dashboard/orders?page=${currentPage - 1}`}>
+                  Anterior
+                </Link>
+              </Button>
+            ) : (
+              <Button variant="outline" disabled>
+                Anterior
+              </Button>
+            )}
+            {currentPage < totalPages ? (
+              <Button asChild variant="outline">
+                <Link href={`/dashboard/orders?page=${currentPage + 1}`}>
+                  Siguiente
+                </Link>
+              </Button>
+            ) : (
+              <Button variant="outline" disabled>
+                Siguiente
+              </Button>
+            )}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

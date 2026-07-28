@@ -1,11 +1,17 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
+import { createHash } from "node:crypto";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { ensureUserProfile, getProfile, requireAdmin } from "@/actions/auth";
-import { createPreference, searchPaymentsByExternalReference } from "@/lib/mercadopago/client";
+import {
+  cancelPayment,
+  createPreference,
+  refundPayment,
+  searchPaymentsByExternalReference,
+} from "@/lib/mercadopago/client";
 import { revalidatePath } from "next/cache";
-import type { CartItem, OrderStatus, ShippingAddress } from "@/types";
+import type { OrderStatus, ShippingAddress } from "@/types";
 import { getShippingCost } from "@/lib/commerce";
 import { getStoreSettings } from "@/actions/store-settings";
 import { revalidateProductCacheFromRouteHandler } from "@/lib/cache/products";
@@ -17,6 +23,7 @@ import {
   reserveOrderStock,
 } from "@/lib/orders/payment-state";
 import { sendOrderEmail } from "@/lib/notifications/email";
+import { isStoreReadyForCheckout } from "@/lib/store-readiness";
 
 const ORDER_STATUS_VALUES: OrderStatus[] = [
   "pending",
@@ -42,6 +49,7 @@ type CheckoutItem = {
 
 type ResolvedCheckoutItem = CheckoutItem & {
   title: string;
+  slug: string;
   unitPrice: number;
   pictureUrl?: string;
 };
@@ -52,6 +60,16 @@ type MercadoPagoCheckoutItem = {
   unit_price: number;
   quantity: number;
   picture_url?: string;
+};
+
+type CheckoutAddressMetadata = ShippingAddress & {
+  _checkout_hash: string;
+  _checkout_fingerprint: string;
+  _checkout_preference?: {
+    id: string;
+    init_point: string;
+    sandbox_init_point?: string;
+  };
 };
 
 function createGuestAccessToken() {
@@ -70,7 +88,7 @@ function revalidateProductCacheAfterStockChange() {
   }
 }
 
-function normalizeCheckoutItems(items: CartItem[]) {
+function normalizeCheckoutItems(items: CheckoutItem[]) {
   const merged = new Map<string, CheckoutItem>();
 
   for (const item of items) {
@@ -84,6 +102,9 @@ function normalizeCheckoutItems(items: CartItem[]) {
 
     if (existing) {
       existing.quantity += item.quantity;
+      if (existing.quantity > 10) {
+        throw new Error("La cantidad máxima por producto es 10");
+      }
       continue;
     }
 
@@ -102,7 +123,7 @@ function normalizeCheckoutItems(items: CartItem[]) {
   return normalizedItems;
 }
 
-async function resolveCheckoutItems(items: CartItem[]) {
+async function resolveCheckoutItems(items: CheckoutItem[]) {
   const normalizedItems = normalizeCheckoutItems(items);
   const supabase = getSupabaseAdmin();
   const { data: products, error } = await supabase
@@ -110,6 +131,7 @@ async function resolveCheckoutItems(items: CartItem[]) {
     .select(`
       id,
       name,
+      slug,
       base_price,
       active,
       images:product_images(url, sort_order),
@@ -132,6 +154,13 @@ async function resolveCheckoutItems(items: CartItem[]) {
     const product = productsById.get(item.product_id);
     if (!product) {
       throw new Error("Uno de los productos ya no esta disponible");
+    }
+
+    if (
+      process.env.NODE_ENV === "production" &&
+      product.slug?.startsWith("gloria-demo-")
+    ) {
+      throw new Error("Este producto de demostración no está habilitado para la venta");
     }
 
     const sortedImages = [...(product.images || [])].sort(
@@ -157,6 +186,7 @@ async function resolveCheckoutItems(items: CartItem[]) {
 
     resolvedItems.push({
       ...item,
+      slug: product.slug,
       title: variantLabel ? `${product.name} - ${variantLabel}` : product.name,
       unitPrice: Number(variant?.price_override ?? product.base_price),
       pictureUrl: sortedImages[0]?.url,
@@ -164,6 +194,39 @@ async function resolveCheckoutItems(items: CartItem[]) {
   }
 
   return resolvedItems;
+}
+
+function createCheckoutHash(input: {
+  items: ResolvedCheckoutItem[];
+  shippingMethod: string;
+  shippingAddress: ShippingAddress;
+  couponCode: string | null;
+  total: number;
+}) {
+  const canonicalItems = input.items
+    .map((item) => ({
+      productId: item.product_id,
+      variantId: item.variant_id,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+    }))
+    .sort((a, b) =>
+      `${a.productId}:${a.variantId ?? ""}`.localeCompare(
+        `${b.productId}:${b.variantId ?? ""}`
+      )
+    );
+
+  return createHash("sha256")
+    .update(
+      JSON.stringify({
+        items: canonicalItems,
+        shippingMethod: input.shippingMethod,
+        shippingAddress: input.shippingAddress,
+        couponCode: input.couponCode,
+        total: input.total,
+      })
+    )
+    .digest("hex");
 }
 
 async function getCouponDiscount(couponCode: string | undefined, subtotal: number) {
@@ -339,18 +402,20 @@ export async function createOrder({
   shippingMethod,
   shippingAddress,
   couponCode,
+  checkoutRequestId,
+  requestFingerprint,
 }: {
-  items: CartItem[];
-  total?: number;
-  shippingCost?: number;
+  items: CheckoutItem[];
   shippingMethod: string;
   shippingAddress: ShippingAddress;
   couponCode?: string;
+  checkoutRequestId: string;
+  requestFingerprint: string;
 }) {
   const { userId } = await auth();
 
   if (userId) {
-    await ensureUserProfile(userId);
+    await ensureUserProfile();
   }
 
   const supabase = getSupabaseAdmin();
@@ -361,6 +426,16 @@ export async function createOrder({
     0
   );
   const settings = await getStoreSettings();
+
+  if (
+    process.env.E2E_MERCADOPAGO_FAKE !== "1" &&
+    !isStoreReadyForCheckout(settings)
+  ) {
+    throw new Error(
+      "La tienda todavía no habilitó las compras online. Contactanos por WhatsApp."
+    );
+  }
+
   const discount = await getCouponDiscount(couponCode, subtotal);
   const safeShippingMethod =
     shippingMethod === "local_delivery" ? "local_delivery" : "pickup";
@@ -395,17 +470,70 @@ export async function createOrder({
     localDeliveryCost: settings.local_delivery_cost,
   });
   const total = subtotal - discount.discount + shippingCost;
+  if (!Number.isFinite(total) || total <= 0) {
+    throw new Error("El total del carrito no es válido");
+  }
+
+  const checkoutHash = createCheckoutHash({
+    items: resolvedItems,
+    shippingMethod: safeShippingMethod,
+    shippingAddress,
+    couponCode: discount.code,
+    total,
+  });
   const guestAccessToken = userId ? null : createGuestAccessToken();
   const reservationExpiresAt = getOrderReservationExpiration();
+  const checkoutAddress: CheckoutAddressMetadata = {
+    ...shippingAddress,
+    _checkout_hash: checkoutHash,
+    _checkout_fingerprint: requestFingerprint,
+  };
+
+  const { data: existingOrder, error: existingOrderError } = await supabase
+    .from("orders")
+    .select("*")
+    .eq("id", checkoutRequestId)
+    .maybeSingle();
+
+  if (existingOrderError) {
+    throw existingOrderError;
+  }
+
+  if (existingOrder) {
+    const existingAddress =
+      existingOrder.shipping_address as CheckoutAddressMetadata | null;
+    const sameOwner = userId
+      ? existingOrder.clerk_user_id === userId
+      : !existingOrder.clerk_user_id &&
+        existingAddress?._checkout_fingerprint === requestFingerprint;
+
+    if (!sameOwner || existingAddress?._checkout_hash !== checkoutHash) {
+      throw new Error("El intento de compra no coincide con el checkout original");
+    }
+
+    if (
+      existingOrder.status !== "pending" ||
+      !existingAddress._checkout_preference?.init_point
+    ) {
+      throw new Error("Este intento de compra ya fue procesado o sigue en curso");
+    }
+
+    await clearUserCart(userId);
+    return {
+      order: existingOrder,
+      preference: existingAddress._checkout_preference,
+    };
+  }
 
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .insert({
+      id: checkoutRequestId,
       clerk_user_id: userId ?? null,
       total,
       shipping_cost: shippingCost,
       shipping_method: safeShippingMethod,
-      shipping_address: shippingAddress,
+      shipping_address: checkoutAddress,
       guest_access_token: guestAccessToken,
       coupon_code: discount.code,
       discount_total: discount.discount,
@@ -415,7 +543,12 @@ export async function createOrder({
     .select()
     .single();
 
-  if (orderError) throw orderError;
+  if (orderError) {
+    if (orderError.code === "23505") {
+      throw new Error("Este intento de compra ya se está procesando");
+    }
+    throw orderError;
+  }
 
   const { error: orderItemsError } = await supabase.from("order_items").insert(
     resolvedItems.map((item) => ({
@@ -476,7 +609,32 @@ export async function createOrder({
           { id: "bank_transfer" },
         ],
       },
+      statement_descriptor: "PILCHERIA GLORIA",
     });
+
+    const preferenceMetadata = {
+      id: String(preference.id),
+      init_point: String(preference.init_point),
+      ...(preference.sandbox_init_point
+        ? { sandbox_init_point: String(preference.sandbox_init_point) }
+        : {}),
+    };
+    const { error: preferenceMetadataError } = await supabase
+      .from("orders")
+      .update({
+        shipping_address: {
+          ...checkoutAddress,
+          _checkout_preference: preferenceMetadata,
+        },
+      })
+      .eq("id", order.id)
+      .eq("status", "pending");
+
+    if (preferenceMetadataError) {
+      throw preferenceMetadataError;
+    }
+
+    preference = preferenceMetadata;
     await claimOrderCoupon(order.id);
   } catch (error) {
     await cancelOrderAndRelease(
@@ -499,7 +657,7 @@ export async function getOrders() {
   const { userId } = await auth();
   if (!userId) throw new Error("User not authenticated");
 
-  await ensureUserProfile(userId);
+  await ensureUserProfile();
   const supabase = getSupabaseAdmin();
 
   const { data, error } = await supabase
@@ -592,7 +750,7 @@ export async function updateOrderStatus(id: string, status: string) {
   const supabase = getSupabaseAdmin();
   const { data: existingOrder, error: existingOrderError } = await supabase
     .from("orders")
-    .select("status, stock_restored, shipping_method")
+    .select("status, stock_restored, shipping_method, mercadopago_id, mercadopago_status")
     .eq("id", id)
     .single();
 
@@ -605,7 +763,7 @@ export async function updateOrderStatus(id: string, status: string) {
   }
 
   const allowedTransitions: Record<OrderStatus, OrderStatus[]> = {
-    pending: ["pending", "paid", "cancelled"],
+    pending: ["pending", "cancelled"],
     paid: ["paid", "ready_for_pickup", "shipped", "cancelled"],
     payment_review: ["payment_review", "cancelled"],
     ready_for_pickup: ["ready_for_pickup", "delivered", "cancelled"],
@@ -630,12 +788,38 @@ export async function updateOrderStatus(id: string, status: string) {
   }
 
   if (status === "cancelled") {
+    if (
+      existingOrder.mercadopago_id &&
+      (existingOrder.mercadopago_status === "approved" ||
+        ["paid", "ready_for_pickup", "shipped"].includes(currentStatus))
+    ) {
+      await refundPayment(existingOrder.mercadopago_id, id);
+    } else if (
+      existingOrder.mercadopago_id &&
+      ["pending", "in_process"].includes(existingOrder.mercadopago_status || "")
+    ) {
+      await cancelPayment(existingOrder.mercadopago_id);
+    }
+
     await restoreOrderStock(id);
+  }
+
+  const updatePayload: {
+    status: OrderStatus;
+    mercadopago_status?: string;
+  } = { status };
+  if (
+    status === "cancelled" &&
+    existingOrder.mercadopago_id &&
+    (existingOrder.mercadopago_status === "approved" ||
+      ["paid", "ready_for_pickup", "shipped"].includes(currentStatus))
+  ) {
+    updatePayload.mercadopago_status = "refunded";
   }
 
   const { error } = await supabase
     .from("orders")
-    .update({ status })
+    .update(updatePayload)
     .eq("id", id);
 
   if (error) throw error;

@@ -63,7 +63,12 @@ async function getProfileFromDb(userId: string) {
   return data ? buildProfileFromRow(data as ProfileRow) : null;
 }
 
-export async function ensureUserProfile(userId: string) {
+export async function ensureUserProfile() {
+  const { userId } = await auth();
+  if (!userId) {
+    throw new Error("Usuario no autenticado");
+  }
+
   const supabase = getSupabaseAdmin();
   const existingProfile = await getProfileFromDb(userId);
 
@@ -110,7 +115,7 @@ export async function getProfile(): Promise<Profile | null> {
   if (!userId) return null;
 
   try {
-    return await ensureUserProfile(userId);
+    return await ensureUserProfile();
   } catch (error) {
     reportDataFallback("current-profile", error);
     return null;
@@ -133,6 +138,7 @@ export async function requireAdmin(): Promise<void> {
 }
 
 export async function updateRole(profileId: string, role: "client" | "admin") {
+  await requireAdmin();
   const supabase = getSupabaseAdmin();
   const { error } = await supabase
     .from("profiles")
@@ -147,7 +153,7 @@ export async function getAddresses() {
   const { userId } = await auth();
   if (!userId) return [];
 
-  await ensureUserProfile(userId);
+  await ensureUserProfile();
   const supabase = getSupabaseAdmin();
 
   const { data, error } = await supabase
@@ -172,7 +178,7 @@ export async function addAddress(address: {
   const { userId } = await auth();
   if (!userId) throw new Error("User not authenticated");
 
-  await ensureUserProfile(userId);
+  await ensureUserProfile();
   const supabase = getSupabaseAdmin();
   const normalizedAddress = {
     name: address.name.trim(),
@@ -229,7 +235,7 @@ export async function deleteAddress(id: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("User not authenticated");
 
-  await ensureUserProfile(userId);
+  await ensureUserProfile();
   const supabase = getSupabaseAdmin();
   const { error } = await supabase
     .from("addresses")
@@ -247,7 +253,7 @@ export async function setDefaultAddress(id: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("User not authenticated");
 
-  await ensureUserProfile(userId);
+  await ensureUserProfile();
   const supabase = getSupabaseAdmin();
 
   const { error: resetError } = await supabase
@@ -273,7 +279,7 @@ export async function createProfile(): Promise<void> {
   const { userId } = await auth();
   if (!userId) return;
 
-  await ensureUserProfile(userId);
+  await ensureUserProfile();
 }
 
 export async function updateProfileContact(input: {
@@ -283,7 +289,7 @@ export async function updateProfileContact(input: {
   const { userId } = await auth();
   if (!userId) throw new Error("User not authenticated");
 
-  await ensureUserProfile(userId);
+  await ensureUserProfile();
   const supabase = getSupabaseAdmin();
   const payload = {
     full_name: input.fullName?.trim() || null,

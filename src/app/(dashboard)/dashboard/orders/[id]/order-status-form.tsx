@@ -31,7 +31,7 @@ export function OrderStatusForm({
     cancelled: "Cancelada",
   };
   const transitions: Record<OrderStatus, OrderStatus[]> = {
-    pending: ["pending", "paid", "cancelled"],
+    pending: ["pending", "cancelled"],
     paid: [
       "paid",
       shippingMethod === "local_delivery" ? "shipped" : "ready_for_pickup",
@@ -49,6 +49,16 @@ export function OrderStatusForm({
   }));
 
   const handleSubmit = () => {
+    if (
+      status === "cancelled" &&
+      ["paid", "ready_for_pickup", "shipped"].includes(currentStatus) &&
+      !window.confirm(
+        "Esta acción devolverá el pago completo en Mercado Pago y restaurará el stock. ¿Querés continuar?"
+      )
+    ) {
+      return;
+    }
+
     setError(null);
     startTransition(async () => {
       try {

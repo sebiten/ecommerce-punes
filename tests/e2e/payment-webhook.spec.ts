@@ -3,6 +3,7 @@ import { createHmac } from "node:crypto";
 import {
   cleanupCheckoutSmokeProduct,
   createExpiredOrderForProduct,
+  createPendingOrderForProduct,
   getLatestOrderForProduct,
   getOrderState,
   getVariantStock,
@@ -134,6 +135,37 @@ test("expired unpaid order releases reserved stock", async ({ page }) => {
       cancel_reason: "Reserva vencida sin pago",
     });
     await expect.poll(async () => getVariantStock(seed.variantId)).toBe(5);
+  } finally {
+    await cleanupCheckoutSmokeProduct(seed);
+  }
+});
+
+test("MercadoPago webhook rejects an invalid signature", async ({ page }) => {
+  const seed = await seedCheckoutSmokeProduct();
+
+  try {
+    const orderId = await createPendingOrderForProduct(seed);
+    const response = await page.request.post(
+      `/api/webhooks/mercadopago?type=payment&data.id=${orderId}`,
+      {
+        headers: {
+          "x-request-id": `invalid-${Date.now()}`,
+          "x-signature": `ts=${Math.floor(Date.now() / 1000)},v1=${"0".repeat(64)}`,
+        },
+        data: {
+          type: "payment",
+          data: { id: orderId },
+        },
+      }
+    );
+
+    expect(response.status()).toBe(401);
+    await expect.poll(async () => getOrderState(orderId)).toMatchObject({
+      status: "pending",
+      mercadopago_id: null,
+      mercadopago_status: null,
+    });
+    await expect.poll(async () => getVariantStock(seed.variantId)).toBe(4);
   } finally {
     await cleanupCheckoutSmokeProduct(seed);
   }

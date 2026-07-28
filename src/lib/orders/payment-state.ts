@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { getMercadoPagoAccountId } from "@/lib/mercadopago/client";
 
 export const ORDER_RESERVATION_MINUTES = 30;
 export const PENDING_PAYMENT_EXTENSION_HOURS = 24;
@@ -7,6 +8,9 @@ export type MercadoPagoPayment = {
   id: string | number;
   status: string;
   external_reference?: string | null;
+  transaction_amount?: number | null;
+  currency_id?: string | null;
+  collector_id?: string | number | null;
 };
 
 export function getOrderReservationExpiration() {
@@ -61,6 +65,51 @@ export async function applyMercadoPagoPayment(
   payment: MercadoPagoPayment
 ) {
   const supabase = getSupabaseAdmin();
+
+  if (payment.external_reference && payment.external_reference !== orderId) {
+    throw new Error("La referencia externa del pago no coincide con la orden");
+  }
+
+  if (payment.status === "approved") {
+    const { data: order, error: orderError } = await supabase
+      .from("orders")
+      .select("total")
+      .eq("id", orderId)
+      .single();
+
+    if (orderError || !order) {
+      throw orderError ?? new Error("Orden no encontrada");
+    }
+
+    const expectedAccountId = await getMercadoPagoAccountId();
+    const amountMatches =
+      Number.isFinite(Number(payment.transaction_amount)) &&
+      Math.abs(Number(payment.transaction_amount) - Number(order.total)) <= 0.01;
+    const currencyMatches = payment.currency_id === "ARS";
+    const collectorMatches =
+      String(payment.collector_id ?? "") === expectedAccountId;
+
+    if (!amountMatches || !currencyMatches || !collectorMatches) {
+      const { error: reviewError } = await supabase
+        .from("orders")
+        .update({
+          status: "payment_review",
+          mercadopago_id: String(payment.id),
+          mercadopago_status: payment.status,
+          cancel_reason:
+            "Pago recibido con importe, moneda o cuenta receptora inconsistente",
+        })
+        .eq("id", orderId)
+        .in("status", ["pending", "payment_review"]);
+
+      if (reviewError) {
+        throw new Error(reviewError.message);
+      }
+
+      return "payment_review";
+    }
+  }
+
   const { data, error } = await supabase.rpc("apply_order_payment", {
     p_order_id: orderId,
     p_payment_id: String(payment.id),

@@ -25,11 +25,24 @@ type OrderWithItems = {
 };
 
 function getSupabaseAdmin() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseUrl =
+    process.env.E2E_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey =
+    process.env.E2E_SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error("Faltan NEXT_PUBLIC_SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY");
+    throw new Error(
+      "Faltan E2E_SUPABASE_URL/E2E_SUPABASE_SERVICE_ROLE_KEY o las variables de Supabase"
+    );
+  }
+
+  const hostname = new URL(supabaseUrl).hostname;
+  const isLocalDatabase = ["localhost", "127.0.0.1"].includes(hostname);
+  if (!isLocalDatabase && process.env.E2E_ALLOW_REMOTE_DB !== "1") {
+    throw new Error(
+      "Playwright rechazó una base remota. Usá una DB e2e o definí E2E_ALLOW_REMOTE_DB=1 de forma explícita."
+    );
   }
 
   return createClient(supabaseUrl, serviceRoleKey, {
@@ -184,7 +197,11 @@ export async function getLatestOrderForProduct(productId: string) {
   return data as OrderWithItems;
 }
 
-export async function createExpiredOrderForProduct(seed: SeededProduct) {
+async function createReservedOrderForProduct(
+  seed: SeededProduct,
+  reservationExpiresAt: string,
+  email: string
+) {
   const supabase = getSupabaseAdmin();
   const { data: order, error: orderError } = await supabase
     .from("orders")
@@ -194,11 +211,11 @@ export async function createExpiredOrderForProduct(seed: SeededProduct) {
       shipping_method: "pickup",
       shipping_address: {
         name: "QA Gloria",
-        email: "qa+expired@example.com",
+        email,
         phone: "3884000000",
       },
       status: "pending",
-      reservation_expires_at: new Date(Date.now() - 60_000).toISOString(),
+      reservation_expires_at: reservationExpiresAt,
     })
     .select("id")
     .single();
@@ -230,11 +247,27 @@ export async function createExpiredOrderForProduct(seed: SeededProduct) {
   return order.id;
 }
 
+export function createExpiredOrderForProduct(seed: SeededProduct) {
+  return createReservedOrderForProduct(
+    seed,
+    new Date(Date.now() - 60_000).toISOString(),
+    "qa+expired@example.com"
+  );
+}
+
+export function createPendingOrderForProduct(seed: SeededProduct) {
+  return createReservedOrderForProduct(
+    seed,
+    new Date(Date.now() + 30 * 60_000).toISOString(),
+    "qa+pending@example.com"
+  );
+}
+
 export async function getOrderState(orderId: string) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("orders")
-    .select("status, stock_reserved, stock_restored, cancel_reason")
+    .select("status, stock_reserved, stock_restored, cancel_reason, mercadopago_id, mercadopago_status")
     .eq("id", orderId)
     .single();
 

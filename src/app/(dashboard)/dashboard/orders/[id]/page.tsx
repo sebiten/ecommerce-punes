@@ -11,6 +11,7 @@ import {
   getOrderStatusLabel,
 } from "@/lib/commerce";
 import { OrderStatusForm } from "./order-status-form";
+import { requireAdmin } from "@/actions/auth";
 
 interface DashboardOrderDetailPageProps {
   params: Promise<{ id: string }>;
@@ -28,6 +29,7 @@ function normalizeArgentinaWhatsAppPhone(phone: string) {
 export default async function DashboardOrderDetailPage({
   params,
 }: DashboardOrderDetailPageProps) {
+  await requireAdmin();
   const { id } = await params;
 
   let order = null;

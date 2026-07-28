@@ -4,6 +4,7 @@ import { revalidateProductCacheFromRouteHandler } from "@/lib/cache/products";
 import { getPayment } from "@/lib/mercadopago/client";
 import { applyMercadoPagoPayment } from "@/lib/orders/payment-state";
 import { sendOrderEmail } from "@/lib/notifications/email";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,13 +33,23 @@ function isValidWebhookSignature({
   signatureHeader: string | null;
 }) {
   const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
-  if (!secret) {
-    console.warn("Falta MERCADOPAGO_WEBHOOK_SECRET; se validara contra la API de MercadoPago");
+  if (!secret) return false;
+
+  const signature = parseSignatureHeader(signatureHeader);
+  if (
+    !signature?.ts ||
+    !signature.v1 ||
+    !requestId ||
+    !/^[a-f0-9]{64}$/i.test(signature.v1)
+  ) {
     return false;
   }
 
-  const signature = parseSignatureHeader(signatureHeader);
-  if (!signature?.ts || !signature.v1 || !requestId) {
+  const timestamp = Number(signature.ts);
+  if (
+    !Number.isFinite(timestamp) ||
+    Math.abs(Date.now() / 1000 - timestamp) > 15 * 60
+  ) {
     return false;
   }
 
@@ -65,6 +76,14 @@ export async function POST(request: Request) {
     );
 
     if (type === "payment" && paymentId) {
+      if (!process.env.MERCADOPAGO_WEBHOOK_SECRET) {
+        console.error("Falta MERCADOPAGO_WEBHOOK_SECRET");
+        return NextResponse.json(
+          { error: "Webhook no configurado" },
+          { status: 503 }
+        );
+      }
+
       const isValidSignature = isValidWebhookSignature({
         dataId: paymentId,
         requestId: request.headers.get("x-request-id"),
@@ -72,21 +91,38 @@ export async function POST(request: Request) {
       });
 
       if (!isValidSignature) {
-        console.warn("Webhook MercadoPago sin firma valida; se valida el pago con la API", {
+        console.warn("Webhook Mercado Pago rechazado por firma inválida", {
           paymentId,
           hasRequestId: Boolean(request.headers.get("x-request-id")),
           hasSignature: Boolean(request.headers.get("x-signature")),
         });
+        return NextResponse.json({ error: "Firma inválida" }, { status: 401 });
       }
 
-      const payment =
-        process.env.E2E_MERCADOPAGO_FAKE === "1"
-          ? {
-              id: paymentId,
-              status: "approved",
-              external_reference: paymentId,
-            }
-          : await getPayment(paymentId);
+      let payment;
+      if (process.env.E2E_MERCADOPAGO_FAKE === "1") {
+        const supabase = getSupabaseAdmin();
+        const { data: order, error } = await supabase
+          .from("orders")
+          .select("total")
+          .eq("id", paymentId)
+          .single();
+
+        if (error || !order) {
+          throw error ?? new Error("Orden e2e no encontrada");
+        }
+
+        payment = {
+          id: paymentId,
+          status: "approved",
+          external_reference: paymentId,
+          transaction_amount: Number(order.total),
+          currency_id: "ARS",
+          collector_id: "e2e-collector",
+        };
+      } else {
+        payment = await getPayment(paymentId);
+      }
       const externalReference = payment.external_reference;
 
       if (externalReference) {

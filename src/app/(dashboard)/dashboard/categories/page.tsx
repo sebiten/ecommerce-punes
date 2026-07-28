@@ -2,6 +2,7 @@ import { CategoriesManager } from "@/components/dashboard/categories-manager";
 import { getCategoriesAdmin } from "@/actions/categories";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { requireAdmin } from "@/actions/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,7 @@ function getErrorMessage(error: unknown) {
 }
 
 export default async function CategoriesPage() {
+  await requireAdmin();
   try {
     const categories = await getCategoriesAdmin();
 

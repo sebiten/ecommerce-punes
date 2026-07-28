@@ -128,7 +128,7 @@ export async function getProductReviewEligibility(productId: string) {
     .from("orders")
     .select("id, status, items:order_items!inner(product_id)")
     .eq("clerk_user_id", userId)
-    .in("status", ["paid", "shipped", "delivered"])
+    .eq("status", "delivered")
     .eq("items.product_id", productId)
     .order("created_at", { ascending: false })
     .limit(1);
@@ -146,7 +146,7 @@ export async function getProductReviewEligibility(productId: string) {
     canReview: Boolean(orders?.[0]),
     reason: orders?.[0]
       ? null
-      : "Solo clientes con una compra pagada pueden dejar reseña.",
+      : "Podés dejar una reseña cuando el pedido figure como entregado.",
     existingReview: existingReview ? mapReview(existingReview) : null,
     orderId: orders?.[0]?.id ?? null,
   };
@@ -173,7 +173,7 @@ export async function submitProductReview(
     return { ok: false, message: "Completa la reseña con datos válidos." };
   }
 
-  const profile = await ensureUserProfile(userId);
+  const profile = await ensureUserProfile();
   const eligibility = await getProductReviewEligibility(parsed.data.productId);
 
   if (!eligibility.canReview || !eligibility.orderId) {
@@ -193,7 +193,7 @@ export async function submitProductReview(
       title: parsed.data.title || null,
       comment: parsed.data.comment,
       reviewer_name: profile.full_name || profile.email,
-      approved: true,
+      approved: false,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "product_id,clerk_user_id" }
@@ -206,7 +206,10 @@ export async function submitProductReview(
 
   updateTag(PRODUCT_REVIEWS_CACHE_TAG);
   revalidatePath(`/products/${parsed.data.productSlug}`);
-  return { ok: true, message: "Reseña guardada." };
+  return {
+    ok: true,
+    message: "Reseña recibida. Se publicará después de revisarla.",
+  };
 }
 
 export async function getProductReviewsAdmin() {
