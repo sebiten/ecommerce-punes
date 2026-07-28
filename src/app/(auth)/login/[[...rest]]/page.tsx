@@ -11,7 +11,13 @@ export default function LoginPage() {
             Ingresá a tu cuenta para ver tus pedidos y gestionar tus datos
           </p>
         </div>
-        <SignIn />
+        <SignIn
+          path="/login"
+          routing="path"
+          signUpUrl="/register"
+          withSignUp
+          transferable
+        />
         <p className="text-sm text-muted-foreground">
           ¿No tenés cuenta?{" "}
           <Link href="/register" className="text-primary hover:underline">

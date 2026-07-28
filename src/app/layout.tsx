@@ -102,6 +102,10 @@ export default function RootLayout({
         <ClerkProvider
           localization={esES as any}
           publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY!}
+          signInUrl="/login"
+          signUpUrl="/register"
+          signInFallbackRedirectUrl="/"
+          signUpFallbackRedirectUrl="/"
         >
           <ThemeProvider>{children}</ThemeProvider>
         </ClerkProvider>

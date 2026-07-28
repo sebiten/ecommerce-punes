@@ -12,7 +12,7 @@ export default function RegisterPage() {
             pedidos
           </p>
         </div>
-        <SignUp />
+        <SignUp path="/register" routing="path" signInUrl="/login" />
         <p className="text-sm text-muted-foreground">
           ¿Ya tenés cuenta?{" "}
           <Link href="/login" className="text-primary hover:underline">
