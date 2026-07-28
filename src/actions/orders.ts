@@ -123,7 +123,10 @@ function normalizeCheckoutItems(items: CheckoutItem[]) {
   return normalizedItems;
 }
 
-async function resolveCheckoutItems(items: CheckoutItem[]) {
+async function resolveCheckoutItems(
+  items: CheckoutItem[],
+  options: { allowDemoProducts: boolean }
+) {
   const normalizedItems = normalizeCheckoutItems(items);
   const supabase = getSupabaseAdmin();
   const { data: products, error } = await supabase
@@ -158,7 +161,8 @@ async function resolveCheckoutItems(items: CheckoutItem[]) {
 
     if (
       process.env.NODE_ENV === "production" &&
-      product.slug?.startsWith("gloria-demo-")
+      product.slug?.startsWith("gloria-demo-") &&
+      !options.allowDemoProducts
     ) {
       throw new Error("Este producto de demostración no está habilitado para la venta");
     }
@@ -413,14 +417,13 @@ export async function createOrder({
   requestFingerprint: string;
 }) {
   const { userId } = await auth();
-
-  if (userId) {
-    await ensureUserProfile();
-  }
+  const profile = userId ? await ensureUserProfile() : null;
 
   const supabase = getSupabaseAdmin();
   const appUrl = getAppUrl();
-  const resolvedItems = await resolveCheckoutItems(items);
+  const resolvedItems = await resolveCheckoutItems(items, {
+    allowDemoProducts: profile?.role === "admin",
+  });
   const subtotal = resolvedItems.reduce(
     (sum, item) => sum + item.unitPrice * item.quantity,
     0
