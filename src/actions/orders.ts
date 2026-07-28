@@ -432,6 +432,7 @@ export async function createOrder({
 
   if (
     process.env.E2E_MERCADOPAGO_FAKE !== "1" &&
+    profile?.role !== "admin" &&
     !isStoreReadyForCheckout(settings)
   ) {
     throw new Error(
