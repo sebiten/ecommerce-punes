@@ -105,11 +105,11 @@ export function Header() {
               </div>
               <UserButton />
             </>
-          ) : isLoaded ? (
+          ) : (
             <Button variant="ghost" size="sm" className="hidden sm:inline-flex" asChild>
               <Link href="/login">Ingresar</Link>
             </Button>
-          ) : null}
+          )}
 
           <Button
             variant="outline"
