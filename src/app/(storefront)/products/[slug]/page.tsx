@@ -41,6 +41,7 @@ export async function generateMetadata({
   const product = await getProductBySlug(slug);
   if (!product) return { title: "Producto no encontrado" };
 
+  const isDemoProduct = product.slug.startsWith("gloria-demo-");
   const price = getProductPrice(product);
   const productDescription = product.description?.trim();
   const brandTitle =
@@ -58,6 +59,7 @@ export async function generateMetadata({
     title: `${product.name}${brandTitle}`,
     description,
     alternates: { canonical: `/products/${product.slug}` },
+    robots: isDemoProduct ? { index: false, follow: false } : undefined,
     openGraph: {
       type: "website",
       title: product.name,

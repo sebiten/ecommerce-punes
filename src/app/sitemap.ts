@@ -2,6 +2,10 @@ import type { MetadataRoute } from "next";
 import { getBrands, getCategories, getProducts } from "@/actions/products";
 import { absoluteUrl } from "@/lib/site";
 
+function getXmlSafeImageUrl(url: string) {
+  return url.replaceAll("&", "&amp;");
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [products, categories, brands] = await Promise.all([
     getProducts(),
@@ -9,6 +13,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     getBrands(),
   ]);
   const now = new Date();
+  const indexableProducts = products.filter(
+    (product) => !product.slug.startsWith("gloria-demo-")
+  );
 
   return [
     {
@@ -53,13 +60,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly" as const,
       priority: 0.7,
     })),
-    ...products.map((product) => ({
+    ...indexableProducts.map((product) => ({
       url: absoluteUrl(`/products/${product.slug}`),
       lastModified: new Date(product.createdAt),
       changeFrequency: "weekly" as const,
       priority: 0.8,
       images: product.images.length
-        ? product.images.map((image) => image.url)
+        ? product.images.map((image) => getXmlSafeImageUrl(image.url))
         : undefined,
     })),
   ];
