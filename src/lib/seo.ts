@@ -103,11 +103,8 @@ export function getStorefrontJsonLd(settings: StoreSettings) {
             "Pantalones escolares",
             "Medias escolares",
           ].map((name) => ({
-            "@type": "Offer",
-            itemOffered: {
-              "@type": "Product",
-              name,
-            },
+            "@type": "OfferCatalog",
+            name,
           })),
         },
         {
