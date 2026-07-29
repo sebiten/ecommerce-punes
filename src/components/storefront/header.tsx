@@ -19,10 +19,10 @@ import { useCartStore } from "@/hooks/use-cart";
 import { isAdmin } from "@/actions/auth";
 
 const NAV_ITEMS = [
+  { href: "/uniformes-escolares-ledesma", label: "Uniformes" },
   { href: "/products", label: "Todo" },
   { href: "/categories/mujer", label: "Mujer" },
   { href: "/categories/hombre", label: "Hombre" },
-  { href: "/uniformes-escolares-ledesma", label: "Uniformes" },
   { href: "/products?q=remera", label: "Remeras" },
   { href: "/products?q=jean", label: "Jeans" },
 ];

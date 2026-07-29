@@ -91,7 +91,7 @@ export function getStorefrontJsonLd(settings: StoreSettings) {
       : undefined,
     hasOfferCatalog: {
       "@type": "OfferCatalog",
-      name: "Ropa y uniformes escolares",
+      name: "Uniformes escolares y ropa",
       itemListElement: [
         {
           "@type": "OfferCatalog",

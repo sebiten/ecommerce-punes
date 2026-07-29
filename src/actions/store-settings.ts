@@ -43,7 +43,7 @@ const defaultStoreSettings: StoreSettings = {
   instagram_url: null,
   facebook_url: null,
   footer_text:
-    "Ropa para mujer y hombre en Libertador General San Martín. Retiro coordinado y atención por WhatsApp.",
+    "Uniformes escolares y ropa en Libertador General San Martín. Retiro coordinado y atención por WhatsApp.",
   pickup_enabled: true,
   local_delivery_enabled: false,
   local_delivery_cost: 0,

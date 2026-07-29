@@ -1,0 +1,56 @@
+.viewport {
+  overflow: hidden;
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 5%,
+    black 95%,
+    transparent
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 5%,
+    black 95%,
+    transparent
+  );
+}
+
+.track {
+  display: flex;
+  width: max-content;
+  gap: 1rem;
+  animation: school-marquee 48s linear infinite;
+}
+
+.group {
+  display: flex;
+  gap: 1rem;
+}
+
+.viewport:hover .track,
+.viewport:focus-within .track {
+  animation-play-state: paused;
+}
+
+@keyframes school-marquee {
+  to {
+    transform: translateX(calc(-50% - 0.5rem));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .viewport {
+    overflow-x: auto;
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+
+  .track {
+    animation: none;
+  }
+
+  .duplicate {
+    display: none;
+  }
+}

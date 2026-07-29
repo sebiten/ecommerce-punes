@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { GloriaWordmark } from "@/components/brand/gloria-wordmark";
 
 export const alt =
-  "Pilchería Gloria, ropa y uniformes escolares en Ledesma, Jujuy";
+  "Pilchería Gloria, uniformes escolares y ropa en Ledesma, Jujuy";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -78,7 +78,7 @@ export default function OpenGraphImage() {
               color: "#486139",
             }}
           >
-            Ropa y uniformes escolares · Ledesma, Jujuy
+            Uniformes escolares y ropa · Ledesma, Jujuy
           </div>
         </div>
       </div>

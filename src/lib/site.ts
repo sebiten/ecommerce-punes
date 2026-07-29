@@ -5,7 +5,7 @@ export const SITE_REGION = "Jujuy";
 export const SITE_REGION_CODE = "AR-Y";
 export const SITE_COUNTRY = "Argentina";
 export const SITE_DESCRIPTION =
-  "Tienda de ropa y uniformes escolares en Libertador General San Martín, Ledesma, Jujuy. Remeras, camisas, pantalones y medias en todos los talles.";
+  "Uniformes escolares y ropa en Libertador General San Martín, Ledesma, Jujuy. Remeras, camisas, pantalones y medias para primaria y secundaria en todos los talles.";
 export const SCHOOL_UNIFORMS_DESCRIPTION =
   "Uniformes escolares para escuelas primarias y secundarias de Ledesma, Jujuy. Remeras, camisas, pantalones, medias y todos los talles.";
 

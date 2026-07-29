@@ -12,15 +12,16 @@ import { getProducts } from "@/actions/products";
 import { getStoreSettings } from "@/actions/store-settings";
 import { ProductGrid } from "@/components/storefront/product-grid";
 import { PaymentConfidence } from "@/components/storefront/payment-confidence";
+import { SchoolUniformsCarousel } from "@/components/storefront/school-uniforms-carousel";
 import { Button } from "@/components/ui/button";
 import { SITE_DESCRIPTION } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Ropa y uniformes escolares en Ledesma, Jujuy",
+  title: "Uniformes escolares en Ledesma, Jujuy",
   description: SITE_DESCRIPTION,
   alternates: { canonical: "/" },
   openGraph: {
-    title: "Ropa y uniformes escolares en Ledesma, Jujuy",
+    title: "Uniformes escolares en Ledesma, Jujuy",
     description: SITE_DESCRIPTION,
     url: "/",
   },
@@ -71,8 +72,9 @@ const collectionLinks = [
 ];
 
 export default async function HomePage() {
-  const [products, settings] = await Promise.all([
+  const [products, schoolUniformProducts, settings] = await Promise.all([
     getProducts({ limit: 12 }),
+    getProducts({ categorySlug: "uniformes-escolares", limit: 8 }),
     getStoreSettings(),
   ]);
   const featuredProducts = products.filter((product) => product.featured).slice(0, 8);
@@ -83,9 +85,12 @@ export default async function HomePage() {
         Number(product.compareAtPrice) > Number(product.basePrice)
     )
     .slice(0, 8);
-  const showcaseProducts = featuredProducts.length
-    ? featuredProducts
-    : products.slice(0, 8);
+  const showcasingUniforms = schoolUniformProducts.length > 0;
+  const showcaseProducts = showcasingUniforms
+    ? schoolUniformProducts
+    : featuredProducts.length
+      ? featuredProducts
+      : products.slice(0, 8);
   const hasWhatsapp = Boolean(settings.whatsapp_phone);
   const whatsappUrl = hasWhatsapp
     ? `https://wa.me/${settings.whatsapp_phone?.replace(/\D/g, "")}?text=${encodeURIComponent(
@@ -115,14 +120,14 @@ export default async function HomePage() {
         <div className="container relative mx-auto grid min-h-[calc(100svh-4rem)] items-center gap-8 px-4 py-10 lg:grid-cols-[0.88fr_1.12fr] lg:py-14">
           <div className="animate-gloria-rise z-10 max-w-2xl">
             <p className="mb-5 text-sm font-bold uppercase tracking-[0.2em] text-gloria-700">
-              Ropa en Libertador General San Martín
+              Uniformes escolares en Ledesma
             </p>
             <h1 className="font-display text-balance text-5xl leading-[0.94] tracking-[-0.045em] text-gloria-950 sm:text-7xl lg:text-[5.6rem]">
-              Vestite como te sentís.
+              Todo el uniforme. Un solo lugar.
             </h1>
             <p className="mt-6 max-w-xl text-base leading-7 text-muted-foreground sm:text-lg">
-              Prendas para mujer y hombre, con talles y stock visibles. Elegí
-              online y {fulfillmentCopy}.
+              Remeras, camisas, pantalones y medias para primaria y secundaria.
+              Elegí el talle online y {fulfillmentCopy}.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Button
@@ -130,8 +135,8 @@ export default async function HomePage() {
                 className="min-h-12 rounded-full bg-gloria-500 px-7 text-gloria-950 hover:bg-gloria-400"
                 asChild
               >
-                <Link href="/products">
-                  Ver toda la ropa
+                <Link href="/uniformes-escolares-ledesma">
+                  Buscar por escuela
                   <ArrowRight className="ml-2 size-4" />
                 </Link>
               </Button>
@@ -141,13 +146,13 @@ export default async function HomePage() {
                 className="min-h-12 rounded-full border-gloria-300 bg-white px-7 text-gloria-800"
                 asChild
               >
-                <Link href="/categories/mujer">Explorar mujer</Link>
+                <Link href="/products">Ver toda la ropa</Link>
               </Button>
             </div>
             <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold text-gloria-900">
               <span className="inline-flex items-center gap-2">
                 <PackageCheck className="size-4 text-gloria-600" />
-                Stock por talle
+                Talles infantil, juvenil y adulto
               </span>
               {settings.pickup_enabled ? (
                 <span className="inline-flex items-center gap-2">
@@ -171,8 +176,8 @@ export default async function HomePage() {
           <div className="relative min-h-[34rem] sm:min-h-[42rem]">
             <div className="absolute inset-y-0 right-0 w-[88%] overflow-hidden rounded-[2.5rem_0.8rem_2.5rem_0.8rem] bg-gloria-100 shadow-[0_35px_80px_-45px_oklch(0.35_0.085_134/0.5)]">
               <Image
-                src={EDITORIAL_IMAGES.hero}
-                alt="Selección de indumentaria en una tienda contemporánea"
+                src={EDITORIAL_IMAGES.uniforms}
+                alt="Uniformes escolares para primaria y secundaria"
                 fill
                 priority
                 className="object-cover"
@@ -181,9 +186,11 @@ export default async function HomePage() {
               <div className="absolute inset-0 bg-gradient-to-t from-gloria-950/45 via-transparent to-transparent" />
             </div>
             <div className="animate-gloria-float absolute bottom-8 left-0 max-w-[15rem] rounded-3xl border border-gloria-200 bg-white p-5 shadow-xl">
-              <p className="font-display text-2xl text-gloria-950">Tu talle, claro.</p>
+              <p className="font-display text-2xl text-gloria-950">
+                Decinos tu escuela.
+              </p>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Mirá colores, precio y disponibilidad antes de comprar.
+                Confirmamos modelo, talle y stock antes de preparar el pedido.
               </p>
             </div>
           </div>
@@ -191,6 +198,8 @@ export default async function HomePage() {
       </section>
 
       <PaymentConfidence />
+
+      <SchoolUniformsCarousel whatsappPhone={settings.whatsapp_phone} />
 
       <section className="container mx-auto px-4 py-16 sm:py-20">
         <div className="mb-8 flex items-end justify-between gap-5">
@@ -244,10 +253,12 @@ export default async function HomePage() {
           <div className="mb-8 flex items-end justify-between gap-4">
             <div>
               <p className="text-sm font-bold uppercase tracking-[0.18em] text-gloria-700">
-                Recién elegidos
+                {showcasingUniforms ? "Por escuela y talle" : "Recién elegidos"}
               </p>
               <h2 className="mt-2 font-display text-3xl text-gloria-950 sm:text-5xl">
-                Prendas destacadas
+                {showcasingUniforms
+                  ? "Uniformes escolares disponibles"
+                  : "Prendas destacadas"}
               </h2>
             </div>
             <Button variant="outline" className="hidden rounded-full sm:flex" asChild>
@@ -290,7 +301,7 @@ export default async function HomePage() {
               Pilchería en Libertador General San Martín
             </p>
             <h2 className="mt-3 font-display text-3xl text-gloria-950 sm:text-5xl">
-              Ropa y uniformes escolares en Ledesma, Jujuy
+              Uniformes escolares y ropa en Ledesma, Jujuy
             </h2>
             <p className="mt-4 max-w-2xl leading-7 text-muted-foreground">
               Encontrá indumentaria para mujer y hombre, además de uniformes

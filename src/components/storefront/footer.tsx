@@ -19,7 +19,7 @@ export function Footer({ settings }: FooterProps) {
     /\bpunes?\b|colch[oó]n|sommier|descanso|m[aá]s de \d+ a[nñ]os/i.test(
       settings.footer_text
     )
-      ? "Ropa para mujer y hombre en Libertador General San Martín. Retiro coordinado y atención por WhatsApp."
+      ? "Uniformes escolares y ropa en Libertador General San Martín. Retiro coordinado y atención por WhatsApp."
       : settings.footer_text;
 
   return (
@@ -84,7 +84,7 @@ export function Footer({ settings }: FooterProps) {
               © {new Date().getFullYear()} {SITE_NAME}. Todos los derechos reservados.
             </p>
             <p className="mt-2 max-w-xl leading-5">
-              Ropa y uniformes escolares para primaria y secundaria en
+              Uniformes escolares y ropa para primaria y secundaria en
               Libertador General San Martín, Ledesma, Jujuy.
             </p>
           </div>

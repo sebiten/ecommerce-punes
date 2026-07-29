@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
   ),
   title: {
-    default: `${SITE_NAME} | Ropa y uniformes escolares en Ledesma`,
+    default: `${SITE_NAME} | Uniformes escolares en Ledesma, Jujuy`,
     template: `%s | ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
@@ -66,13 +66,13 @@ export const metadata: Metadata = {
     type: "website",
     locale: "es_AR",
     siteName: SITE_NAME,
-    title: `${SITE_NAME} | Ropa y uniformes escolares en ${SITE_DEPARTMENT}`,
+    title: `${SITE_NAME} | Uniformes escolares en ${SITE_DEPARTMENT}`,
     description: SITE_DESCRIPTION,
     url: "/",
   },
   twitter: {
     card: "summary_large_image",
-    title: `${SITE_NAME} | Ropa y uniformes escolares`,
+    title: `${SITE_NAME} | Uniformes escolares en Ledesma`,
     description: SITE_DESCRIPTION,
   },
   other: {

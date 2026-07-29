@@ -14,6 +14,7 @@ import { getProducts } from "@/actions/products";
 import { getStoreSettings } from "@/actions/store-settings";
 import { JsonLd } from "@/components/seo/json-ld";
 import { ProductGrid } from "@/components/storefront/product-grid";
+import { SchoolUniformsCarousel } from "@/components/storefront/school-uniforms-carousel";
 import { Button } from "@/components/ui/button";
 import { getBreadcrumbJsonLd } from "@/lib/seo";
 import {
@@ -227,6 +228,8 @@ export default async function SchoolUniformsLedesmaPage() {
           </div>
         </div>
       </section>
+
+      <SchoolUniformsCarousel whatsappPhone={settings.whatsapp_phone} />
 
       <section className="border-b border-border bg-white py-14 sm:py-18">
         <div className="container mx-auto px-4">
