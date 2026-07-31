@@ -10,13 +10,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  createProduct,
-  updateProduct,
+  saveProduct,
   uploadProductImage,
 } from "@/actions/products";
 import { slugify } from "@/lib/utils";
 
 interface VariantFormValue {
+  formId: string;
   size: string;
   color: string;
   sku: string;
@@ -38,6 +38,7 @@ interface ProductFormProps {
 
 const defaultVariants: VariantFormValue[] = [
   {
+    formId: "default-variant",
     size: "S",
     color: "",
     sku: "",
@@ -142,6 +143,7 @@ export function ProductForm({
   const [variants, setVariants] = useState<VariantFormValue[]>(
     product?.variants?.length
       ? product.variants.map((variant) => ({
+          formId: variant.id,
           size: variant.size,
           color: variant.color ?? "",
           sku: variant.sku ?? "",
@@ -234,16 +236,24 @@ export function ProductForm({
         active,
         images: images.filter((image) => image.url.trim()),
         variants: normalizeVariantValues(variants).map((variant) => ({
-          ...variant,
+          size: variant.size,
           color: variant.color || null,
           sku: variant.sku || null,
+          priceOverride: variant.priceOverride,
+          stock: variant.stock,
+          active: variant.active,
         })),
       };
 
-      if (mode === "create") {
-        await createProduct(payload);
-      } else {
-        await updateProduct(product!.id, payload);
+      const result = await saveProduct(
+        payload,
+        mode === "edit" ? product!.id : undefined
+      );
+
+      if (!result.ok) {
+        setError(result.error);
+        setIsSubmitting(false);
+        return;
       }
 
       window.location.href = "/dashboard/products";
@@ -316,7 +326,7 @@ export function ProductForm({
               className="min-h-28 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
             <p className="mt-2 text-xs text-muted-foreground">
-              Usá medidas reales del fabricante. No copies una tabla genérica si la prenda tiene otro calce.
+              Usá medidas reales del fabricante. No copies una tabla genérica si la prenda tiene otro calce. Es obligatoria si el producto está activo.
             </p>
           </Field>
 
@@ -364,6 +374,7 @@ export function ProductForm({
               setVariants((current) => [
                 ...current,
                 {
+                  formId: crypto.randomUUID(),
                   size: "",
                   color: "",
                   sku: "",
@@ -381,7 +392,7 @@ export function ProductForm({
         <CardContent className="space-y-4">
           {variants.map((variant, index) => (
             <div
-              key={`${variant.size}-${variant.color}-${index}`}
+              key={variant.formId}
               className="grid gap-4 rounded-xl border p-4 md:grid-cols-[0.75fr_1fr_1fr_1fr_0.75fr_auto]"
             >
               <Field label="Talle">

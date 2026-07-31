@@ -79,6 +79,39 @@ const productPayloadSchema = z
 
 type ProductPayload = z.infer<typeof productPayloadSchema>;
 
+type ProductMutationResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+function getProductMutationError(error: unknown) {
+  if (error instanceof z.ZodError) {
+    return Array.from(new Set(error.issues.map((issue) => issue.message))).join(
+      ". "
+    );
+  }
+
+  if (error && typeof error === "object" && "code" in error) {
+    const databaseError = error as {
+      code?: string;
+      message?: string;
+      constraint?: string;
+    };
+    const details = `${databaseError.constraint ?? ""} ${databaseError.message ?? ""}`;
+
+    if (databaseError.code === "23505") {
+      if (details.includes("sku")) {
+        return "Ese SKU ya está asignado a otra variante";
+      }
+      if (details.includes("product_variants")) {
+        return "Ya existe una variante con ese talle y color";
+      }
+      return "Ya existe otro producto con ese nombre o dirección web";
+    }
+  }
+
+  return "No se pudo guardar el producto. Revisá los datos e intentá nuevamente";
+}
+
 const PRODUCT_IMAGES_BUCKET = "product-images";
 const MAX_PRODUCT_IMAGE_SIZE = 4 * 1024 * 1024;
 
@@ -581,6 +614,24 @@ export async function createProduct(input: ProductPayload) {
   revalidateProductCacheFromServerAction(product.slug);
 
   return product;
+}
+
+export async function saveProduct(
+  input: ProductPayload,
+  productId?: string
+): Promise<ProductMutationResult> {
+  try {
+    if (productId) {
+      await updateProduct(productId, input);
+    } else {
+      await createProduct(input);
+    }
+
+    return { ok: true };
+  } catch (error) {
+    console.error("Error al guardar el producto:", error);
+    return { ok: false, error: getProductMutationError(error) };
+  }
 }
 
 export async function uploadProductImage(formData: FormData) {
