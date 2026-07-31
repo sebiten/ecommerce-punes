@@ -13,6 +13,7 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "images:uniforms": "node scripts/prepare-uniform-images.mts",
+    "images:uniforms:publish": "node --env-file=.env.local scripts/publish-uniform-images.mts",
     "cron:configure": "node scripts/configure-cron-jobs.mts",
     "db:seed:demo": "node --env-file=.env.local scripts/seed-demo-catalog.mts",
     "db:generate": "drizzle-kit generate",

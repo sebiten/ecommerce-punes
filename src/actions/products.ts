@@ -443,7 +443,7 @@ const getProductsCached = unstable_cache(
 
     return (data || []).map(mapProduct);
   },
-  ["products-public-v2"],
+  ["products-public-v3"],
   {
     tags: [PRODUCTS_CACHE_TAG],
     revalidate: 3600,
@@ -514,7 +514,7 @@ const getProductBySlugCached = unstable_cache(
         .eq("active", true)
     );
   },
-  ["product-by-slug-v2"],
+  ["product-by-slug-v3"],
   {
     tags: [PRODUCT_DETAILS_CACHE_TAG],
     revalidate: 3600,
