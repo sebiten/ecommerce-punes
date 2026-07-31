@@ -19,12 +19,9 @@ import { useCartStore } from "@/hooks/use-cart";
 import { isAdmin } from "@/actions/auth";
 
 const NAV_ITEMS = [
-  { href: "/uniformes-escolares-ledesma", label: "Uniformes" },
-  { href: "/products", label: "Todo" },
-  { href: "/categories/mujer", label: "Mujer" },
-  { href: "/categories/hombre", label: "Hombre" },
-  { href: "/products?q=remera", label: "Remeras" },
-  { href: "/products?q=jean", label: "Jeans" },
+  { href: "/products?category=uniformes-escolares", label: "Uniformes" },
+  { href: "/#escuelas", label: "Escuelas" },
+  { href: "/guia-de-talles", label: "Guía de talles" },
 ];
 
 export function Header() {
@@ -74,7 +71,7 @@ export function Header() {
             <Input
               type="search"
               name="q"
-              placeholder="Buscar prendas..."
+              placeholder="Buscar escuela o prenda..."
               className="w-56 border-transparent bg-muted pl-9 focus-visible:border-primary"
             />
           </form>
@@ -143,7 +140,7 @@ export function Header() {
           <div className="mx-auto max-w-[1440px] px-4 py-5">
             <form action="/products" className="relative mb-5">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input type="search" name="q" placeholder="Buscar prendas..." className="min-h-11 pl-9" />
+              <Input type="search" name="q" placeholder="Buscar escuela o prenda..." className="min-h-11 pl-9" />
             </form>
             <nav className="grid grid-cols-2 gap-2">
               {NAV_ITEMS.map((item) => (

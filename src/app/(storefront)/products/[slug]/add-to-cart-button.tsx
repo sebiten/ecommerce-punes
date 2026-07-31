@@ -42,7 +42,8 @@ export function AddToCartButton({
     return Array.from(unique.values()).sort((a, b) =>
       `${a.size}-${a.color ?? ""}`.localeCompare(
         `${b.size}-${b.color ?? ""}`,
-        "es"
+        "es",
+        { numeric: true, sensitivity: "base" }
       )
     );
   }, [product.variants]);

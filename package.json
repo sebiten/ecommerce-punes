@@ -12,6 +12,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
+    "images:uniforms": "node scripts/prepare-uniform-images.mts",
     "cron:configure": "node scripts/configure-cron-jobs.mts",
     "db:seed:demo": "node --env-file=.env.local scripts/seed-demo-catalog.mts",
     "db:generate": "drizzle-kit generate",
@@ -50,6 +51,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
     "lucide-react": "^1.16.0",
+    "sharp": "0.35.3",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^5"

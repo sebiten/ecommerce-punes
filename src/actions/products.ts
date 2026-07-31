@@ -107,7 +107,11 @@ function normalizeProductVariants(variants: ProductPayload["variants"]) {
   }
 
   return Array.from(variantsBySize.values()).sort((a, b) =>
-    `${a.size}-${a.color ?? ""}`.localeCompare(`${b.size}-${b.color ?? ""}`, "es")
+    `${a.size}-${a.color ?? ""}`.localeCompare(
+      `${b.size}-${b.color ?? ""}`,
+      "es",
+      { numeric: true, sensitivity: "base" }
+    )
   );
 }
 

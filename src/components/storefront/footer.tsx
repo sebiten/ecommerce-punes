@@ -16,10 +16,10 @@ export function Footer({ settings }: FooterProps) {
   const hasPhone = settings.contact_phone.toLowerCase() !== "completar";
   const hasEmail = !settings.contact_email.endsWith("@ejemplo.com");
   const footerText =
-    /\bpunes?\b|colch[oó]n|sommier|descanso|m[aá]s de \d+ a[nñ]os/i.test(
+    /\bpunes?\b|colch[oó]n|sommier|descanso|ropa para mujer|mujer y hombre|m[aá]s de \d+ a[nñ]os/i.test(
       settings.footer_text
     )
-      ? "Uniformes escolares y ropa en Libertador General San Martín. Retiro coordinado y atención por WhatsApp."
+      ? "Uniformes escolares en Libertador General San Martín. Más escuelas y talles disponibles en el local."
       : settings.footer_text;
 
   return (
@@ -33,13 +33,12 @@ export function Footer({ settings }: FooterProps) {
             </p>
           </div>
           <FooterLinks
-            title="Colecciones"
+            title="Uniformes"
             links={[
-              ["/categories/mujer", "Mujer"],
-              ["/categories/hombre", "Hombre"],
-              ["/uniformes-escolares-ledesma", "Uniformes escolares"],
+              ["/products", "Tienda escolar"],
+              ["/#escuelas", "Buscar por escuela"],
               ["/products?q=remera", "Remeras"],
-              ["/products?q=jean", "Jeans"],
+              ["/products?q=chomba", "Chombas"],
             ]}
           />
           <FooterLinks
@@ -84,7 +83,7 @@ export function Footer({ settings }: FooterProps) {
               © {new Date().getFullYear()} {SITE_NAME}. Todos los derechos reservados.
             </p>
             <p className="mt-2 max-w-xl leading-5">
-              Uniformes escolares y ropa para primaria y secundaria en
+              Uniformes escolares para primaria y secundaria en
               Libertador General San Martín, Ledesma, Jujuy.
             </p>
           </div>

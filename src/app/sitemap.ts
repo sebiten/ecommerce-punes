@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { getBrands, getCategories, getProducts } from "@/actions/products";
+import { getProducts } from "@/actions/products";
 import { absoluteUrl } from "@/lib/site";
 
 function getXmlSafeImageUrl(url: string) {
@@ -7,11 +7,7 @@ function getXmlSafeImageUrl(url: string) {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [products, categories, brands] = await Promise.all([
-    getProducts(),
-    getCategories(),
-    getBrands(),
-  ]);
+  const products = await getProducts({ categorySlug: "uniformes-escolares" });
   const now = new Date();
   const indexableProducts = products.filter(
     (product) => !product.slug.startsWith("gloria-demo-")
@@ -30,12 +26,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "daily",
       priority: 0.9,
     },
-    {
-      url: absoluteUrl("/uniformes-escolares-ledesma"),
-      lastModified: now,
-      changeFrequency: "weekly",
-      priority: 0.95,
-    },
     ...[
       "/guia-de-talles",
       "/cambios-y-devoluciones",
@@ -47,18 +37,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: now,
       changeFrequency: "monthly" as const,
       priority: path === "/arrepentimiento" ? 0.6 : 0.5,
-    })),
-    ...categories.map((category) => ({
-      url: absoluteUrl(`/categories/${category.slug}`),
-      lastModified: new Date(category.created_at),
-      changeFrequency: "weekly" as const,
-      priority: 0.75,
-    })),
-    ...brands.map((brand) => ({
-      url: absoluteUrl(`/brands/${encodeURIComponent(brand)}`),
-      lastModified: now,
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
     })),
     ...indexableProducts.map((product) => ({
       url: absoluteUrl(`/products/${product.slug}`),

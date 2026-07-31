@@ -34,12 +34,12 @@ export function ProductGallery({
 
   return (
     <div className="space-y-3">
-      <div className="relative aspect-[4/5] overflow-hidden rounded-[1.75rem] border border-border bg-muted">
+      <div className="relative aspect-[4/5] overflow-hidden rounded-[1.75rem] border border-border bg-[#17151a]">
         <Image
           src={selectedImage.url}
           alt={selectedImage.alt || productName}
           fill
-          className="object-cover"
+          className="object-contain"
           priority
           sizes="(max-width: 1024px) 100vw, 52vw"
         />
@@ -57,7 +57,7 @@ export function ProductGallery({
               key={image.id || image.url}
               type="button"
               onClick={() => setSelectedIndex(index)}
-              className={`relative aspect-[4/5] min-h-14 overflow-hidden rounded-xl border bg-muted transition ${
+              className={`relative aspect-[4/5] min-h-14 overflow-hidden rounded-xl border bg-[#17151a] transition ${
                 selectedIndex === index
                   ? "border-primary ring-2 ring-primary/20"
                   : "border-border hover:border-gloria-300"
@@ -68,7 +68,7 @@ export function ProductGallery({
                 src={image.url}
                 alt={image.alt || productName}
                 fill
-                className="object-cover"
+                className="object-contain"
                 sizes="96px"
               />
             </button>

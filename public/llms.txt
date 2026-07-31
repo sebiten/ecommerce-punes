@@ -14,7 +14,7 @@ Pilchería Gloria es una tienda de ropa y uniformes escolares ubicada en Liberta
 
 - Inicio: /
 - Catálogo: /products
-- Uniformes escolares en Ledesma: /uniformes-escolares-ledesma
+- Tienda de uniformes escolares: /products
 - Guía de talles: /guia-de-talles
 - Cambios y devoluciones: /cambios-y-devoluciones
 - Términos de compra: /terminos

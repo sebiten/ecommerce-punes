@@ -43,7 +43,7 @@ const defaultStoreSettings: StoreSettings = {
   instagram_url: null,
   facebook_url: null,
   footer_text:
-    "Uniformes escolares y ropa en Libertador General San Martín. Retiro coordinado y atención por WhatsApp.",
+    "Uniformes escolares en Libertador General San Martín. Más escuelas y talles disponibles en el local.",
   pickup_enabled: true,
   local_delivery_enabled: false,
   local_delivery_cost: 0,

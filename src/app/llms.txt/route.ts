@@ -25,7 +25,7 @@ export function GET() {
 ## Paginas importantes
 
 - Catalogo: ${absoluteUrl("/products")}
-- Uniformes escolares en Ledesma: ${absoluteUrl("/uniformes-escolares-ledesma")}
+- Tienda de uniformes escolares: ${absoluteUrl("/products")}
 - Guia de talles: ${absoluteUrl("/guia-de-talles")}
 - Cambios y devoluciones: ${absoluteUrl("/cambios-y-devoluciones")}
 - Terminos: ${absoluteUrl("/terminos")}

@@ -43,17 +43,16 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
       className="group block h-full rounded-[1.35rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4"
     >
       <article className="flex h-full flex-col overflow-hidden rounded-[1.35rem] border border-border/80 bg-card transition duration-300 hover:-translate-y-1 hover:border-gloria-300 hover:shadow-[0_20px_55px_-30px_oklch(0.35_0.085_134/0.45)]">
-        <div className="relative aspect-[4/5] overflow-hidden bg-muted">
+        <div className="relative aspect-[4/5] overflow-hidden bg-[#17151a]">
           <Image
             src={product.images?.[0]?.url || FALLBACK_IMAGE}
             alt={product.images?.[0]?.alt || product.name}
             fill
-            className="object-cover transition duration-500 ease-out group-hover:scale-[1.035]"
+            className="object-contain transition duration-500 ease-out group-hover:scale-[1.02]"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             loading={priority ? "eager" : "lazy"}
             fetchPriority={priority ? "high" : "auto"}
           />
-          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-gloria-950/45 to-transparent" />
           <div className="absolute left-3 top-3 flex flex-wrap gap-2">
             {product.featured ? (
               <span className="rounded-full bg-gloria-500 px-3 py-1 text-[0.68rem] font-bold uppercase tracking-wide text-gloria-950">

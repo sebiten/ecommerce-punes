@@ -111,7 +111,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
           </p>
           {isSchoolUniforms ? (
             <Link
-              href="/uniformes-escolares-ledesma"
+              href="/products?category=uniformes-escolares"
               className="mt-5 inline-flex min-h-11 items-center rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90"
             >
               Guía de uniformes en Ledesma

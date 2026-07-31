@@ -10,7 +10,7 @@ export function WhatsAppFloatingButton({
   if (!phone) return null;
 
   const href = `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(
-    `Hola, quiero consultar por una prenda de ${storeName}.`
+    `Hola, quiero consultar por un uniforme escolar en ${storeName}. Escuela: __. Prenda: __. Talle: __.`
   )}`;
 
   return (

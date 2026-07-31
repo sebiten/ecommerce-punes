@@ -5,9 +5,9 @@ export const SITE_REGION = "Jujuy";
 export const SITE_REGION_CODE = "AR-Y";
 export const SITE_COUNTRY = "Argentina";
 export const SITE_DESCRIPTION =
-  "Uniformes escolares y ropa en Libertador General San Martín, Ledesma, Jujuy. Remeras, camisas, pantalones y medias para primaria y secundaria en todos los talles.";
+  "Uniformes escolares en Libertador General San Martín, Ledesma, Jujuy. Remeras, chombas y más talles y escuelas disponibles en el local.";
 export const SCHOOL_UNIFORMS_DESCRIPTION =
-  "Uniformes escolares para escuelas primarias y secundarias de Ledesma, Jujuy. Remeras, camisas, pantalones, medias y todos los talles.";
+  "Uniformes escolares para escuelas primarias y secundarias de Ledesma, Jujuy. Consulte por remeras, chombas, escuelas y talles disponibles.";
 
 export function getSiteUrl() {
   return (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(
