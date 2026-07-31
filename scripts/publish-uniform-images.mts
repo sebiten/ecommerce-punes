@@ -3,7 +3,11 @@ import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 
 const BUCKET = "product-images";
-const VERSION = "v2-original-background";
+const DEFAULT_VERSION = "v2-original-background";
+const VERSION_BY_SLUG: Record<string, string> = {
+  "chomba-bachillerato-7-calilegua": "v3-aligned",
+  "remera-bachillerato-7-calilegua": "v3-aligned",
+};
 
 const UNIFORMS: Record<string, string> = {
   "chomba-escuela-normal": "normal-chomba.webp",
@@ -63,7 +67,8 @@ for (const [slug, filename] of Object.entries(UNIFORMS)) {
     throw new Error(`No se encontró ${slug}: ${productError?.message}`);
   }
 
-  const objectPath = `uniformes/${slug}/${VERSION}.webp`;
+  const version = VERSION_BY_SLUG[slug] ?? DEFAULT_VERSION;
+  const objectPath = `uniformes/${slug}/${version}.webp`;
   const image = await readFile(path.join(imageDirectory, filename));
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)

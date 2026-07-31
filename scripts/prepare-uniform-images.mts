@@ -35,6 +35,18 @@ const CROP_OVERRIDES: Record<
   string,
   { left: number; top: number; width: number; height: number }
 > = {
+  "BACHILLERATO-CALILEGUA-CHOMBA.jpeg": {
+    left: 0,
+    top: 500,
+    width: 2340,
+    height: 2925,
+  },
+  "BACHILLERATO-CALILEGUA-REMERA.jpeg": {
+    left: 0,
+    top: 900,
+    width: 2340,
+    height: 2925,
+  },
   "COMERCIAL-6-CHOMBA.jpeg": {
     left: 220,
     top: 800,
