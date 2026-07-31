@@ -131,7 +131,6 @@ export function ProductForm({
   const [name, setName] = useState(product?.name ?? "");
   const [slug, setSlug] = useState(product?.slug ?? "");
   const [description, setDescription] = useState(product?.description ?? "");
-  const [sizeGuide, setSizeGuide] = useState(product?.sizeGuide ?? "");
   const [brand, setBrand] = useState(product?.brand ?? "");
   const [basePrice, setBasePrice] = useState(String(product?.basePrice ?? ""));
   const [compareAtPrice, setCompareAtPrice] = useState(
@@ -227,7 +226,6 @@ export function ProductForm({
         name,
         slug,
         description,
-        sizeGuide,
         brand: brand || null,
         basePrice: Number(basePrice),
         compareAtPrice: compareAtPrice ? Number(compareAtPrice) : null,
@@ -315,19 +313,6 @@ export function ProductForm({
               onChange={(event) => setDescription(event.target.value)}
               className="min-h-32 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
-          </Field>
-
-          <Field label="Guía de talles del producto" htmlFor="sizeGuide">
-            <textarea
-              id="sizeGuide"
-              value={sizeGuide}
-              onChange={(event) => setSizeGuide(event.target.value)}
-              placeholder={"Ejemplo:\nS: contorno de pecho 86-92 cm\nM: contorno de pecho 93-99 cm"}
-              className="min-h-28 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
-            <p className="mt-2 text-xs text-muted-foreground">
-              Usá medidas reales del fabricante. No copies una tabla genérica si la prenda tiene otro calce. Es obligatoria si el producto está activo.
-            </p>
           </Field>
 
           <div className="grid gap-4 md:grid-cols-3">

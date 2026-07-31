@@ -51,7 +51,6 @@ export function Footer({ settings }: FooterProps) {
           <FooterLinks
             title="Ayuda"
             links={[
-              ["/guia-de-talles", "Guía de talles"],
               ["/cambios-y-devoluciones", "Cambios y devoluciones"],
               ["/terminos", "Términos de compra"],
               ["/privacidad", "Privacidad"],

@@ -8,11 +8,9 @@ type SchoolIdentity = {
   name: string;
   level: string;
   mark: string;
-  logo?: {
+  image: {
     src: string;
     alt: string;
-    width: number;
-    height: number;
   };
 };
 
@@ -21,166 +19,119 @@ const schools: SchoolIdentity[] = [
     name: "Escuela N° 311 Bernardino Rivadavia",
     level: "Nivel primario",
     mark: "311",
-    logo: {
-      src: "/images/schools/uniforms/escuela-311.webp",
-      alt: "Escudo bordado del uniforme de la Escuela N° 311",
-      width: 512,
-      height: 512,
+    image: {
+      src: "/images/uniforms/catalog/311-chomba.webp",
+      alt: "Chomba completa de la Escuela N° 311",
     },
-  },
-  {
-    name: "Escuela N° 261 Provincia de Tucumán",
-    level: "Nivel primario",
-    mark: "261",
   },
   {
     name: "Escuela Normal Superior General San Martín",
     level: "Primaria y secundaria",
     mark: "ENS",
-    logo: {
-      src: "/images/schools/uniforms/normal.webp",
-      alt: "Insignia estampada del uniforme de la Escuela Normal Superior",
-      width: 512,
-      height: 512,
+    image: {
+      src: "/images/uniforms/catalog/normal-remera.webp",
+      alt: "Remera completa de la Escuela Normal Superior",
     },
   },
   {
     name: "Colegio Técnico Marista Ing. Herminio Arrieta",
     level: "Nivel secundario",
     mark: "ETHA",
-    logo: {
-      src: "/images/schools/uniforms/etha.webp",
-      alt: "Insignia estampada del uniforme de ETHA",
-      width: 512,
-      height: 512,
+    image: {
+      src: "/images/uniforms/catalog/etha-remera.webp",
+      alt: "Remera completa del Colegio Técnico Marista ETHA",
     },
   },
   {
     name: "Colegio FASTA Ing. José María Paz",
-    level: "Nivel primario",
+    level: "Nivel primario y secundario",
     mark: "FASTA",
-    logo: {
-      src: "/images/schools/uniforms/fasta.webp",
-      alt: "Escudo bordado del uniforme de FASTA",
-      width: 512,
-      height: 512,
-    },
-  },
-  {
-    name: "Colegio FASTA Ing. José María Paz",
-    level: "Nivel secundario",
-    mark: "FASTA",
-    logo: {
-      src: "/images/schools/uniforms/fasta.webp",
-      alt: "Escudo bordado del uniforme de FASTA",
-      width: 512,
-      height: 512,
+    image: {
+      src: "/images/uniforms/catalog/fasta-remera.webp",
+      alt: "Remera completa del Colegio FASTA",
     },
   },
   {
     name: "Escuela N° 3 Enrique Wollmann",
     level: "Nivel primario",
     mark: "N° 3",
-    logo: {
-      src: "/images/schools/uniforms/wallman.webp",
-      alt: "Insignia estampada del uniforme de la Escuela Enrique Wollmann",
-      width: 512,
-      height: 512,
+    image: {
+      src: "/images/uniforms/catalog/wallman-remera.webp",
+      alt: "Remera completa de la Escuela Enrique Wollmann",
     },
   },
   {
     name: "Escuela Provincial de Artes N° 3 Lola Mora",
     level: "Nivel secundario",
     mark: "ARTES",
-    logo: {
-      src: "/images/schools/uniforms/lola-mora.webp",
-      alt: "Escudo bordado del uniforme de la Escuela Lola Mora",
-      width: 512,
-      height: 512,
+    image: {
+      src: "/images/uniforms/catalog/lola-mora-escuela-de-artes-remera.webp",
+      alt: "Remera completa de la Escuela Provincial de Artes Lola Mora",
     },
-  },
-  {
-    name: "Escuela Provincial Agrotécnica N° 4",
-    level: "Nivel secundario",
-    mark: "AGRO 4",
   },
   {
     name: "Escuela Provincial de Comercio N° 4",
     level: "25 de Febrero · Secundaria",
     mark: "COM 4",
-    logo: {
-      src: "/images/schools/uniforms/comercial-4.webp",
-      alt: "Insignia estampada del uniforme de la Escuela de Comercio N° 4",
-      width: 512,
-      height: 512,
+    image: {
+      src: "/images/uniforms/catalog/comercial-4-remera.webp",
+      alt: "Remera completa de la Escuela Provincial de Comercio N° 4",
     },
   },
   {
     name: "Escuela de Comercio N° 6",
     level: "Nivel secundario",
     mark: "COM 6",
-    logo: {
-      src: "/images/schools/uniforms/comercial-6.webp",
-      alt: "Insignia estampada del uniforme de la Escuela de Comercio N° 6",
-      width: 512,
-      height: 512,
+    image: {
+      src: "/images/uniforms/catalog/comercial-6-chomba.webp",
+      alt: "Chomba completa de la Escuela de Comercio N° 6",
     },
   },
   {
     name: "Escuela N° 112 Coronel Manuel Dorrego",
     level: "Nivel primario",
     mark: "112",
-    logo: {
-      src: "/images/schools/uniforms/dorrego.webp",
-      alt: "Escudo bordado del uniforme de la Escuela Coronel Manuel Dorrego",
-      width: 512,
-      height: 512,
+    image: {
+      src: "/images/uniforms/catalog/dorrego-chomba.webp",
+      alt: "Chomba completa de la Escuela Coronel Manuel Dorrego",
     },
   },
   {
     name: "Bachillerato Provincial N° 7 de Calilegua",
     level: "Nivel secundario",
     mark: "BACH 7",
-    logo: {
-      src: "/images/schools/uniforms/bachillerato-calilegua.webp",
-      alt: "Insignia bordada del uniforme del Bachillerato de Calilegua",
-      width: 512,
-      height: 512,
+    image: {
+      src: "/images/uniforms/catalog/bachillerato-calilegua-remera.webp",
+      alt: "Remera completa del Bachillerato Provincial N° 7 de Calilegua",
     },
   },
   {
     name: "Escuela Cooperativa Libertad",
     level: "Nivel primario",
     mark: "COOP",
-    logo: {
-      src: "/images/schools/uniforms/cooperativa.webp",
-      alt: "Insignia estampada del uniforme de la Escuela Cooperativa Libertad",
-      width: 512,
-      height: 512,
+    image: {
+      src: "/images/uniforms/catalog/coperativa-chomba.webp",
+      alt: "Chomba completa de la Escuela Cooperativa Libertad",
     },
   },
   {
     name: "Escuela N° 213 Martín Raúl Galán",
     level: "Nivel primario",
     mark: "213",
-    logo: {
-      src: "/images/schools/uniforms/galan.webp",
-      alt: "Escudo estampado del uniforme de la Escuela Martín Raúl Galán",
-      width: 512,
-      height: 512,
+    image: {
+      src: "/images/uniforms/catalog/galan-remera.webp",
+      alt: "Remera completa de la Escuela Martín Raúl Galán",
     },
   },
 ];
 
 const schoolSearchTerms: Record<string, string> = {
   "311": "311",
-  "261": "261",
   ENS: "Normal",
   ETHA: "ETHA",
   FASTA: "FASTA",
   "N° 3": "Wollmann",
   ARTES: "Lola Mora",
-  "AGRO 4": "Agrotécnica",
   "COM 4": "Comercio N° 4",
   "COM 6": "Comercio N° 6",
   "112": "Dorrego",
@@ -209,20 +160,14 @@ function SchoolCard({
   const productUrl = `/products?category=uniformes-escolares&q=${encodeURIComponent(query)}`;
   const content = (
     <>
-      <span className="grid h-16 w-24 shrink-0 place-items-center overflow-hidden rounded-2xl border border-gloria-200 bg-gloria-50 px-2 text-center">
-        {school.logo ? (
-          <Image
-            src={school.logo.src}
-            alt={school.logo.alt}
-            width={school.logo.width}
-            height={school.logo.height}
-            className="max-h-12 w-auto object-contain"
-          />
-        ) : (
-          <span className="font-display text-xl leading-none text-gloria-900">
-            {school.mark}
-          </span>
-        )}
+      <span className="relative h-24 w-20 shrink-0 overflow-hidden rounded-2xl border border-gloria-200 bg-[#17151a]">
+        <Image
+          src={school.image.src}
+          alt={school.image.alt}
+          fill
+          className="object-contain"
+          sizes="5rem"
+        />
       </span>
       <span className="min-w-0">
         <span className="line-clamp-2 text-sm font-extrabold leading-5 text-gloria-950">
@@ -236,7 +181,7 @@ function SchoolCard({
     </>
   );
   const className =
-    "flex h-28 w-[19rem] shrink-0 items-center gap-3 rounded-3xl border border-gloria-200 bg-white p-4 shadow-[0_12px_35px_-28px_oklch(0.35_0.085_134/0.55)] transition hover:-translate-y-0.5 hover:border-gloria-400 hover:shadow-[0_18px_40px_-26px_oklch(0.35_0.085_134/0.65)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gloria-600 focus-visible:ring-offset-2";
+    "flex h-32 w-[20rem] shrink-0 items-center gap-4 rounded-3xl border border-gloria-200 bg-white p-4 shadow-[0_12px_35px_-28px_oklch(0.35_0.085_134/0.55)] transition hover:-translate-y-0.5 hover:border-gloria-400 hover:shadow-[0_18px_40px_-26px_oklch(0.35_0.085_134/0.65)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gloria-600 focus-visible:ring-offset-2";
 
   return (
     <Link

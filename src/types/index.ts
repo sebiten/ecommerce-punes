@@ -38,7 +38,6 @@ export interface Product {
   name: string;
   slug: string;
   description: string | null;
-  sizeGuide: string | null;
   basePrice: number;
   compareAtPrice: number | null;
   brand: string | null;

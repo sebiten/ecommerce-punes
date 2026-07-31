@@ -25,7 +25,6 @@ export const categories = pgTable("categories", {
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
   description: text("description"),
-  sizeGuide: text("size_guide"),
   imageUrl: text("image_url"),
   parentId: uuid("parent_id"),
   sortOrder: integer("sort_order").default(0),

@@ -49,7 +49,7 @@ export default async function DashboardPage() {
       .in("status", openStatuses),
     supabase
       .from("products")
-      .select("id, slug, size_guide, base_price")
+      .select("id, slug, base_price")
       .eq("active", true),
     supabase
       .from("profiles")
@@ -74,8 +74,6 @@ export default async function DashboardPage() {
     activeProducts?.filter((product) =>
       product.slug?.startsWith("gloria-demo-")
     ).length || 0;
-  const productsWithoutSizeGuide =
-    activeProducts?.filter((product) => !product.size_guide?.trim()).length || 0;
   const readinessIssues = getStoreReadinessIssues(settings);
   const operationalWarnings = [
     readinessIssues.length > 0
@@ -83,9 +81,6 @@ export default async function DashboardPage() {
       : null,
     demoProducts > 0
       ? `${demoProducts} productos de demostración siguen activos.`
-      : null,
-    productsWithoutSizeGuide > 0
-      ? `${productsWithoutSizeGuide} productos activos no tienen guía de talles.`
       : null,
     (adminCount ?? 0) > 1
       ? `Hay ${adminCount} perfiles administradores. Confirmá que ambos correspondan.`

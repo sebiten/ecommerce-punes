@@ -26,7 +26,6 @@ export function GET() {
 
 - Catalogo: ${absoluteUrl("/products")}
 - Tienda de uniformes escolares: ${absoluteUrl("/products")}
-- Guia de talles: ${absoluteUrl("/guia-de-talles")}
 - Cambios y devoluciones: ${absoluteUrl("/cambios-y-devoluciones")}
 - Terminos: ${absoluteUrl("/terminos")}
 - Privacidad: ${absoluteUrl("/privacidad")}

@@ -33,7 +33,6 @@ function mapProduct(product: any): ProductWithDetails {
     name: product.name,
     slug: product.slug,
     description: product.description,
-    sizeGuide: product.size_guide || null,
     basePrice: Number(product.base_price) || 0,
     compareAtPrice: product.compare_at_price
       ? Number(product.compare_at_price)

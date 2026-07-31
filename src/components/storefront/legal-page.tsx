@@ -33,7 +33,6 @@ export function LegalPage({
         <aside className="h-fit rounded-2xl border border-gloria-200 bg-white p-5 text-sm lg:sticky lg:top-24">
           <p className="font-bold text-gloria-950">Ayuda y legales</p>
           <nav className="mt-4 flex flex-col gap-3 text-muted-foreground">
-            <Link href="/guia-de-talles" className="hover:text-gloria-800">Guía de talles</Link>
             <Link href="/cambios-y-devoluciones" className="hover:text-gloria-800">Cambios y devoluciones</Link>
             <Link href="/terminos" className="hover:text-gloria-800">Términos de compra</Link>
             <Link href="/privacidad" className="hover:text-gloria-800">Privacidad</Link>

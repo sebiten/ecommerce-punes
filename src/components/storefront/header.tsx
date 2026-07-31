@@ -22,7 +22,6 @@ const NAV_ITEMS = [
   { href: "/products?category=uniformes-escolares", label: "Uniformes" },
   { href: "/#escuelas", label: "Escuelas" },
   { href: "/#retiro", label: "Ubicación" },
-  { href: "/guia-de-talles", label: "Guía de talles" },
 ];
 
 export function Header() {

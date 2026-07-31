@@ -266,34 +266,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
         </div>
       </section>
 
-      <section className="border-b border-border bg-white py-10">
-        <div className="container mx-auto grid gap-6 px-4 lg:grid-cols-[1fr_auto] lg:items-start">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-gloria-700">
-              Elegí con seguridad
-            </p>
-            <h2 className="mt-2 font-display text-3xl text-gloria-950">
-              Guía de talles
-            </h2>
-            {product.sizeGuide ? (
-              <p className="mt-4 max-w-3xl whitespace-pre-line text-sm leading-7 text-muted-foreground">
-                {product.sizeGuide}
-              </p>
-            ) : (
-              <p className="mt-4 max-w-3xl text-sm leading-7 text-muted-foreground">
-                Este producto todavía no tiene una tabla específica. Medí una prenda similar y consultanos antes de comprar.
-              </p>
-            )}
-          </div>
-          <Link
-            href="/guia-de-talles"
-            className="inline-flex min-h-11 items-center justify-center rounded-full border border-gloria-300 px-5 text-sm font-bold text-gloria-900 hover:bg-gloria-50"
-          >
-            Cómo tomar tus medidas
-          </Link>
-        </div>
-      </section>
-
       <section className="border-b border-border bg-gloria-50 py-10">
         <div className="container mx-auto grid grid-cols-2 gap-3 px-4 lg:grid-cols-4">
           {fulfillmentBenefits.map((benefit) => {

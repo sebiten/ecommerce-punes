@@ -34,7 +34,6 @@ const productPayloadSchema = z
     name: z.string().trim().min(2),
     slug: z.string().trim().min(2),
     description: z.string().trim().max(4000).optional(),
-    sizeGuide: z.string().trim().max(4000).optional(),
     basePrice: z.number().positive(),
     compareAtPrice: z.number().positive().nullable().optional(),
     brand: z.string().trim().nullable().optional(),
@@ -66,13 +65,6 @@ const productPayloadSchema = z
         code: "custom",
         path: ["variants"],
         message: "Un producto activo necesita al menos una variante",
-      });
-    }
-    if (!product.sizeGuide || product.sizeGuide.trim().length < 10) {
-      context.addIssue({
-        code: "custom",
-        path: ["sizeGuide"],
-        message: "Completá una guía de talles antes de activar el producto",
       });
     }
   });
@@ -154,7 +146,6 @@ function mapProduct(product: any): ProductWithDetails {
     name: product.name,
     slug: product.slug,
     description: product.description,
-    sizeGuide: product.size_guide || null,
     basePrice: Number(product.base_price) || 0,
     compareAtPrice: product.compare_at_price
       ? Number(product.compare_at_price)
@@ -586,7 +577,6 @@ export async function createProduct(input: ProductPayload) {
       name: payload.name,
       slug: payload.slug,
       description: payload.description || null,
-      size_guide: payload.sizeGuide || null,
       base_price: payload.basePrice,
       compare_at_price: payload.compareAtPrice ?? null,
       brand: payload.brand || null,
@@ -688,7 +678,6 @@ export async function updateProduct(id: string, input: ProductPayload) {
       name: payload.name,
       slug: payload.slug,
       description: payload.description || null,
-      size_guide: payload.sizeGuide || null,
       base_price: payload.basePrice,
       compare_at_price: payload.compareAtPrice ?? null,
       brand: payload.brand || null,
@@ -712,7 +701,6 @@ export async function updateProduct(id: string, input: ProductPayload) {
         name: existing.name,
         slug: existing.slug,
         description: existing.description || null,
-        size_guide: existing.sizeGuide || null,
         base_price: existing.basePrice,
         compare_at_price: existing.compareAtPrice,
         brand: existing.brand,
