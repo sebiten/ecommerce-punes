@@ -1,5 +1,8 @@
 import type { StoreSettings } from "@/types";
 
+export const PICKUP_LOCATION_REFERENCE =
+  "Casa de dos pisos amarilla, familia Burgos.";
+
 type PickupSettings = Pick<
   StoreSettings,
   "address_line" | "city" | "state"

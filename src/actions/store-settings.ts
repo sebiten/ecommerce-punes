@@ -36,9 +36,9 @@ const defaultStoreSettings: StoreSettings = {
   contact_email: "completar@ejemplo.com",
   contact_phone: "Completar",
   whatsapp_phone: null,
-  address_line: "Los Ceibos 429",
+  address_line: "Av. Los Ceibos 429",
   city: "Libertador General San Martín",
-  state: "Jujuy, Argentina",
+  state: "Jujuy",
   business_hours: "Horarios a completar",
   instagram_url: null,
   facebook_url: null,
@@ -48,7 +48,7 @@ const defaultStoreSettings: StoreSettings = {
   local_delivery_enabled: false,
   local_delivery_cost: 0,
   pickup_instructions:
-    "Esperá nuestra confirmación por WhatsApp. Cuando esté listo, retiralo mostrando el código del pedido.",
+    "Esperá nuestra confirmación por WhatsApp. Cuando esté listo, retiralo mostrando el código del pedido. Referencia: casa de dos pisos amarilla, familia Burgos.",
   legal_name: null,
   tax_id: null,
   legal_address: null,
@@ -111,7 +111,7 @@ const getStoreSettingsCached = unstable_cache(
 
     return data ? mapStoreSettings(data) : defaultStoreSettings;
   },
-  ["store-settings-v5"],
+  ["store-settings-v6"],
   {
     tags: [STORE_SETTINGS_CACHE_TAG],
     revalidate: 3600,

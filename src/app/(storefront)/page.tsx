@@ -22,6 +22,7 @@ import {
   getGoogleMapsEmbedUrl,
   getPickupAddress,
   hasPickupAddress,
+  PICKUP_LOCATION_REFERENCE,
 } from "@/lib/maps";
 
 export const metadata: Metadata = {
@@ -252,7 +253,7 @@ export default async function HomePage() {
                   Punto de retiro
                 </p>
                 <h2 className="mt-3 font-display text-4xl leading-none sm:text-5xl">
-                  Retire su compra en Los Ceibos 429.
+                  Retire su compra en {settings.address_line}.
                 </h2>
                 <p className="mt-5 max-w-md text-sm leading-6 text-white/70 sm:text-base">
                   El stock publicado online se retira en este domicilio de
@@ -269,6 +270,9 @@ export default async function HomePage() {
                       <p className="font-bold">{settings.address_line}</p>
                       <p className="mt-1 text-sm text-white/65">
                         {settings.city}, {settings.state}
+                      </p>
+                      <p className="mt-2 text-sm font-semibold text-gloria-200">
+                        Referencia: {PICKUP_LOCATION_REFERENCE}
                       </p>
                     </div>
                   </div>

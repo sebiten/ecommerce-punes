@@ -7,6 +7,7 @@ import {
   getGoogleMapsDirectionsUrl,
   getPickupAddress,
   hasPickupAddress,
+  PICKUP_LOCATION_REFERENCE,
 } from "@/lib/maps";
 
 interface FooterProps {
@@ -70,6 +71,7 @@ export function Footer({ settings }: FooterProps) {
                 </a>
               ) : null}
               <p>{settings.city}, {settings.state}</p>
+              {hasAddress ? <p>Referencia: {PICKUP_LOCATION_REFERENCE}</p> : null}
               {hasHours ? <p>{settings.business_hours}</p> : null}
               {hasAddress ? <p>Retiro con pedido confirmado.</p> : null}
             </div>
