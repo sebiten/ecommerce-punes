@@ -3,14 +3,20 @@ import { Logo } from "@/components/brand/logo";
 import { SITE_NAME } from "@/lib/site";
 import type { StoreSettings } from "@/types";
 import { PaymentBrandLogos } from "@/components/storefront/payment-confidence";
+import {
+  getGoogleMapsDirectionsUrl,
+  getPickupAddress,
+  hasPickupAddress,
+} from "@/lib/maps";
 
 interface FooterProps {
   settings: StoreSettings;
 }
 
 export function Footer({ settings }: FooterProps) {
-  const hasAddress =
-    !/completar|confirmar|industrial 1234/i.test(settings.address_line);
+  const hasAddress = hasPickupAddress(settings);
+  const pickupAddress = getPickupAddress(settings);
+  const mapsUrl = getGoogleMapsDirectionsUrl(pickupAddress);
   const hasHours =
     !/completar|confirmar/i.test(settings.business_hours);
   const hasPhone = settings.contact_phone.toLowerCase() !== "completar";
@@ -51,11 +57,21 @@ export function Footer({ settings }: FooterProps) {
             ]}
           />
           <div>
-            <h2 className="font-bold">Local</h2>
+            <h2 className="font-bold">Punto de retiro</h2>
             <div className="mt-4 space-y-2 text-sm leading-6 text-background/70">
-              {hasAddress ? <p>{settings.address_line}</p> : null}
+              {hasAddress ? (
+                <a
+                  href={mapsUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block font-semibold text-background hover:text-white hover:underline"
+                >
+                  {settings.address_line}
+                </a>
+              ) : null}
               <p>{settings.city}, {settings.state}</p>
               {hasHours ? <p>{settings.business_hours}</p> : null}
+              {hasAddress ? <p>Retiro con pedido confirmado.</p> : null}
             </div>
           </div>
           <div>

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MapPin, Store, Truck } from "lucide-react";
+import { ExternalLink, MapPin, Store, Truck } from "lucide-react";
 import { addAddress, updateProfileContact } from "@/actions/auth";
 import { useCartStore } from "@/hooks/use-cart";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,11 @@ import { getCartItemLineTotal, getShippingCost } from "@/lib/commerce";
 import { formatPrice } from "@/lib/utils";
 import type { Address, Profile, StoreSettings } from "@/types";
 import { PaymentConfidence } from "@/components/storefront/payment-confidence";
+import {
+  getGoogleMapsDirectionsUrl,
+  getPickupAddress,
+  hasPickupAddress,
+} from "@/lib/maps";
 
 interface CheckoutFormProps {
   addresses: Address[];
@@ -90,11 +95,12 @@ export function CheckoutForm({
   const needsAddress = formData.shippingMethod === "local_delivery";
   const shouldOfferSaveAddress =
     Boolean(profile) && needsAddress && selectedAddressId === "manual";
-  const pickupLocation = /completar|confirmar|industrial 1234/i.test(
-    settings.address_line
-  )
-    ? "Ubicación a confirmar por WhatsApp"
-    : settings.address_line;
+  const pickupConfigured = hasPickupAddress(settings);
+  const pickupAddress = getPickupAddress(settings);
+  const pickupMapsUrl = getGoogleMapsDirectionsUrl(pickupAddress);
+  const pickupLocation = pickupConfigured
+    ? settings.address_line
+    : "Ubicación a confirmar por WhatsApp";
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     checkoutRequestId.current = null;
@@ -265,7 +271,7 @@ export function CheckoutForm({
                   <DeliveryOption
                     id="pickup"
                     icon={Store}
-                    title="Retiro en el local"
+                    title="Retiro coordinado"
                     description={pickupLocation}
                     price="Sin costo"
                   />
@@ -359,6 +365,18 @@ export function CheckoutForm({
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
                 {settings.pickup_instructions}
               </p>
+              {pickupConfigured ? (
+                <a
+                  href={pickupMapsUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full border border-primary/25 bg-background px-4 text-sm font-bold text-primary hover:bg-primary/5"
+                >
+                  <MapPin className="size-4" />
+                  Cómo llegar con Google Maps
+                  <ExternalLink className="size-3.5" />
+                </a>
+              ) : null}
             </div>
           )}
 

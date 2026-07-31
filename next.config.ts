@@ -9,7 +9,7 @@ const contentSecurityPolicy = [
   "img-src 'self' data: blob: https://images.unsplash.com https://*.supabase.co https://*.clerk.com https://*.clerk.dev https://img.clerk.com",
   "font-src 'self' data:",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.clerk.accounts.dev https://*.clerk.com https://*.clerk.dev https://clerk.pilcheriagloria.com.ar https://clerk-telemetry.com https://*.clerk-telemetry.com https://img.clerk.com https://*.protect.clerk.com https://api.clerk.com https://api.mercadopago.com",
-  "frame-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://challenges.cloudflare.com https://*.protect.clerk.com https://*.mercadopago.com",
+  "frame-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://challenges.cloudflare.com https://*.protect.clerk.com https://*.mercadopago.com https://www.google.com",
   "worker-src 'self' blob:",
   "media-src 'self'",
   "object-src 'none'",

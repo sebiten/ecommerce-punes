@@ -36,7 +36,7 @@ const defaultStoreSettings: StoreSettings = {
   contact_email: "completar@ejemplo.com",
   contact_phone: "Completar",
   whatsapp_phone: null,
-  address_line: "Dirección a completar",
+  address_line: "Los Ceibos 429",
   city: "Libertador General San Martín",
   state: "Jujuy, Argentina",
   business_hours: "Horarios a completar",
@@ -111,7 +111,7 @@ const getStoreSettingsCached = unstable_cache(
 
     return data ? mapStoreSettings(data) : defaultStoreSettings;
   },
-  ["store-settings-v4"],
+  ["store-settings-v5"],
   {
     tags: [STORE_SETTINGS_CACHE_TAG],
     revalidate: 3600,

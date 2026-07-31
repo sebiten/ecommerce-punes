@@ -43,7 +43,7 @@ export function getShippingCost(
 }
 
 export function getDeliveryMethodLabel(method?: string | null) {
-  return method === "local_delivery" ? "Entrega local" : "Retiro en el local";
+  return method === "local_delivery" ? "Entrega local" : "Retiro coordinado";
 }
 
 export function getOrderStatusLabel(

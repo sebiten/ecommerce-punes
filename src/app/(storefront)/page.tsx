@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import {
   ArrowRight,
   CreditCard,
+  ExternalLink,
   MapPin,
   MessageCircle,
   PackageCheck,
@@ -16,6 +17,12 @@ import { ProductGrid } from "@/components/storefront/product-grid";
 import { SchoolUniformsCarousel } from "@/components/storefront/school-uniforms-carousel";
 import { Button } from "@/components/ui/button";
 import { SITE_DESCRIPTION } from "@/lib/site";
+import {
+  getGoogleMapsDirectionsUrl,
+  getGoogleMapsEmbedUrl,
+  getPickupAddress,
+  hasPickupAddress,
+} from "@/lib/maps";
 
 export const metadata: Metadata = {
   title: "Uniformes escolares en Ledesma, Jujuy",
@@ -54,9 +61,14 @@ export default async function HomePage() {
         "Hola, busco un uniforme escolar. Escuela: __. Prenda: __. Talle: __."
       )}`
     : null;
+  const pickupAddress = getPickupAddress(settings);
+  const pickupConfigured =
+    settings.pickup_enabled && hasPickupAddress(settings);
+  const mapsUrl = getGoogleMapsDirectionsUrl(pickupAddress);
+  const mapEmbedUrl = getGoogleMapsEmbedUrl(pickupAddress);
   const fulfillmentCards = [
     ...(settings.pickup_enabled
-      ? [["Retiro", "En el local", MapPin] as const]
+      ? [["Retiro", settings.address_line, MapPin] as const]
       : []),
     ...(settings.local_delivery_enabled
       ? [["Entrega", "En la zona", PackageCheck] as const]
@@ -113,7 +125,9 @@ export default async function HomePage() {
               </span>
               <span className="inline-flex items-center gap-2">
                 <MapPin className="size-4 text-gloria-600" />
-                Más stock disponible en el local
+                {pickupConfigured
+                  ? `Retiro coordinado en ${settings.address_line}`
+                  : "Retiro coordinado"}
               </span>
             </div>
           </div>
@@ -225,6 +239,71 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {pickupConfigured ? (
+        <section
+          id="retiro"
+          className="scroll-mt-24 border-b border-border bg-white py-16 sm:py-20"
+        >
+          <div className="container mx-auto px-4">
+            <div className="grid overflow-hidden rounded-[2rem] border border-gloria-200 bg-gloria-950 shadow-[0_30px_80px_-45px_oklch(0.28_0.08_134/0.55)] lg:grid-cols-[0.8fr_1.2fr]">
+              <div className="flex flex-col justify-center p-7 text-white sm:p-10 lg:p-12">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-gloria-200">
+                  Punto de retiro
+                </p>
+                <h2 className="mt-3 font-display text-4xl leading-none sm:text-5xl">
+                  Retire su compra en Los Ceibos 429.
+                </h2>
+                <p className="mt-5 max-w-md text-sm leading-6 text-white/70 sm:text-base">
+                  El stock publicado online se retira en este domicilio de
+                  Libertador General San Martín, con pedido confirmado y horario
+                  coordinado previamente.
+                </p>
+
+                <div className="mt-7 rounded-2xl border border-white/12 bg-white/8 p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="grid size-10 shrink-0 place-items-center rounded-full bg-gloria-400 text-gloria-950">
+                      <MapPin className="size-5" />
+                    </span>
+                    <div>
+                      <p className="font-bold">{settings.address_line}</p>
+                      <p className="mt-1 text-sm text-white/65">
+                        {settings.city}, {settings.state}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <Button
+                  size="lg"
+                  className="mt-6 w-fit rounded-full bg-gloria-400 px-6 text-gloria-950 hover:bg-gloria-300"
+                  asChild
+                >
+                  <a href={mapsUrl} target="_blank" rel="noreferrer">
+                    Cómo llegar con Google Maps
+                    <ExternalLink className="ml-2 size-4" />
+                  </a>
+                </Button>
+                <p className="mt-4 text-xs leading-5 text-white/50">
+                  No se atiende sin coordinación previa. Le avisamos por WhatsApp
+                  cuando el pedido está listo.
+                </p>
+              </div>
+
+              <div className="min-h-[25rem] bg-gloria-100 lg:min-h-[34rem]">
+                <iframe
+                  src={mapEmbedUrl}
+                  title={`Mapa del punto de retiro en ${pickupAddress}`}
+                  className="h-full min-h-[25rem] w-full border-0 lg:min-h-[34rem]"
+                  loading="lazy"
+                  allowFullScreen
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <section className="relative overflow-hidden bg-gloria-100 py-16 sm:py-20">
         <div className="absolute -right-20 top-0 size-72 rounded-full bg-gloria-300/35 blur-3xl" />
