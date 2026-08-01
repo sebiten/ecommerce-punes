@@ -21,6 +21,7 @@ import {
   hasPickupAddress,
 } from "@/lib/maps";
 import { isValidArgentinaContactPhone } from "@/lib/contact";
+import { FACEBOOK_PROMOTION } from "@/lib/promotions";
 
 interface CheckoutFormProps {
   addresses: Address[];
@@ -84,6 +85,19 @@ export function CheckoutForm({
     .join("|");
 
   useEffect(() => setIsMounted(true), []);
+  useEffect(() => {
+    const promotionCode = window.sessionStorage.getItem(
+      FACEBOOK_PROMOTION.storageKey
+    );
+
+    if (!promotionCode) return;
+
+    setFormData((current) =>
+      current.couponCode
+        ? current
+        : { ...current, couponCode: promotionCode }
+    );
+  }, []);
   useEffect(() => {
     checkoutRequestId.current = null;
   }, [cartSignature]);
@@ -206,6 +220,7 @@ export function CheckoutForm({
         throw new Error("Mercado Pago no devolvió un enlace de pago");
       }
 
+      window.sessionStorage.removeItem(FACEBOOK_PROMOTION.storageKey);
       window.location.assign(data.preference.init_point);
     } catch (submitError) {
       setError(

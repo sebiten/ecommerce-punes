@@ -190,6 +190,46 @@ function mapProduct(product: any): ProductWithDetails {
   };
 }
 
+function getAvailableSizeCount(product: ProductWithDetails) {
+  return new Set(
+    product.variants
+      .filter(
+        (variant) =>
+          variant.active !== false && Number(variant.stock ?? 0) > 0
+      )
+      .map((variant) => variant.size.trim().toLocaleLowerCase("es-AR"))
+      .filter(Boolean)
+  ).size;
+}
+
+function getAvailableStock(product: ProductWithDetails) {
+  return product.variants.reduce(
+    (stock, variant) =>
+      variant.active !== false
+        ? stock + Number(variant.stock ?? 0)
+        : stock,
+    0
+  );
+}
+
+function sortProductsByAvailableSizes(products: ProductWithDetails[]) {
+  return products.sort((first, second) => {
+    const sizeDifference =
+      getAvailableSizeCount(second) - getAvailableSizeCount(first);
+
+    if (sizeDifference !== 0) return sizeDifference;
+
+    const stockDifference =
+      getAvailableStock(second) - getAvailableStock(first);
+
+    return stockDifference !== 0
+      ? stockDifference
+      : first.name.localeCompare(second.name, "es", {
+          sensitivity: "base",
+        });
+  });
+}
+
 async function fetchProduct(query: any) {
   const { data, error } = await query.maybeSingle();
 
@@ -458,16 +498,16 @@ const getProductsCached = unstable_cache(
       query = query.eq("featured", true);
     }
 
-    if (options?.limit) {
-      query = query.limit(options.limit);
-    }
-
     const { data, error } = await query;
     if (error) throw error;
 
-    return (data || []).map(mapProduct);
+    const products = sortProductsByAvailableSizes(
+      (data || []).map(mapProduct)
+    );
+
+    return options?.limit ? products.slice(0, options.limit) : products;
   },
-  ["products-public-v4"],
+  ["products-public-v5"],
   {
     tags: [PRODUCTS_CACHE_TAG],
     revalidate: 3600,

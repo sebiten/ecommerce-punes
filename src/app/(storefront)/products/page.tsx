@@ -4,46 +4,85 @@ import { MessageCircle, Search, X } from "lucide-react";
 import { getProducts } from "@/actions/products";
 import { getStoreSettings } from "@/actions/store-settings";
 import { ProductGrid } from "@/components/storefront/product-grid";
+import { PromotionTracker } from "@/components/storefront/promotion-tracker";
 import { Button } from "@/components/ui/button";
+import { FACEBOOK_PROMOTION, isFacebookPromotion } from "@/lib/promotions";
+import { getFacebookPromotionAvailability } from "@/lib/promotions-server";
 import { SCHOOL_UNIFORMS_DESCRIPTION } from "@/lib/site";
+import { formatPrice } from "@/lib/utils";
 
 interface ProductsPageProps {
   searchParams: Promise<{
     q?: string;
+    promo?: string;
   }>;
 }
 
 export async function generateMetadata({
   searchParams,
 }: ProductsPageProps): Promise<Metadata> {
-  const query = (await searchParams).q?.trim();
+  const params = await searchParams;
+  const query = params.q?.trim();
+  const requestedPromotion = isFacebookPromotion(params.promo);
+  const promotion = requestedPromotion
+    ? await getFacebookPromotionAvailability()
+    : null;
+  const hasPromotion = Boolean(promotion?.available);
+  const promotionDescription = `$3.000 de descuento para las primeras ${FACEBOOK_PROMOTION.maxUses} compras online de uniformes escolares.`;
 
   return {
     title: query
       ? `Uniformes para ${query}`
-      : "Tienda de uniformes escolares en Ledesma",
-    description: SCHOOL_UNIFORMS_DESCRIPTION,
+      : hasPromotion
+        ? "$3.000 de descuento en uniformes escolares"
+        : "Tienda de uniformes escolares en Ledesma",
+    description: hasPromotion
+      ? `${promotionDescription} Remeras y chombas de Escuela Normal en oferta.`
+      : SCHOOL_UNIFORMS_DESCRIPTION,
     alternates: { canonical: "/products" },
     robots: query ? { index: false, follow: true } : undefined,
     openGraph: query
       ? undefined
       : {
-          title: "Tienda de uniformes escolares en Ledesma",
-          description: SCHOOL_UNIFORMS_DESCRIPTION,
-          url: "/products",
+          title: hasPromotion
+            ? "$3.000 de descuento en uniformes escolares"
+            : "Tienda de uniformes escolares en Ledesma",
+          description: hasPromotion
+            ? promotionDescription
+            : SCHOOL_UNIFORMS_DESCRIPTION,
+          url: hasPromotion
+            ? `/products?promo=${FACEBOOK_PROMOTION.code}`
+            : "/products",
+        },
+    twitter: query
+      ? undefined
+      : {
+          card: "summary_large_image",
+          title: hasPromotion
+            ? "$3.000 de descuento en uniformes escolares"
+            : "Tienda de uniformes escolares en Ledesma",
+          description: hasPromotion
+            ? promotionDescription
+            : SCHOOL_UNIFORMS_DESCRIPTION,
         },
   };
 }
 
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
-  const searchTerm = (await searchParams).q?.trim() || undefined;
-  const [products, settings] = await Promise.all([
+  const params = await searchParams;
+  const searchTerm = params.q?.trim() || undefined;
+  const requestedPromotion = isFacebookPromotion(params.promo);
+  const [products, settings, promotion] = await Promise.all([
     getProducts({
       categorySlug: "uniformes-escolares",
       searchTerm,
     }),
     getStoreSettings(),
+    requestedPromotion
+      ? getFacebookPromotionAvailability()
+      : Promise.resolve(null),
   ]);
+  const hasPromotion = Boolean(promotion?.available);
   const whatsappUrl = settings.whatsapp_phone
     ? `https://wa.me/${settings.whatsapp_phone.replace(/\D/g, "")}?text=${encodeURIComponent(
         `Hola, busco un uniforme escolar. Escuela: ${searchTerm || "__"}. Prenda: __. Talle: __.`
@@ -80,6 +119,28 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       </section>
 
       <div className="container mx-auto px-4 py-6 sm:py-8">
+        {hasPromotion ? (
+          <>
+            <PromotionTracker />
+            <div className="mb-6 flex flex-col gap-4 rounded-3xl bg-gloria-950 p-5 text-white sm:flex-row sm:items-center sm:justify-between sm:p-6">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-gloria-300">
+                  Quedan {promotion?.remainingUses} de {FACEBOOK_PROMOTION.maxUses} usos disponibles
+                </p>
+                <p className="mt-2 font-display text-3xl sm:text-4xl">
+                  {formatPrice(FACEBOOK_PROMOTION.discountAmount)} de descuento
+                </p>
+                <p className="mt-2 text-sm leading-6 text-white/70">
+                  El código quedó guardado y aparecerá en el checkout antes de pagar.
+                </p>
+              </div>
+              <div className="w-fit rounded-2xl border border-gloria-400/60 bg-white/5 px-5 py-3 font-black tracking-[0.16em] text-gloria-200">
+                {FACEBOOK_PROMOTION.code}
+              </div>
+            </div>
+          </>
+        ) : null}
+
         <form action="/products" className="flex gap-2">
           <label className="relative block flex-1">
             <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
