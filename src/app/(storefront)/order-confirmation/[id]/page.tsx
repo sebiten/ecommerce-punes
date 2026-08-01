@@ -67,6 +67,18 @@ export default async function OrderConfirmationPage({
           <p className="text-muted-foreground">
             {getOrderStatusDescription(order.status, order.shipping_method)}
           </p>
+          {order.guest_access_token ? (
+            <div className="mt-5 rounded-xl border border-primary/20 bg-primary/5 p-4">
+              <p className="font-semibold">
+                Tu pedido está registrado aunque no tengas una cuenta.
+              </p>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                Guardá esta página y el código del pedido. Te contactaremos por
+                email o WhatsApp usando los datos que ingresaste para avisarte
+                cuando esté listo.
+              </p>
+            </div>
+          ) : null}
         </div>
       ) : (
         <p className="mb-8 text-muted-foreground">
@@ -78,9 +90,11 @@ export default async function OrderConfirmationPage({
         <Button asChild>
           <Link href="/products">Seguir comprando</Link>
         </Button>
-        <Button variant="outline" asChild>
-          <Link href="/account/orders">Ver mis pedidos</Link>
-        </Button>
+        {!order?.guest_access_token ? (
+          <Button variant="outline" asChild>
+            <Link href="/account/orders">Ver mis pedidos</Link>
+          </Button>
+        ) : null}
       </div>
     </div>
   );

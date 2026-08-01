@@ -1,6 +1,12 @@
 import { SITE_NAME } from "@/lib/site";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { formatPrice } from "@/lib/utils";
+import { getStoreSettings } from "@/actions/store-settings";
+import {
+  getGoogleMapsDirectionsUrl,
+  getPickupAddress,
+  PICKUP_LOCATION_REFERENCE,
+} from "@/lib/maps";
 
 type EmailInput = {
   to: string;
@@ -15,6 +21,7 @@ type OrderEmailEvent =
   | "order-created"
   | "payment-approved"
   | "payment-review"
+  | "ready-for-pickup"
   | "shipped"
   | "delivered"
   | "cancelled";
@@ -37,6 +44,11 @@ const ORDER_EMAIL_COPY: Record<
     subject: "Pago recibido, pedido en revisión",
     heading: "Estamos verificando tu pedido",
     body: "Recibimos el pago y estamos confirmando el stock. Te contactaremos a la brevedad.",
+  },
+  "ready-for-pickup": {
+    subject: "Tu pedido está listo para retirar",
+    heading: "Ya podés retirar tu pedido",
+    body: "Acercate al punto de retiro y mostrá el código de tu pedido.",
   },
   shipped: {
     subject: "Tu pedido está en camino",
@@ -157,7 +169,7 @@ export async function sendOrderEmail(
   const supabase = getSupabaseAdmin();
   const { data: order, error } = await supabase
     .from("orders")
-    .select("id, total, shipping_address")
+    .select("id, total, shipping_address, guest_access_token")
     .eq("id", orderId)
     .single();
 
@@ -177,6 +189,30 @@ export async function sendOrderEmail(
   const copy = ORDER_EMAIL_COPY[event];
   const orderCode = order.id.slice(0, 8).toUpperCase();
   const customerName = escapeHtml(shippingAddress?.name || "Hola");
+  let pickupDetailsHtml = "";
+
+  if (event === "ready-for-pickup") {
+    const settings = await getStoreSettings();
+    const pickupAddress = getPickupAddress(settings);
+    const pickupMapsUrl = getGoogleMapsDirectionsUrl(pickupAddress);
+
+    pickupDetailsHtml = `
+      <div style="margin:24px 0;padding:18px;border:1px solid #d8e8c5;border-radius:14px;background:#f7fbf2">
+        <p style="margin:0 0 8px"><strong>Punto de retiro:</strong> ${escapeHtml(pickupAddress)}</p>
+        <p style="margin:0 0 8px"><a href="${escapeHtml(pickupMapsUrl)}" style="color:#35680f;font-weight:700">Cómo llegar con Google Maps</a></p>
+        <p style="margin:0"><strong>Referencia:</strong> ${escapeHtml(PICKUP_LOCATION_REFERENCE)}</p>
+      </div>
+    `;
+  }
+
+  const guestOrderHtml = order.guest_access_token
+    ? `
+      <div style="margin:24px 0;padding:18px;border:1px solid #d8e8c5;border-radius:14px">
+        <p style="margin:0 0 8px"><strong>Tu pedido está registrado aunque no tengas una cuenta.</strong></p>
+        <p style="margin:0;line-height:1.6">Guardá este email y el código del pedido. Usaremos el email y teléfono que ingresaste para enviarte novedades y coordinar el retiro o la entrega.</p>
+      </div>
+    `
+    : "";
   const html = `
     <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#17210f">
       <p style="font-size:14px;color:#54703a">${escapeHtml(SITE_NAME)}</p>
@@ -187,6 +223,8 @@ export async function sendOrderEmail(
         <p style="margin:0 0 8px"><strong>Pedido:</strong> ${orderCode}</p>
         <p style="margin:0"><strong>Total:</strong> ${escapeHtml(formatPrice(Number(order.total)))}</p>
       </div>
+      ${pickupDetailsHtml}
+      ${guestOrderHtml}
     </div>
   `;
 

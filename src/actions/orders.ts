@@ -828,17 +828,19 @@ export async function updateOrderStatus(id: string, status: string) {
 
   if (error) throw error;
   const emailEvent =
-    status === "shipped"
-      ? "shipped"
-      : status === "delivered"
-        ? "delivered"
-        : status === "cancelled"
-          ? "cancelled"
-          : status === "payment_review"
-            ? "payment-review"
-            : status === "paid"
-              ? "payment-approved"
-              : null;
+    status === "ready_for_pickup"
+      ? "ready-for-pickup"
+      : status === "shipped"
+        ? "shipped"
+        : status === "delivered"
+          ? "delivered"
+          : status === "cancelled"
+            ? "cancelled"
+            : status === "payment_review"
+              ? "payment-review"
+              : status === "paid"
+                ? "payment-approved"
+                : null;
   if (emailEvent) {
     await sendOrderEmail(id, emailEvent).catch((notificationError) => {
       console.error("No se pudo enviar la notificación del pedido:", notificationError);

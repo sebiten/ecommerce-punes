@@ -12,18 +12,20 @@ import {
 } from "@/lib/commerce";
 import { OrderStatusForm } from "./order-status-form";
 import { requireAdmin } from "@/actions/auth";
+import { getStoreSettings } from "@/actions/store-settings";
+import {
+  getGoogleMapsDirectionsUrl,
+  getPickupAddress,
+  hasPickupAddress,
+  PICKUP_LOCATION_REFERENCE,
+} from "@/lib/maps";
+import {
+  isValidArgentinaContactPhone,
+  normalizeArgentinaWhatsAppPhone,
+} from "@/lib/contact";
 
 interface DashboardOrderDetailPageProps {
   params: Promise<{ id: string }>;
-}
-
-function normalizeArgentinaWhatsAppPhone(phone: string) {
-  const digits = phone.replace(/\D/g, "").replace(/^0/, "");
-
-  if (digits.startsWith("54")) return digits;
-  if (digits.length === 10) return `54${digits}`;
-
-  return digits;
 }
 
 export default async function DashboardOrderDetailPage({
@@ -32,34 +34,41 @@ export default async function DashboardOrderDetailPage({
   await requireAdmin();
   const { id } = await params;
 
-  let order = null;
-  try {
-    order = await getOrderById(id);
-  } catch {
-    order = null;
-  }
+  const [order, settings] = await Promise.all([
+    getOrderById(id).catch(() => null),
+    getStoreSettings(),
+  ]);
 
   if (!order) {
     notFound();
   }
 
   const shippingAddress = order.shipping_address as Record<string, string> | null;
-  const customerPhone = normalizeArgentinaWhatsAppPhone(
-    shippingAddress?.phone || ""
-  );
+  const rawCustomerPhone = shippingAddress?.phone || "";
+  const customerPhone = isValidArgentinaContactPhone(rawCustomerPhone)
+    ? normalizeArgentinaWhatsAppPhone(rawCustomerPhone)
+    : "";
   const orderCode = order.id.slice(0, 8).toUpperCase();
   const customerName = shippingAddress?.name?.trim().split(/\s+/)[0] || "";
+  const greeting = customerName ? `Hola ${customerName}` : "Hola";
+  const pickupAddress = getPickupAddress(settings);
+  const pickupMapsUrl = hasPickupAddress(settings)
+    ? getGoogleMapsDirectionsUrl(pickupAddress)
+    : null;
+  const guestOrderNotice = order.guest_access_token
+    ? "\n\nEl pago fue procesado por Mercado Pago y tu pedido quedó registrado con este código. Aunque hayas comprado sin iniciar sesión, no necesitás crear una cuenta; te contactaremos usando el email o teléfono que ingresaste."
+    : "";
   const canSendManualWhatsapp =
     (order.shipping_method !== "local_delivery" &&
       order.status === "ready_for_pickup") ||
     (order.shipping_method === "local_delivery" && order.status === "shipped");
   const notificationMessage =
     order.shipping_method === "local_delivery"
-      ? `Hola ${customerName}, tu pedido ${orderCode} de Pilchería Gloria ya está en camino.`
-      : `Hola ${customerName}, tu pedido ${orderCode} de Pilchería Gloria ya está listo para retirar. ${shippingAddress?.references || "Mostrá el código del pedido al retirarlo."}`;
+      ? `${greeting}, tu pedido ${orderCode} de Pilchería Gloria ya está en camino.${guestOrderNotice}`
+      : `${greeting}, tu pedido ${orderCode} de Pilchería Gloria ya está listo para retirar.\n\nPunto de retiro: ${pickupAddress}.${pickupMapsUrl ? `\nCómo llegar: ${pickupMapsUrl}` : ""}\nReferencia: ${PICKUP_LOCATION_REFERENCE}\n\nMostrá el código ${orderCode} al retirarlo.${guestOrderNotice}`;
   const whatsappHref =
     customerPhone && canSendManualWhatsapp
-      ? `https://web.whatsapp.com/send?phone=${customerPhone}&text=${encodeURIComponent(notificationMessage)}`
+      ? `https://wa.me/${customerPhone}?text=${encodeURIComponent(notificationMessage)}`
       : null;
 
   return (
@@ -130,7 +139,7 @@ export default async function DashboardOrderDetailPage({
               <div className="space-y-2 rounded-lg border border-green-200 bg-green-50 p-3">
                 <p className="text-xs leading-5 text-green-900">
                   El aviso no se envía automáticamente. Revisá el mensaje y
-                  presioná Enviar desde tu WhatsApp Web.
+                  presioná Enviar desde WhatsApp.
                 </p>
                 <Button
                   asChild
@@ -143,6 +152,11 @@ export default async function DashboardOrderDetailPage({
                   </Link>
                 </Button>
               </div>
+            ) : canSendManualWhatsapp ? (
+              <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+                No se puede abrir WhatsApp porque el teléfono del cliente no
+                tiene un formato válido con código de área.
+              </p>
             ) : order.shipping_method !== "local_delivery" &&
               order.status === "paid" ? (
               <p className="text-xs leading-5 text-muted-foreground">

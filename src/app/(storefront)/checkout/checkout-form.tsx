@@ -20,6 +20,7 @@ import {
   getPickupAddress,
   hasPickupAddress,
 } from "@/lib/maps";
+import { isValidArgentinaContactPhone } from "@/lib/contact";
 
 interface CheckoutFormProps {
   addresses: Address[];
@@ -137,6 +138,13 @@ export function CheckoutForm({
 
     try {
       const fullName = `${formData.name} ${formData.lastName}`.trim();
+
+      if (!isValidArgentinaContactPhone(formData.phone)) {
+        throw new Error(
+          "Ingresá un teléfono válido con código de área para poder contactarte."
+        );
+      }
+
       checkoutRequestId.current ??= crypto.randomUUID();
 
       if (
@@ -296,10 +304,42 @@ export function CheckoutForm({
               <CardTitle>Datos de contacto</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
+              {!profile ? (
+                <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm leading-6 sm:col-span-2">
+                  <p className="font-semibold">Podés comprar sin crear una cuenta.</p>
+                  <p className="mt-1 text-muted-foreground">
+                    El pago se realiza de forma segura en Mercado Pago y tu
+                    pedido quedará asociado a un código único. Usaremos el email
+                    y el teléfono que ingreses para enviarte novedades y
+                    coordinar el retiro, así que revisá que ambos sean reales y
+                    estén bien escritos.
+                  </p>
+                </div>
+              ) : null}
               <FormField label="Nombre" name="name" value={formData.name} onChange={handleInputChange} required />
               <FormField label="Apellido" name="lastName" value={formData.lastName} onChange={handleInputChange} required />
-              <FormField label="Email" name="email" type="email" value={formData.email} onChange={handleInputChange} required />
-              <FormField label="Teléfono" name="phone" type="tel" value={formData.phone} onChange={handleInputChange} required />
+              <FormField
+                label="Email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                autoComplete="email"
+                hint="Ahí recibirás la confirmación y las novedades del pedido."
+                required
+              />
+              <FormField
+                label="Teléfono"
+                name="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={handleInputChange}
+                autoComplete="tel"
+                inputMode="tel"
+                placeholder="Ej. 388 4123456"
+                hint="Ingresá un número con código de área y WhatsApp, sin 0 ni 15."
+                required
+              />
             </CardContent>
           </Card>
 
@@ -474,12 +514,30 @@ function DeliveryOption({
 function FormField({
   label,
   name,
+  hint,
   ...props
-}: React.ComponentProps<typeof Input> & { label: string; name: string }) {
+}: React.ComponentProps<typeof Input> & {
+  label: string;
+  name: string;
+  hint?: string;
+}) {
+  const hintId = hint ? `${name}-hint` : undefined;
+
   return (
     <div className="space-y-2">
       <Label htmlFor={name}>{label}</Label>
-      <Input id={name} name={name} className="min-h-11" {...props} />
+      <Input
+        id={name}
+        name={name}
+        aria-describedby={hintId}
+        className="min-h-11"
+        {...props}
+      />
+      {hint ? (
+        <p id={hintId} className="text-xs leading-5 text-muted-foreground">
+          {hint}
+        </p>
+      ) : null}
     </div>
   );
 }

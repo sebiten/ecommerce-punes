@@ -5,6 +5,7 @@ import {
   CheckoutRateLimitError,
   enforceCheckoutRateLimit,
 } from "@/lib/security/checkout-rate-limit";
+import { isValidArgentinaContactPhone } from "@/lib/contact";
 
 const checkoutSchema = z.object({
   items: z
@@ -21,7 +22,13 @@ const checkoutSchema = z.object({
   shippingAddress: z.object({
     name: z.string().trim().min(2).max(120),
     email: z.string().trim().email().max(254),
-    phone: z.string().trim().min(6).max(32),
+    phone: z
+      .string()
+      .trim()
+      .max(32)
+      .refine(isValidArgentinaContactPhone, {
+        message: "Ingresá un teléfono válido con código de área.",
+      }),
     street: z.string().trim().max(180).nullable().optional(),
     city: z.string().trim().max(100).nullable().optional(),
     state: z.string().trim().max(100).nullable().optional(),
