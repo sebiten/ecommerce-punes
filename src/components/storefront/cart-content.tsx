@@ -6,10 +6,16 @@ import { Trash2, Plus, Minus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { formatPrice } from "@/lib/utils";
-import { getCartItemLineTotal } from "@/lib/commerce";
+import {
+  canUseLocalDelivery,
+  getCartItemCount,
+  getCartItemLineTotal,
+} from "@/lib/commerce";
 
 export function CartContent() {
   const { items, removeItem, updateQuantity, getTotal, setIsOpen } = useCartStore();
+  const itemCount = getCartItemCount(items);
+  const localDeliveryAvailable = canUseLocalDelivery(items);
 
   if (items.length === 0) {
     return (
@@ -129,6 +135,11 @@ export function CartContent() {
           <span>Total</span>
           <span>{formatPrice(getTotal())}</span>
         </div>
+        <p className="rounded-xl bg-primary/5 p-3 text-sm font-semibold leading-5 text-foreground">
+          {localDeliveryAvailable
+            ? "Entrega local en Ledesma habilitada. También podés elegir retiro coordinado."
+            : `Con ${itemCount} prenda: retiro coordinado. Sumá otra para habilitar entrega local en Ledesma.`}
+        </p>
         <Button className="min-h-12 w-full text-base font-bold" size="lg" asChild>
           <Link
             href="/checkout"

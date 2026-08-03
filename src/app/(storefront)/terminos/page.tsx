@@ -54,8 +54,9 @@ export default async function TermsPage() {
           listo. {settings.pickup_instructions}
         </p>
         <p>
-          Si se habilita entrega local, el costo y los datos necesarios se
-          informan antes de pagar.
+          La entrega local se habilita para compras de dos o más prendas. Con
+          una sola prenda, la modalidad disponible es el retiro coordinado. El
+          costo y los datos necesarios se informan antes de pagar.
         </p>
       </LegalSection>
       <LegalSection title="Cambios y cancelación">

@@ -12,7 +12,11 @@ import {
 } from "@/lib/mercadopago/client";
 import { revalidatePath } from "next/cache";
 import type { OrderStatus, ShippingAddress } from "@/types";
-import { getShippingCost } from "@/lib/commerce";
+import {
+  canUseLocalDelivery,
+  getShippingCost,
+  LOCAL_DELIVERY_MIN_ITEMS,
+} from "@/lib/commerce";
 import { getStoreSettings } from "@/actions/store-settings";
 import { revalidateProductCacheFromRouteHandler } from "@/lib/cache/products";
 import {
@@ -453,6 +457,15 @@ export async function createOrder({
     !settings.local_delivery_enabled
   ) {
     throw new Error("La entrega local no está disponible");
+  }
+
+  if (
+    safeShippingMethod === "local_delivery" &&
+    !canUseLocalDelivery(resolvedItems)
+  ) {
+    throw new Error(
+      `La entrega local está disponible únicamente para compras de ${LOCAL_DELIVERY_MIN_ITEMS} o más prendas.`
+    );
   }
 
   if (!shippingAddress.name?.trim() || !shippingAddress.email?.trim()) {

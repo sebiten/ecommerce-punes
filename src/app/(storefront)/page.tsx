@@ -72,7 +72,7 @@ export default async function HomePage() {
       ? [["Retiro", settings.address_line, MapPin] as const]
       : []),
     ...(settings.local_delivery_enabled
-      ? [["Entrega", "En la zona", PackageCheck] as const]
+      ? [["Entrega", "Desde 2 prendas", PackageCheck] as const]
       : []),
     ["Pago", "Mercado Pago", CreditCard] as const,
     ["Consulta", "Por WhatsApp", MessageCircle] as const,

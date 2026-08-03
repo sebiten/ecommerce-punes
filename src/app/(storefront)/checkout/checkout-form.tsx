@@ -11,7 +11,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { getCartItemLineTotal, getShippingCost } from "@/lib/commerce";
+import {
+  canUseLocalDelivery,
+  getCartItemCount,
+  getCartItemLineTotal,
+  getShippingCost,
+  LOCAL_DELIVERY_MIN_ITEMS,
+} from "@/lib/commerce";
 import { formatPrice } from "@/lib/utils";
 import type { Address, Profile, StoreSettings } from "@/types";
 import { PaymentConfidence } from "@/components/storefront/payment-confidence";
@@ -102,8 +108,14 @@ export function CheckoutForm({
     checkoutRequestId.current = null;
   }, [cartSignature]);
 
+  const itemCount = getCartItemCount(items);
+  const localDeliveryAvailable =
+    settings.local_delivery_enabled && canUseLocalDelivery(items);
   const subtotal = getTotal();
   const shippingCost = getShippingCost(formData.shippingMethod, {
+    localDeliveryCost: settings.local_delivery_cost,
+  });
+  const localDeliveryCost = getShippingCost("local_delivery", {
     localDeliveryCost: settings.local_delivery_cost,
   });
   const total = subtotal + shippingCost;
@@ -116,6 +128,23 @@ export function CheckoutForm({
   const pickupLocation = pickupConfigured
     ? settings.address_line
     : "Ubicación a confirmar por WhatsApp";
+
+  useEffect(() => {
+    if (
+      formData.shippingMethod !== "local_delivery" ||
+      localDeliveryAvailable ||
+      !settings.pickup_enabled
+    ) {
+      return;
+    }
+
+    checkoutRequestId.current = null;
+    setFormData((current) => ({ ...current, shippingMethod: "pickup" }));
+  }, [
+    formData.shippingMethod,
+    localDeliveryAvailable,
+    settings.pickup_enabled,
+  ]);
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     checkoutRequestId.current = null;
@@ -156,6 +185,15 @@ export function CheckoutForm({
       if (!isValidArgentinaContactPhone(formData.phone)) {
         throw new Error(
           "Ingresá un teléfono válido con código de área para poder contactarte."
+        );
+      }
+
+      if (
+        formData.shippingMethod === "local_delivery" &&
+        !localDeliveryAvailable
+      ) {
+        throw new Error(
+          `La entrega local está disponible desde ${LOCAL_DELIVERY_MIN_ITEMS} prendas.`
         );
       }
 
@@ -313,18 +351,30 @@ export function CheckoutForm({
                     price="Sin costo"
                   />
                 ) : null}
-                {settings.local_delivery_enabled ? (
+                {localDeliveryAvailable ? (
                   <DeliveryOption
                     id="local_delivery"
                     icon={Truck}
                     title="Entrega local"
-                    description="Libertador y localidades cercanas"
+                    description="Ledesma y localidades cercanas"
                     price={
-                      shippingCost > 0 ? formatPrice(shippingCost) : "Sin costo"
+                      localDeliveryCost > 0
+                        ? formatPrice(localDeliveryCost)
+                        : "Sin costo"
                     }
                   />
                 ) : null}
               </RadioGroup>
+              {settings.local_delivery_enabled ? (
+                <p
+                  data-testid="local-delivery-condition"
+                  className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm font-semibold leading-6"
+                >
+                  {localDeliveryAvailable
+                    ? `Tu compra de ${itemCount} prendas habilita entrega local en Ledesma. También podés retirar sin costo.`
+                    : `La entrega local en Ledesma se habilita desde ${LOCAL_DELIVERY_MIN_ITEMS} prendas. Con una sola prenda, el pedido se retira de forma coordinada.`}
+                </p>
+              ) : null}
             </CardContent>
           </Card>
 

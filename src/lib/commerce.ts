@@ -4,6 +4,20 @@ interface ShippingSettings {
   localDeliveryCost?: number;
 }
 
+export const LOCAL_DELIVERY_MIN_ITEMS = 2;
+
+export function getCartItemCount(
+  items: ReadonlyArray<Pick<CartItem, "quantity">>
+) {
+  return items.reduce((total, item) => total + item.quantity, 0);
+}
+
+export function canUseLocalDelivery(
+  items: ReadonlyArray<Pick<CartItem, "quantity">>
+) {
+  return getCartItemCount(items) >= LOCAL_DELIVERY_MIN_ITEMS;
+}
+
 export function getVariantPrice(
   basePrice: number,
   variant?: Pick<ProductVariant, "priceOverride"> | null

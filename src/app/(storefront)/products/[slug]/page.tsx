@@ -118,7 +118,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
           {
             icon: PackageCheck,
             title: "Entrega local",
-            text: "Coordinamos en Libertador y localidades cercanas.",
+            text: "Disponible desde 2 prendas en Ledesma y localidades cercanas.",
           },
         ]
       : []),
