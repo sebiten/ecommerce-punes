@@ -1,30 +1,16 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { ImageResponse } from "next/og";
 import { GloriaWordmark } from "@/components/brand/gloria-wordmark";
 import { FACEBOOK_PROMOTION } from "@/lib/promotions";
 import { getFacebookPromotionAvailability } from "@/lib/promotions-server";
 
 export const alt =
-  "Uniformes escolares y ofertas de Pilchería Gloria en Ledesma, Jujuy";
+  "Uniformes para varias escuelas, con stock por talle, en Pilchería Gloria";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 export const dynamic = "force-dynamic";
 
-async function getUniformImageData(filename: string) {
-  const image = await readFile(
-    join(process.cwd(), "public", "images", "uniforms", "catalog", filename)
-  );
-
-  return `data:image/jpeg;base64,${image.toString("base64")}`;
-}
-
 export default async function OpenGraphImage() {
-  const [normalShirt, normalPolo, promotion] = await Promise.all([
-    getUniformImageData("normal-remera-og.jpg"),
-    getUniformImageData("normal-chomba-og.jpg"),
-    getFacebookPromotionAvailability(),
-  ]);
+  const promotion = await getFacebookPromotionAvailability();
 
   return new ImageResponse(
     <div
@@ -32,67 +18,80 @@ export default async function OpenGraphImage() {
         width: "100%",
         height: "100%",
         display: "flex",
+        flexDirection: "column",
         position: "relative",
         overflow: "hidden",
-        background: "#15170f",
+        background: "#12170d",
         color: "#ffffff",
         fontFamily: "Arial, sans-serif",
+        padding: "42px 54px 38px",
       }}
     >
       <div
         style={{
           position: "absolute",
-          width: 520,
-          height: 520,
-          right: -170,
-          top: -210,
+          width: 470,
+          height: 470,
+          right: -180,
+          top: -250,
           borderRadius: 999,
-          background: "#a8d829",
-          opacity: 0.22,
+          border: "64px solid rgba(168,216,41,0.18)",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          width: 240,
+          height: 240,
+          left: -130,
+          bottom: -155,
+          borderRadius: 999,
+          background: "rgba(168,216,41,0.12)",
         }}
       />
 
       <div
         style={{
-          width: 690,
-          height: "100%",
           display: "flex",
-          flexDirection: "column",
-          padding: "54px 38px 48px 62px",
+          alignItems: "center",
+          justifyContent: "space-between",
+          position: "relative",
+        }}
+      >
+        <div style={{ display: "flex", color: "white" }}>
+          <GloriaWordmark width={225} height={70} title="Pilchería Gloria" />
+        </div>
+        <div
+          style={{
+            display: "flex",
+            borderRadius: 999,
+            background: "#a8d829",
+            color: "#17210f",
+            padding: "11px 20px",
+            fontSize: 20,
+            fontWeight: 900,
+            letterSpacing: 0.6,
+          }}
+        >
+          UNIFORMES ESCOLARES · LEDESMA
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          flex: 1,
+          alignItems: "stretch",
+          gap: 34,
+          marginTop: 28,
+          position: "relative",
         }}
       >
         <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <div style={{ display: "flex", color: "white" }}>
-            <GloriaWordmark width={224} height={72} title="Pilchería Gloria" />
-          </div>
-          <div
-            style={{
-              display: "flex",
-              borderRadius: 999,
-              background: "#a8d829",
-              color: "#17210f",
-              padding: "10px 16px",
-              fontSize: 18,
-              fontWeight: 800,
-            }}
-          >
-            {promotion.available
-              ? "10 PRIMERAS COMPRAS"
-              : "STOCK REAL POR TALLE"}
-          </div>
-        </div>
-
-        <div
-          style={{
+            width: 700,
             display: "flex",
             flexDirection: "column",
-            marginTop: 48,
           }}
         >
           <div
@@ -100,151 +99,153 @@ export default async function OpenGraphImage() {
               display: "flex",
               color: "#badd63",
               fontSize: 25,
-              fontWeight: 800,
-              letterSpacing: 1.5,
+              fontWeight: 900,
+              letterSpacing: 2.2,
             }}
           >
-            UNIFORMES ESCOLARES EN LEDESMA
+            REMERAS Y CHOMBAS
           </div>
           <div
             style={{
               display: "flex",
-              marginTop: 10,
-              fontSize: 68,
-              lineHeight: 0.94,
+              flexDirection: "column",
+              marginTop: 8,
+              fontSize: 66,
+              lineHeight: 0.92,
               fontWeight: 900,
               letterSpacing: -3,
             }}
           >
-            {promotion.available ? "$3.000 de descuento" : "Uniformes escolares"}
+            <span>Uniformes para</span>
+            <span style={{ color: "#a8d829" }}>varias escuelas</span>
           </div>
-          {promotion.available ? (
-            <div
-              style={{
-                display: "flex",
-                marginTop: 25,
-                alignItems: "center",
-                gap: 14,
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  padding: "13px 20px",
-                  border: "2px solid #a8d829",
-                  borderRadius: 14,
-                  color: "#d8f47f",
-                  fontSize: 25,
-                  fontWeight: 900,
-                  letterSpacing: 2,
-                }}
-              >
-                {FACEBOOK_PROMOTION.code}
-              </div>
-              <div style={{ display: "flex", color: "#c8cfbd", fontSize: 21 }}>
-                Se carga desde el enlace
-              </div>
-            </div>
-          ) : (
-            <div
-              style={{
-                display: "flex",
-                marginTop: 25,
-                color: "#c8cfbd",
-                fontSize: 25,
-              }}
-            >
-              Buscá tu escuela y elegí entre los talles disponibles
-            </div>
-          )}
+          <div
+            style={{
+              display: "flex",
+              marginTop: 24,
+              maxWidth: 650,
+              color: "#d6dccf",
+              fontSize: 27,
+              lineHeight: 1.25,
+            }}
+          >
+            Si tu escuela o talle no aparece online, consultanos: en el negocio
+            tenemos más opciones.
+          </div>
         </div>
 
         <div
           style={{
+            width: 365,
             display: "flex",
-            marginTop: "auto",
-            color: "#c8cfbd",
-            fontSize: 21,
+            flexDirection: "column",
+            justifyContent: "center",
+            borderRadius: 28,
+            background: "#f7f8f2",
+            color: "#17210f",
+            padding: "28px 30px",
+            boxShadow: "0 20px 50px rgba(0,0,0,0.22)",
           }}
         >
-          Comprá online · Retiro en Av. Los Ceibos 429
+          <div
+            style={{
+              display: "flex",
+              color: "#55782b",
+              fontSize: 19,
+              fontWeight: 900,
+              letterSpacing: 1.6,
+            }}
+          >
+            PRECIOS ONLINE
+          </div>
+          <div
+            style={{
+              display: "flex",
+              marginTop: 5,
+              fontSize: 42,
+              fontWeight: 900,
+              letterSpacing: -1.5,
+            }}
+          >
+            $20.000 · $25.000
+          </div>
+          {[
+            "Stock visible por talle",
+            "Compra segura con Mercado Pago",
+            "Retiro coordinado en Ledesma",
+          ].map((item) => (
+            <div
+              key={item}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                marginTop: 17,
+                fontSize: 20,
+                fontWeight: 700,
+              }}
+            >
+              <span
+                style={{
+                  display: "flex",
+                  width: 12,
+                  height: 12,
+                  borderRadius: 999,
+                  background: "#86b91e",
+                }}
+              />
+              {item}
+            </div>
+          ))}
         </div>
       </div>
 
       <div
         style={{
-          width: 510,
-          height: "100%",
+          minHeight: 78,
           display: "flex",
           alignItems: "center",
-          gap: 18,
-          padding: "68px 36px 52px 8px",
+          justifyContent: "space-between",
+          gap: 24,
+          borderRadius: 22,
+          background: promotion.available ? "#a8d829" : "#eef4df",
+          color: "#17210f",
+          padding: "15px 24px",
           position: "relative",
         }}
       >
-        {[
-          { src: normalShirt, label: "Remera" },
-          { src: normalPolo, label: "Chomba" },
-        ].map((product, index) => (
-          <div
-            key={product.label}
-            style={{
-              width: 218,
-              height: 462,
-              display: "flex",
-              position: "relative",
-              overflow: "hidden",
-              borderRadius: 28,
-              border: "3px solid rgba(255,255,255,0.16)",
-              transform: index === 0 ? "rotate(-2deg)" : "rotate(2deg)",
-              background: "#29292c",
-            }}
-          >
-            <img
-              src={product.src}
-              alt=""
-              width={218}
-              height={462}
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            />
-            <div
-              style={{
-                position: "absolute",
-                left: 12,
-                right: 12,
-                bottom: 12,
-                display: "flex",
-                flexDirection: "column",
-                borderRadius: 16,
-                background: "rgba(21,23,15,0.92)",
-                padding: "11px 13px",
-              }}
-            >
-              <div style={{ display: "flex", color: "#d8f47f", fontSize: 16 }}>
-                Escuela Normal · {product.label}
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "baseline",
-                  gap: 8,
-                  marginTop: 3,
-                }}
-              >
-                <span style={{ fontSize: 25, fontWeight: 900 }}>$20.000</span>
-                <span
-                  style={{
-                    color: "#aeb5a5",
-                    fontSize: 14,
-                    textDecoration: "line-through",
-                  }}
-                >
-                  $25.000
-                </span>
-              </div>
-            </div>
-          </div>
-        ))}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "baseline",
+            gap: 16,
+          }}
+        >
+          <span style={{ fontSize: 28, fontWeight: 900 }}>
+            {promotion.available
+              ? "$3.000 de descuento"
+              : "Buscá tu escuela y talle"}
+          </span>
+          {promotion.available ? (
+            <span style={{ fontSize: 19, fontWeight: 700 }}>
+              Primeras {FACEBOOK_PROMOTION.maxUses} compras
+            </span>
+          ) : null}
+        </div>
+        <div
+          style={{
+            display: "flex",
+            borderRadius: 12,
+            background: "#17210f",
+            color: "#ffffff",
+            padding: "10px 17px",
+            fontSize: 22,
+            fontWeight: 900,
+            letterSpacing: promotion.available ? 2 : 0,
+          }}
+        >
+          {promotion.available ? FACEBOOK_PROMOTION.code : "VER TALLES Y COMPRAR"}
+        </div>
       </div>
     </div>,
     size

@@ -29,15 +29,19 @@ export async function generateMetadata({
     : null;
   const hasPromotion = Boolean(promotion?.available);
   const promotionDescription = `$3.000 de descuento para las primeras ${FACEBOOK_PROMOTION.maxUses} compras online de uniformes escolares.`;
+  const promotionTitle =
+    "Uniformes para distintas escuelas con $3.000 de descuento";
+  const promotionSocialDescription =
+    "Remeras y chombas desde $20.000, con stock real por talle. Hay más escuelas y opciones disponibles por consulta.";
 
   return {
     title: query
       ? `Uniformes para ${query}`
       : hasPromotion
-        ? "$3.000 de descuento en uniformes escolares"
+        ? promotionTitle
         : "Tienda de uniformes escolares en Ledesma",
     description: hasPromotion
-      ? `${promotionDescription} Remeras y chombas de Escuela Normal en oferta.`
+      ? `${promotionDescription} Remeras y chombas de distintas escuelas, con stock real por talle.`
       : SCHOOL_UNIFORMS_DESCRIPTION,
     alternates: { canonical: "/products" },
     robots: query ? { index: false, follow: true } : undefined,
@@ -45,10 +49,10 @@ export async function generateMetadata({
       ? undefined
       : {
           title: hasPromotion
-            ? "$3.000 de descuento en uniformes escolares"
+            ? promotionTitle
             : "Tienda de uniformes escolares en Ledesma",
           description: hasPromotion
-            ? promotionDescription
+            ? `${promotionSocialDescription} ${promotionDescription}`
             : SCHOOL_UNIFORMS_DESCRIPTION,
           url: hasPromotion
             ? `/products?promo=${FACEBOOK_PROMOTION.code}`
@@ -59,10 +63,10 @@ export async function generateMetadata({
       : {
           card: "summary_large_image",
           title: hasPromotion
-            ? "$3.000 de descuento en uniformes escolares"
+            ? promotionTitle
             : "Tienda de uniformes escolares en Ledesma",
           description: hasPromotion
-            ? promotionDescription
+            ? `${promotionSocialDescription} ${promotionDescription}`
             : SCHOOL_UNIFORMS_DESCRIPTION,
         },
   };
