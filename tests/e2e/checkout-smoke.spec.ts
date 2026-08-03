@@ -60,6 +60,7 @@ test("guest user can go from product to checkout", async ({ page }) => {
     await expect(page).toHaveURL(/\/checkout$/);
     await expect(cartDrawer).not.toBeInViewport();
     await expect(page.locator("main")).toHaveCount(1);
+    await expect(page.getByRole("button", { name: "Aplicar" })).toBeVisible();
 
     await page.getByLabel("Nombre").fill("QA");
     await page.getByLabel("Apellido").fill("Gloria");

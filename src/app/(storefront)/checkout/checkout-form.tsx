@@ -28,6 +28,7 @@ import {
 } from "@/lib/maps";
 import { isValidArgentinaContactPhone } from "@/lib/contact";
 import { FACEBOOK_PROMOTION } from "@/lib/promotions";
+import { validateCouponForCheckout } from "@/actions/coupons";
 
 interface CheckoutFormProps {
   addresses: Address[];
@@ -36,6 +37,16 @@ interface CheckoutFormProps {
 }
 
 type DeliveryMethod = "pickup" | "local_delivery";
+
+type AppliedCoupon = {
+  code: string;
+  discount: number;
+};
+
+type CouponFeedback = {
+  type: "success" | "error";
+  message: string;
+};
 
 function splitFullName(fullName: string | null | undefined) {
   const parts = (fullName || "").trim().split(/\s+/).filter(Boolean);
@@ -63,6 +74,10 @@ export function CheckoutForm({
   const defaultName = splitFullName(defaultAddress?.name || profile?.full_name);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
+  const [couponFeedback, setCouponFeedback] =
+    useState<CouponFeedback | null>(null);
   const [selectedAddressId, setSelectedAddressId] = useState(
     defaultAddress?.id || "manual"
   );
@@ -106,6 +121,8 @@ export function CheckoutForm({
   }, []);
   useEffect(() => {
     checkoutRequestId.current = null;
+    setAppliedCoupon(null);
+    setCouponFeedback(null);
   }, [cartSignature]);
 
   const itemCount = getCartItemCount(items);
@@ -118,7 +135,8 @@ export function CheckoutForm({
   const localDeliveryCost = getShippingCost("local_delivery", {
     localDeliveryCost: settings.local_delivery_cost,
   });
-  const total = subtotal + shippingCost;
+  const discount = appliedCoupon?.discount ?? 0;
+  const total = Math.max(0, subtotal - discount + shippingCost);
   const needsAddress = formData.shippingMethod === "local_delivery";
   const shouldOfferSaveAddress =
     Boolean(profile) && needsAddress && selectedAddressId === "manual";
@@ -148,10 +166,53 @@ export function CheckoutForm({
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     checkoutRequestId.current = null;
+    if (event.target.name === "couponCode") {
+      setAppliedCoupon(null);
+      setCouponFeedback(null);
+    }
     setFormData((current) => ({
       ...current,
       [event.target.name]: event.target.value,
     }));
+  };
+
+  const handleApplyCoupon = async () => {
+    const code = formData.couponCode.trim();
+    if (!code) {
+      setCouponFeedback({
+        type: "error",
+        message: "Ingresá un código de cupón.",
+      });
+      return;
+    }
+
+    setIsApplyingCoupon(true);
+    setCouponFeedback(null);
+    checkoutRequestId.current = null;
+
+    try {
+      const result = await validateCouponForCheckout({ code, subtotal });
+      if (!result.valid) {
+        setAppliedCoupon(null);
+        setCouponFeedback({ type: "error", message: result.message });
+        return;
+      }
+
+      setFormData((current) => ({ ...current, couponCode: result.code }));
+      setAppliedCoupon({ code: result.code, discount: result.discount });
+      setCouponFeedback({
+        type: "success",
+        message: `Cupón ${result.code} aplicado. Ahorrás ${formatPrice(result.discount)}.`,
+      });
+    } catch {
+      setAppliedCoupon(null);
+      setCouponFeedback({
+        type: "error",
+        message: "No pudimos validar el cupón. Intentá nuevamente.",
+      });
+    } finally {
+      setIsApplyingCoupon(false);
+    }
   };
 
   const handleAddressSelect = (value: string) => {
@@ -197,6 +258,12 @@ export function CheckoutForm({
         );
       }
 
+      if (formData.couponCode.trim() && !appliedCoupon) {
+        throw new Error(
+          "Aplicá el cupón antes de continuar o borrá el código ingresado."
+        );
+      }
+
       checkoutRequestId.current ??= crypto.randomUUID();
 
       if (
@@ -230,7 +297,7 @@ export function CheckoutForm({
         body: JSON.stringify({
           items,
           shippingMethod: formData.shippingMethod,
-          couponCode: formData.couponCode.trim() || undefined,
+          couponCode: appliedCoupon?.code,
           shippingAddress: {
             name: fullName,
             email: formData.email.trim() || null,
@@ -504,13 +571,36 @@ export function CheckoutForm({
               <CardTitle>Cupón de descuento</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {formData.couponCode ? (
-                <p className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm font-semibold leading-6 text-foreground">
-                  Cupón {formData.couponCode.toUpperCase()} cargado. El descuento
-                  se valida antes de abrir Mercado Pago.
+              <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                <FormField
+                  label="Código (opcional)"
+                  name="couponCode"
+                  value={formData.couponCode}
+                  onChange={handleInputChange}
+                  placeholder="Ingresá tu código"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-12 px-6 text-base font-bold"
+                  onClick={handleApplyCoupon}
+                  disabled={isApplyingCoupon || !formData.couponCode.trim()}
+                >
+                  {isApplyingCoupon ? "Validando..." : "Aplicar"}
+                </Button>
+              </div>
+              {couponFeedback ? (
+                <p
+                  role={couponFeedback.type === "error" ? "alert" : "status"}
+                  className={
+                    couponFeedback.type === "error"
+                      ? "rounded-xl bg-destructive/10 p-3 text-sm font-semibold leading-6 text-destructive"
+                      : "rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm font-semibold leading-6 text-primary"
+                  }
+                >
+                  {couponFeedback.message}
                 </p>
               ) : null}
-              <FormField label="Código (opcional)" name="couponCode" value={formData.couponCode} onChange={handleInputChange} placeholder="Ingresá tu código" />
             </CardContent>
           </Card>
 
@@ -539,6 +629,12 @@ export function CheckoutForm({
                 <span>Subtotal</span>
                 <span>{formatPrice(subtotal)}</span>
               </div>
+              {appliedCoupon ? (
+                <div className="flex justify-between font-semibold text-primary">
+                  <span>Descuento ({appliedCoupon.code})</span>
+                  <span>-{formatPrice(discount)}</span>
+                </div>
+              ) : null}
               <div className="flex justify-between">
                 <span>{needsAddress ? "Entrega local" : "Retiro"}</span>
                 <span>{shippingCost === 0 ? "Sin costo" : formatPrice(shippingCost)}</span>
@@ -547,11 +643,6 @@ export function CheckoutForm({
                 <span>Total</span>
                 <span>{formatPrice(total)}</span>
               </div>
-              {formData.couponCode ? (
-                <p className="rounded-lg bg-primary/5 p-3 text-sm font-semibold leading-5 text-primary">
-                  El descuento del cupón se aplicará al continuar.
-                </p>
-              ) : null}
             </div>
             <Button className="min-h-14 w-full text-base font-bold" size="lg" type="submit" form={formId} data-testid="checkout-submit" disabled={isProcessing}>
               {isProcessing ? "Abriendo Mercado Pago..." : "Continuar a Mercado Pago"}

@@ -5,6 +5,10 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/actions/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import type { Coupon } from "@/types";
+import {
+  calculateCouponDiscount,
+  CouponValidationError,
+} from "@/lib/coupons/server";
 
 const couponPayloadSchema = z.object({
   code: z.string().trim().min(3),
@@ -14,6 +18,11 @@ const couponPayloadSchema = z.object({
   maxUses: z.number().int().positive().nullable().optional(),
   expiresAt: z.string().nullable().optional(),
   active: z.boolean().optional(),
+});
+
+const couponPreviewSchema = z.object({
+  code: z.string().trim().min(1).max(50),
+  subtotal: z.number().finite().positive(),
 });
 
 type CouponPayload = z.infer<typeof couponPayloadSchema>;
@@ -80,4 +89,37 @@ export async function deleteCoupon(id: string) {
   }
 
   revalidatePath("/dashboard/coupons");
+}
+
+export async function validateCouponForCheckout(input: {
+  code: string;
+  subtotal: number;
+}) {
+  const parsed = couponPreviewSchema.safeParse(input);
+  if (!parsed.success) {
+    return { valid: false as const, message: "Ingresá un código de cupón." };
+  }
+
+  try {
+    const result = await calculateCouponDiscount(
+      parsed.data.code,
+      parsed.data.subtotal
+    );
+
+    return {
+      valid: true as const,
+      code: result.code!,
+      discount: result.discount,
+    };
+  } catch (error) {
+    if (error instanceof CouponValidationError) {
+      return { valid: false as const, message: error.message };
+    }
+
+    console.error("No se pudo validar el cupón:", error);
+    return {
+      valid: false as const,
+      message: "No pudimos validar el cupón. Intentá nuevamente.",
+    };
+  }
 }

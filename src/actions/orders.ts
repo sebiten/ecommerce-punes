@@ -28,6 +28,7 @@ import {
 } from "@/lib/orders/payment-state";
 import { sendOrderEmail } from "@/lib/notifications/email";
 import { isStoreReadyForCheckout } from "@/lib/store-readiness";
+import { calculateCouponDiscount } from "@/lib/coupons/server";
 
 const ORDER_STATUS_VALUES: OrderStatus[] = [
   "pending",
@@ -237,51 +238,6 @@ function createCheckoutHash(input: {
     .digest("hex");
 }
 
-async function getCouponDiscount(couponCode: string | undefined, subtotal: number) {
-  const normalizedCode = couponCode?.trim().toUpperCase();
-  if (!normalizedCode) {
-    return { code: null, discount: 0 };
-  }
-
-  const supabase = getSupabaseAdmin();
-  const { data: coupon, error } = await supabase
-    .from("coupons")
-    .select("*")
-    .eq("code", normalizedCode)
-    .eq("active", true)
-    .maybeSingle();
-
-  if (error) {
-    throw error;
-  }
-
-  if (!coupon) {
-    throw new Error("Cupon invalido");
-  }
-
-  if (coupon.expires_at && new Date(coupon.expires_at) < new Date()) {
-    throw new Error("El cupon esta vencido");
-  }
-
-  if (coupon.max_uses && Number(coupon.used_count || 0) >= Number(coupon.max_uses)) {
-    throw new Error("El cupon ya no tiene usos disponibles");
-  }
-
-  if (coupon.min_purchase && subtotal < Number(coupon.min_purchase)) {
-    throw new Error("El subtotal no alcanza el minimo del cupon");
-  }
-
-  const rawDiscount =
-    coupon.type === "percentage"
-      ? subtotal * (Number(coupon.value) / 100)
-      : Number(coupon.value);
-
-  return {
-    code: normalizedCode,
-    discount: Math.min(subtotal, Math.max(0, rawDiscount)),
-  };
-}
-
 async function restoreOrderStock(orderId: string) {
   await cancelOrderAndRelease(orderId, "Cancelada desde el panel");
   revalidateProductCacheAfterStockChange();
@@ -444,7 +400,7 @@ export async function createOrder({
     );
   }
 
-  const discount = await getCouponDiscount(couponCode, subtotal);
+  const discount = await calculateCouponDiscount(couponCode, subtotal);
   const safeShippingMethod =
     shippingMethod === "local_delivery" ? "local_delivery" : "pickup";
 
