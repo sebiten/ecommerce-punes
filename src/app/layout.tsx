@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo_Black, Manrope } from "next/font/google";
+import Script from "next/script";
 import { ClerkProvider } from "@clerk/nextjs";
 import { esES } from "@clerk/localizations";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -108,6 +109,16 @@ export default function RootLayout({
           <ThemeProvider>{children}</ThemeProvider>
         </ClerkProvider>
       </body>
+      <Script
+        src="https://www.googletagmanager.com/gtag/js?id=G-QVFH4THVE9"
+        strategy="afterInteractive"
+      />
+      <Script id="google-analytics" strategy="afterInteractive">
+        {`window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-QVFH4THVE9');`}
+      </Script>
     </html>
   );
 }
