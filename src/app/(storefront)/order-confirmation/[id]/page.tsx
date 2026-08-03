@@ -73,9 +73,9 @@ export default async function OrderConfirmationPage({
                 Tu pedido está registrado aunque no tengas una cuenta.
               </p>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                Guardá esta página y el código del pedido. Te contactaremos por
-                email o WhatsApp usando los datos que ingresaste para avisarte
-                cuando esté listo.
+                Guardá esta página y el código del pedido. Te contactaremos al
+                WhatsApp que ingresaste para avisarte cuando esté listo. Si
+                informaste un email, también recibirás las novedades allí.
               </p>
             </div>
           ) : null}

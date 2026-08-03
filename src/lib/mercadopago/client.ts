@@ -21,7 +21,7 @@ export interface MPPreference {
   payer?: {
     name: string;
     surname: string;
-    email: string;
+    email?: string;
   };
   shipments?: {
     mode: string;

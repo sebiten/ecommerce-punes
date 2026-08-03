@@ -182,9 +182,6 @@ export async function sendOrderEmail(
     email?: string;
   } | null;
   const customerEmail = shippingAddress?.email?.trim();
-  if (!customerEmail) {
-    return;
-  }
 
   const copy = ORDER_EMAIL_COPY[event];
   const orderCode = order.id.slice(0, 8).toUpperCase();
@@ -205,7 +202,7 @@ export async function sendOrderEmail(
     `;
   }
 
-  const guestOrderHtml = order.guest_access_token
+  const guestOrderHtml = order.guest_access_token && customerEmail
     ? `
       <div style="margin:24px 0;padding:18px;border:1px solid #d8e8c5;border-radius:14px">
         <p style="margin:0 0 8px"><strong>Tu pedido está registrado aunque no tengas una cuenta.</strong></p>
@@ -228,14 +225,16 @@ export async function sendOrderEmail(
     </div>
   `;
 
-  await sendEmail({
-    to: customerEmail,
-    subject: `${copy.subject} · ${SITE_NAME}`,
-    html,
-    idempotencyKey: `${event}/${orderId}/${customerEmail}`,
-    orderId,
-    eventKey: event,
-  });
+  if (customerEmail) {
+    await sendEmail({
+      to: customerEmail,
+      subject: `${copy.subject} · ${SITE_NAME}`,
+      html,
+      idempotencyKey: `${event}/${orderId}/${customerEmail}`,
+      orderId,
+      eventKey: event,
+    });
+  }
 
   const adminEmail = process.env.ORDER_NOTIFICATION_TO?.trim();
   if (adminEmail && event === "payment-approved") {

@@ -468,8 +468,8 @@ export async function createOrder({
     );
   }
 
-  if (!shippingAddress.name?.trim() || !shippingAddress.email?.trim()) {
-    throw new Error("Completá tu nombre y email");
+  if (!shippingAddress.name?.trim()) {
+    throw new Error("Completá tu nombre");
   }
 
   if (!shippingAddress.phone?.trim()) {
@@ -605,7 +605,9 @@ export async function createOrder({
       payer: {
         name: shippingAddress.name.split(" ")[0] || shippingAddress.name,
         surname: shippingAddress.name.split(" ").slice(1).join(" "),
-        email: shippingAddress.email,
+        ...(shippingAddress.email?.trim()
+          ? { email: shippingAddress.email.trim() }
+          : {}),
       },
       external_reference: order.id,
       notification_url: `${appUrl}/api/webhooks/mercadopago?source_news=webhooks`,

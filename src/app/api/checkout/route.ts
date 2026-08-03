@@ -21,7 +21,7 @@ const checkoutSchema = z.object({
   shippingMethod: z.enum(["pickup", "local_delivery"]),
   shippingAddress: z.object({
     name: z.string().trim().min(2).max(120),
-    email: z.string().trim().email().max(254),
+    email: z.string().trim().email().max(254).nullable().optional(),
     phone: z
       .string()
       .trim()

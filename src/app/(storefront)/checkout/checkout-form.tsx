@@ -233,7 +233,7 @@ export function CheckoutForm({
           couponCode: formData.couponCode.trim() || undefined,
           shippingAddress: {
             name: fullName,
-            email: formData.email.trim(),
+            email: formData.email.trim() || null,
             phone: formData.phone.trim(),
             street: needsAddress ? formData.street.trim() : null,
             city: needsAddress ? formData.city.trim() : null,
@@ -391,22 +391,21 @@ export function CheckoutForm({
                     hace de forma segura en Mercado Pago.
                   </p>
                   <p className="mt-2 font-semibold text-foreground">
-                    Escribí un email y un WhatsApp reales para poder confirmar
-                    el pedido y coordinar el retiro.
+                    Escribí un WhatsApp real para confirmar el pedido y
+                    coordinar el retiro. El email es opcional.
                   </p>
                 </div>
               ) : null}
               <FormField label="Nombre" name="name" value={formData.name} onChange={handleInputChange} required />
               <FormField label="Apellido" name="lastName" value={formData.lastName} onChange={handleInputChange} required />
               <FormField
-                label="Email"
+                label="Email (opcional)"
                 name="email"
                 type="email"
                 value={formData.email}
                 onChange={handleInputChange}
                 autoComplete="email"
-                hint="Ahí recibirás la confirmación y las novedades del pedido."
-                required
+                hint="Si lo ingresás, también recibirás por email las novedades del pedido."
               />
               <FormField
                 label="Teléfono"
