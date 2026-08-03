@@ -19,7 +19,7 @@ test("guest user can go from product to checkout", async ({ page }) => {
       const request = route.request();
       const payload = request.postDataJSON() as {
         items?: Array<{ product_id: string; variant_id: string | null; quantity: number }>;
-        shippingAddress?: { email?: string; street?: string | null };
+        shippingAddress?: { email?: string | null; street?: string | null };
       };
 
       expect(payload.items).toEqual([
@@ -29,7 +29,7 @@ test("guest user can go from product to checkout", async ({ page }) => {
           quantity: 1,
         }),
       ]);
-      expect(payload.shippingAddress?.email).toBe("qa+gloria@example.com");
+      expect(payload.shippingAddress?.email).toBeNull();
       expect(payload.shippingAddress?.street).toBeNull();
 
       await route.fulfill({
@@ -63,7 +63,9 @@ test("guest user can go from product to checkout", async ({ page }) => {
 
     await page.getByLabel("Nombre").fill("QA");
     await page.getByLabel("Apellido").fill("Gloria");
-    await page.getByLabel("Email").fill("qa+gloria@example.com");
+    await expect(page.getByLabel("Email (opcional)")).not.toHaveAttribute(
+      "required"
+    );
     await page.getByLabel("Teléfono").fill("3884000000");
     await page.getByTestId("checkout-submit").click();
     await expect(page).toHaveURL(/mercadopago\.com\.ar\/checkout/);
