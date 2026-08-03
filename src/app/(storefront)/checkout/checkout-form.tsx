@@ -265,6 +265,20 @@ export function CheckoutForm({
         <h1 className="mt-1 text-3xl font-extrabold tracking-tight sm:text-4xl">
           Finalizar compra
         </h1>
+        <ol
+          className="mt-5 grid grid-cols-3 gap-2 text-center text-xs font-bold sm:text-sm"
+          aria-label="Pasos de la compra"
+        >
+          <li className="rounded-full bg-primary px-2 py-2 text-primary-foreground">
+            1. Tus datos
+          </li>
+          <li className="rounded-full bg-muted px-2 py-2 text-muted-foreground">
+            2. Mercado Pago
+          </li>
+          <li className="rounded-full bg-muted px-2 py-2 text-muted-foreground">
+            3. Confirmación
+          </li>
+        </ol>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-[1fr_22rem]">
@@ -320,14 +334,15 @@ export function CheckoutForm({
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
               {!profile ? (
-                <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm leading-6 sm:col-span-2">
-                  <p className="font-semibold">Podés comprar sin crear una cuenta.</p>
-                  <p className="mt-1 text-muted-foreground">
-                    El pago se realiza de forma segura en Mercado Pago y tu
-                    pedido quedará asociado a un código único. Usaremos el email
-                    y el teléfono que ingreses para enviarte novedades y
-                    coordinar el retiro, así que revisá que ambos sean reales y
-                    estén bien escritos.
+                <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-base leading-6 sm:col-span-2">
+                  <p className="font-bold">Podés comprar sin registrarte.</p>
+                  <p className="mt-2 text-muted-foreground">
+                    Tu pedido queda protegido con un código único y el pago se
+                    hace de forma segura en Mercado Pago.
+                  </p>
+                  <p className="mt-2 font-semibold text-foreground">
+                    Escribí un email y un WhatsApp reales para poder confirmar
+                    el pedido y coordinar el retiro.
                   </p>
                 </div>
               ) : null}
@@ -417,7 +432,7 @@ export function CheckoutForm({
           ) : (
             <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5">
               <p className="font-semibold">{pickupLocation}</p>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              <p className="mt-2 text-base leading-7 text-muted-foreground">
                 {settings.pickup_instructions}
               </p>
               {pickupConfigured ? (
@@ -425,7 +440,7 @@ export function CheckoutForm({
                   href={pickupMapsUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full border border-primary/25 bg-background px-4 text-sm font-bold text-primary hover:bg-primary/5"
+                  className="mt-4 inline-flex min-h-12 items-center gap-2 rounded-full border border-primary/25 bg-background px-4 text-base font-bold text-primary hover:bg-primary/5"
                 >
                   <MapPin className="size-4" />
                   Cómo llegar con Google Maps
@@ -439,8 +454,14 @@ export function CheckoutForm({
             <CardHeader>
               <CardTitle>Cupón de descuento</CardTitle>
             </CardHeader>
-            <CardContent>
-              <FormField label="Código" name="couponCode" value={formData.couponCode} onChange={handleInputChange} placeholder="Ingresá tu código" />
+            <CardContent className="space-y-4">
+              {formData.couponCode ? (
+                <p className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm font-semibold leading-6 text-foreground">
+                  Cupón {formData.couponCode.toUpperCase()} cargado. El descuento
+                  se valida antes de abrir Mercado Pago.
+                </p>
+              ) : null}
+              <FormField label="Código (opcional)" name="couponCode" value={formData.couponCode} onChange={handleInputChange} placeholder="Ingresá tu código" />
             </CardContent>
           </Card>
 
@@ -477,9 +498,14 @@ export function CheckoutForm({
                 <span>Total</span>
                 <span>{formatPrice(total)}</span>
               </div>
+              {formData.couponCode ? (
+                <p className="rounded-lg bg-primary/5 p-3 text-sm font-semibold leading-5 text-primary">
+                  El descuento del cupón se aplicará al continuar.
+                </p>
+              ) : null}
             </div>
-            <Button className="min-h-12 w-full" size="lg" type="submit" form={formId} data-testid="checkout-submit" disabled={isProcessing}>
-              {isProcessing ? "Abriendo Mercado Pago..." : "Pagar con Mercado Pago"}
+            <Button className="min-h-14 w-full text-base font-bold" size="lg" type="submit" form={formId} data-testid="checkout-submit" disabled={isProcessing}>
+              {isProcessing ? "Abriendo Mercado Pago..." : "Continuar a Mercado Pago"}
             </Button>
             <PaymentConfidence amount={total} compact />
             <p className="text-xs leading-5 text-muted-foreground">
@@ -518,7 +544,7 @@ function DeliveryOption({
       <RadioGroupItem value={id} id={id} className="peer sr-only" />
       <Label htmlFor={id} className="flex min-h-32 cursor-pointer flex-col rounded-xl border p-4 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5">
         <Icon className="h-5 w-5 text-primary" />
-        <span className="mt-4 font-semibold">{title}</span>
+        <span className="mt-4 text-base font-bold">{title}</span>
         <span className="mt-1 text-sm text-muted-foreground">{description}</span>
         <span className="mt-auto pt-3 text-sm font-bold">{price}</span>
       </Label>
@@ -540,16 +566,16 @@ function FormField({
 
   return (
     <div className="space-y-2">
-      <Label htmlFor={name}>{label}</Label>
+      <Label htmlFor={name} className="text-base font-semibold">{label}</Label>
       <Input
         id={name}
         name={name}
         aria-describedby={hintId}
-        className="min-h-11"
+        className="min-h-12 text-base"
         {...props}
       />
       {hint ? (
-        <p id={hintId} className="text-xs leading-5 text-muted-foreground">
+        <p id={hintId} className="text-sm leading-5 text-muted-foreground">
           {hint}
         </p>
       ) : null}

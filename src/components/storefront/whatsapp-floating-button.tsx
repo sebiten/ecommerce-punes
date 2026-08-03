@@ -1,4 +1,8 @@
+"use client";
+
 import { MessageCircle } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { useCartStore } from "@/hooks/use-cart";
 
 export function WhatsAppFloatingButton({
   phone,
@@ -7,7 +11,10 @@ export function WhatsAppFloatingButton({
   phone?: string | null;
   storeName: string;
 }) {
-  if (!phone) return null;
+  const pathname = usePathname();
+  const isCartOpen = useCartStore((state) => state.isOpen);
+
+  if (!phone || isCartOpen || pathname === "/checkout") return null;
 
   const href = `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(
     `Hola, quiero consultar por un uniforme escolar en ${storeName}. Escuela: __. Prenda: __. Talle: __.`

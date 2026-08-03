@@ -149,10 +149,10 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
               name="q"
               defaultValue={searchTerm}
               placeholder="Ej.: FASTA, Normal, chomba o remera"
-              className="min-h-12 w-full rounded-full border border-input bg-white pl-11 pr-4 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+              className="min-h-12 w-full rounded-full border border-input bg-white pl-11 pr-4 text-base outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
             />
           </label>
-          <Button type="submit" className="min-h-12 rounded-full px-5">
+          <Button type="submit" className="min-h-12 rounded-full px-5 text-base font-bold">
             Buscar
           </Button>
         </form>
@@ -162,12 +162,12 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
             <p className="font-bold text-gloria-950">
               ¿Busca otra escuela o un talle que no figura?
             </p>
-            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+            <p className="mt-1 text-base leading-7 text-muted-foreground">
               Escriba escuela, prenda y talle. Revisamos el stock del negocio.
             </p>
           </div>
           {whatsappUrl ? (
-            <Button className="shrink-0 rounded-full" asChild>
+            <Button className="min-h-12 shrink-0 rounded-full text-base" asChild>
               <a href={whatsappUrl} target="_blank" rel="noreferrer">
                 <MessageCircle className="mr-2 size-4" />
                 Consultar stock

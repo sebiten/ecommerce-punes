@@ -51,13 +51,13 @@ export function CartContent() {
                 />
               </div>
 
-              <div className="flex flex-1 flex-col justify-between">
+              <div className="flex min-w-0 flex-1 flex-col justify-between">
                 <div>
-                  <h4 className="text-sm font-medium line-clamp-1">
+                  <h4 className="line-clamp-2 text-base font-bold leading-5">
                     {item.product?.name}
                   </h4>
                   {selectedVariant ? (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="mt-1 text-sm text-muted-foreground">
                       Talle {selectedVariant.size}
                       {selectedVariant.color
                         ? `, ${selectedVariant.color}`
@@ -65,12 +65,12 @@ export function CartContent() {
                     </p>
                   ) : null}
                   {isUnavailableVariant ? (
-                    <p className="text-xs text-destructive">
+                    <p className="text-sm text-destructive">
                       Variante no disponible
                     </p>
                   ) : null}
                   {maxQuantity !== null ? (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-sm text-muted-foreground">
                       Stock disponible: {maxQuantity}
                     </p>
                   ) : null}
@@ -81,24 +81,26 @@ export function CartContent() {
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-7 w-7"
+                      className="h-11 w-11"
+                      aria-label="Restar una unidad"
                       onClick={() =>
                         updateQuantity(item.product_id, item.variant_id, item.quantity - 1)
                       }
                     >
-                      <Minus className="h-3 w-3" />
+                      <Minus className="h-4 w-4" />
                     </Button>
                     <span className="w-8 text-center text-sm">{item.quantity}</span>
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-7 w-7"
+                      className="h-11 w-11"
+                      aria-label="Sumar una unidad"
                       onClick={() =>
                         updateQuantity(item.product_id, item.variant_id, item.quantity + 1)
                       }
                       disabled={hasReachedStockLimit || isUnavailableVariant}
                     >
-                      <Plus className="h-3 w-3" />
+                      <Plus className="h-4 w-4" />
                     </Button>
                   </div>
 
@@ -111,7 +113,8 @@ export function CartContent() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                className="h-11 w-11 text-muted-foreground hover:text-destructive"
+                aria-label={`Eliminar ${item.product?.name || "producto"} del carrito`}
                 onClick={() => removeItem(item.product_id, item.variant_id)}
               >
                 <Trash2 className="h-4 w-4" />
@@ -126,7 +129,7 @@ export function CartContent() {
           <span>Total</span>
           <span>{formatPrice(getTotal())}</span>
         </div>
-        <Button className="w-full" size="lg" asChild>
+        <Button className="min-h-12 w-full text-base font-bold" size="lg" asChild>
           <Link
             href="/checkout"
             data-testid="cart-checkout-link"

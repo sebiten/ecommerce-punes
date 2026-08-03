@@ -51,7 +51,7 @@ export function AddToCartButton({
     (variant) => variant.active !== false && Number(variant.stock) > 0
   );
   const [selectedVariant, setSelectedVariant] =
-    useState<ProductVariant | null>(availableVariants[0] || null);
+    useState<ProductVariant | null>(null);
   const [quantity, setQuantity] = useState(1);
   const addItem = useCartStore((state) => state.addItem);
   const selectedStock = Number(selectedVariant?.stock ?? 0);
@@ -66,7 +66,9 @@ export function AddToCartButton({
       ]
         .filter(Boolean)
         .join(", ")
-    : "sin variante";
+    : variants.length
+      ? "talle a confirmar"
+      : "sin variante";
   const productUrl =
     providedProductUrl ||
     (typeof window === "undefined"
@@ -82,9 +84,9 @@ export function AddToCartButton({
     <div className="space-y-5">
       {variants.length ? (
         <div>
-          <Label className="mb-3 block">Elegí talle y color</Label>
+          <Label className="mb-3 block text-base font-bold">Elegí talle y color</Label>
           <RadioGroup
-            value={selectedVariant?.id}
+            value={selectedVariant?.id ?? ""}
             onValueChange={(value) => {
               const variant = variants.find((item) => item.id === value) || null;
               setSelectedVariant(variant);
@@ -110,7 +112,7 @@ export function AddToCartButton({
                   />
                   <Label
                     htmlFor={variant.id}
-                    className="flex min-h-20 cursor-pointer flex-col justify-center rounded-xl border bg-card px-3 py-3 text-center peer-disabled:cursor-not-allowed peer-disabled:opacity-45 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5"
+                    className="flex min-h-24 cursor-pointer flex-col justify-center rounded-xl border bg-card px-3 py-3 text-center text-base peer-disabled:cursor-not-allowed peer-disabled:opacity-45 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 peer-data-[state=checked]:ring-2 peer-data-[state=checked]:ring-primary/20"
                   >
                     <span className="font-bold">{variant.size}</span>
                     {variant.color ? (
@@ -126,6 +128,25 @@ export function AddToCartButton({
               );
             })}
           </RadioGroup>
+          <div
+            className={`mt-3 rounded-xl border p-3 text-base leading-6 ${
+              selectedVariant
+                ? "border-primary/25 bg-primary/5 text-foreground"
+                : "border-amber-300 bg-amber-50 text-amber-950"
+            }`}
+            role="status"
+            aria-live="polite"
+          >
+            {selectedVariant ? (
+              <>
+                <span className="font-bold">Talle elegido:</span>{" "}
+                {selectedVariant.size}
+                {selectedVariant.color ? `, ${selectedVariant.color}` : ""}
+              </>
+            ) : (
+              <span className="font-bold">Tocá un talle para poder continuar.</span>
+            )}
+          </div>
           {!availableVariants.length ? (
             <p className="mt-2 text-sm text-destructive">
               No hay variantes con stock disponible.
@@ -134,39 +155,45 @@ export function AddToCartButton({
         </div>
       ) : null}
 
-      <div className="flex items-center gap-4">
-        <Label>Cantidad</Label>
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setQuantity((current) => Math.max(1, current - 1))}
-            disabled={quantity <= 1}
-          >
-            -
-          </Button>
-          <span className="w-8 text-center">{quantity}</span>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              setQuantity((current) =>
-                variants.length
-                  ? Math.min(current + 1, selectedStock)
-                  : current + 1
-              )
-            }
-            disabled={variants.length > 0 && quantity >= selectedStock}
-          >
-            +
-          </Button>
+      {canAddToCart ? (
+        <div className="flex items-center gap-4">
+          <Label className="text-base font-semibold">Cantidad</Label>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="min-h-11 min-w-11 text-lg"
+              aria-label="Restar una unidad"
+              onClick={() => setQuantity((current) => Math.max(1, current - 1))}
+              disabled={quantity <= 1}
+            >
+              -
+            </Button>
+            <span className="w-10 text-center text-lg font-bold">{quantity}</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="min-h-11 min-w-11 text-lg"
+              aria-label="Sumar una unidad"
+              onClick={() =>
+                setQuantity((current) =>
+                  variants.length
+                    ? Math.min(current + 1, selectedStock)
+                    : current + 1
+                )
+              }
+              disabled={variants.length > 0 && quantity >= selectedStock}
+            >
+              +
+            </Button>
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <Button
-        className="min-h-12 w-full"
+        className="min-h-14 w-full text-base font-bold"
         size="lg"
         data-testid="add-to-cart-button"
         onClick={() =>
@@ -175,13 +202,15 @@ export function AddToCartButton({
         }
         disabled={!canAddToCart}
       >
-        Agregar al carrito - {formatPrice(currentPrice * quantity)}
+        {canAddToCart
+          ? `Agregar al carrito - ${formatPrice(currentPrice * quantity)}`
+          : "Primero elegí un talle"}
       </Button>
 
       <PaymentConfidence amount={currentPrice * quantity} compact />
 
       {whatsappUrl ? (
-        <Button variant="outline" className="min-h-11 w-full" asChild>
+        <Button variant="outline" className="min-h-12 w-full text-base" asChild>
           <a href={whatsappUrl} target="_blank" rel="noreferrer">
             Consultar esta prenda por WhatsApp
           </a>

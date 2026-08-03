@@ -49,7 +49,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
             alt={product.images?.[0]?.alt || product.name}
             fill
             className="object-contain transition duration-500 ease-out group-hover:scale-[1.02]"
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
             loading={priority ? "eager" : "lazy"}
             fetchPriority={priority ? "high" : "auto"}
           />
@@ -71,10 +71,10 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
         </div>
 
         <div className="flex flex-1 flex-col p-4 sm:p-5">
-          <p className="min-h-4 text-[0.68rem] font-bold uppercase tracking-[0.16em] text-gloria-700">
+          <p className="min-h-4 text-xs font-bold uppercase tracking-[0.14em] text-gloria-700">
             {product.brand || product.category?.name || "Pilchería Gloria"}
           </p>
-          <h2 className="mt-2 line-clamp-2 text-base font-bold leading-snug text-foreground sm:text-lg">
+          <h2 className="mt-2 line-clamp-2 text-xl font-bold leading-snug text-foreground">
             {product.name}
           </h2>
           <p className="mt-2 line-clamp-2 text-sm leading-5 text-muted-foreground">
